@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { UserService } from './user.service'
-import { prisma } from '../lib/prisma'
 
 describe('UserService CRUD Operations', () => {
   // Database cleanup is handled by test-setup.ts globally

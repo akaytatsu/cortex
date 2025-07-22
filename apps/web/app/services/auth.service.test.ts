@@ -137,4 +137,126 @@ describe('AuthService', () => {
       expect(user).toBeDefined()
     })
   })
+
+  describe('validateLogin', () => {
+    it('should successfully validate correct credentials', async () => {
+      // Create a user with known password
+      const plainPassword = 'password123'
+      const hashedPassword = await bcrypt.hash(plainPassword, 12)
+      
+      const createdUser = await prisma.user.create({
+        data: {
+          email: 'test@example.com',
+          password: hashedPassword,
+        },
+      })
+
+      const result = await AuthService.validateLogin({
+        email: 'test@example.com',
+        password: plainPassword,
+      })
+
+      expect(result).toBeDefined()
+      expect(result.id).toBe(createdUser.id)
+      expect(result.email).toBe(createdUser.email)
+      expect(result.createdAt).toBeInstanceOf(Date)
+      expect(result.updatedAt).toBeInstanceOf(Date)
+      // Ensure password is not included in result
+      expect('password' in result).toBe(false)
+    })
+
+    it('should throw error for non-existent email', async () => {
+      await expect(
+        AuthService.validateLogin({
+          email: 'nonexistent@example.com',
+          password: 'password123',
+        })
+      ).rejects.toThrow('Invalid email or password')
+    })
+
+    it('should throw error for incorrect password', async () => {
+      // Create a user with known password
+      const plainPassword = 'correctpassword'
+      const hashedPassword = await bcrypt.hash(plainPassword, 12)
+      
+      await prisma.user.create({
+        data: {
+          email: 'test@example.com',
+          password: hashedPassword,
+        },
+      })
+
+      await expect(
+        AuthService.validateLogin({
+          email: 'test@example.com',
+          password: 'wrongpassword',
+        })
+      ).rejects.toThrow('Invalid email or password')
+    })
+
+    it('should handle database errors', async () => {
+      // Mock UserService to throw an error
+      const UserService = await import('./user.service')
+      const originalGetUserByEmail = UserService.UserService.getUserByEmail
+      UserService.UserService.getUserByEmail = vi.fn().mockRejectedValue(new Error('Database connection error'))
+
+      await expect(
+        AuthService.validateLogin({
+          email: 'test@example.com',
+          password: 'password123',
+        })
+      ).rejects.toThrow('Database connection error')
+
+      // Restore original method
+      UserService.UserService.getUserByEmail = originalGetUserByEmail
+    })
+
+    it('should handle bcrypt comparison errors', async () => {
+      // Create a user with valid password
+      const plainPassword = 'password123'
+      const hashedPassword = await bcrypt.hash(plainPassword, 12)
+      
+      await prisma.user.create({
+        data: {
+          email: 'test@example.com',
+          password: hashedPassword,
+        },
+      })
+
+      // Mock bcrypt.compare to throw an error
+      const originalCompare = bcrypt.compare
+      bcrypt.compare = vi.fn().mockRejectedValue(new Error('Bcrypt error'))
+
+      await expect(
+        AuthService.validateLogin({
+          email: 'test@example.com',
+          password: plainPassword,
+        })
+      ).rejects.toThrow('Bcrypt error')
+
+      // Restore original method
+      bcrypt.compare = originalCompare
+    })
+
+    it('should be case sensitive for email', async () => {
+      // Create a user with lowercase email
+      const plainPassword = 'password123'
+      const hashedPassword = await bcrypt.hash(plainPassword, 12)
+      
+      await prisma.user.create({
+        data: {
+          email: 'test@example.com',
+          password: hashedPassword,
+        },
+      })
+
+      // Try to login with uppercase email
+      await expect(
+        AuthService.validateLogin({
+          email: 'TEST@EXAMPLE.COM',
+          password: plainPassword,
+        })
+      ).rejects.toThrow('Invalid email or password')
+    })
+  })
 })
