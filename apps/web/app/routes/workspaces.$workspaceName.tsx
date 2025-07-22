@@ -1,7 +1,7 @@
 import { json, redirect } from "@remix-run/node";
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
-import { WorkspaceService } from "../services/workspace.service";
+import { serviceContainer } from "../lib/service-container";
 import { SessionService } from "../services/session.service";
 import { IDELayout } from "../components/IDELayout";
 
@@ -15,8 +15,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   }
 
   try {
-    const workspaces = await WorkspaceService.listWorkspaces();
-    const workspace = workspaces.find(w => w.name === workspaceName);
+    const workspaceService = serviceContainer.getWorkspaceService();
+    const workspace = await workspaceService.getWorkspaceByName(workspaceName);
 
     if (!workspace) {
       throw redirect("/workspaces");

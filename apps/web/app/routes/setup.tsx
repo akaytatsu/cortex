@@ -5,13 +5,14 @@ import type {
 } from "@remix-run/node";
 import { redirect, json } from "@remix-run/node";
 import { useActionData } from "@remix-run/react";
-import { AuthService } from "../services/auth.service";
 import { SessionService } from "../services/session.service";
 import { SetupForm } from "../components/SetupForm";
+import { serviceContainer } from "../lib/service-container";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function loader(_args: LoaderFunctionArgs) {
-  const hasUsers = await AuthService.hasUsers();
+  const authService = serviceContainer.getAuthService();
+  const hasUsers = await authService.hasUsers();
 
   if (hasUsers) {
     return redirect("/login");
@@ -21,7 +22,8 @@ export async function loader(_args: LoaderFunctionArgs) {
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  const hasUsers = await AuthService.hasUsers();
+  const authService = serviceContainer.getAuthService();
+  const hasUsers = await authService.hasUsers();
 
   if (hasUsers) {
     return redirect("/login");
@@ -51,7 +53,8 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   try {
-    const user = await AuthService.createFirstUser({
+    const authService = serviceContainer.getAuthService();
+    const user = await authService.createFirstUser({
       email: email!,
       password: password!,
     });

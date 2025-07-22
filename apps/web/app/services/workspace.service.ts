@@ -2,6 +2,8 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as yaml from "yaml";
 import type { Workspace } from "../../../../packages/shared-types";
+import type { IWorkspaceService, ILogger } from "../types/services";
+import { createServiceLogger } from "../lib/logger";
 
 class WorkspaceServiceError extends Error {
   constructor(
@@ -19,11 +21,16 @@ const WORKSPACES_FILE = path.join(CORTEX_ROOT, "config", "workspaces.yaml");
 /**
  * Service for managing workspace operations including CRUD operations and path validation
  */
-export class WorkspaceService {
+export class WorkspaceService implements IWorkspaceService {
+  private logger: ILogger;
+
+  constructor(logger?: ILogger) {
+    this.logger = logger || createServiceLogger("WorkspaceService");
+  }
   /**
    * Ensures the config directory exists, creating it if necessary
    */
-  private static async ensureConfigDir(): Promise<void> {
+  private async ensureConfigDir(): Promise<void> {
     const configDir = path.dirname(WORKSPACES_FILE);
     try {
       await fs.access(configDir);
@@ -32,7 +39,7 @@ export class WorkspaceService {
     }
   }
 
-  private static async readWorkspacesFile(): Promise<Workspace[]> {
+  private async readWorkspacesFile(): Promise<Workspace[]> {
     try {
       await this.ensureConfigDir();
       const fileContent = await fs.readFile(WORKSPACES_FILE, "utf-8");
@@ -63,9 +70,7 @@ export class WorkspaceService {
     }
   }
 
-  private static async writeWorkspacesFile(
-    workspaces: Workspace[]
-  ): Promise<void> {
+  private async writeWorkspacesFile(workspaces: Workspace[]): Promise<void> {
     try {
       await this.ensureConfigDir();
       const yamlContent = yaml.stringify(workspaces);
@@ -80,7 +85,7 @@ export class WorkspaceService {
   /**
    * Returns list of all configured workspaces
    */
-  static async listWorkspaces(): Promise<Workspace[]> {
+  async listWorkspaces(): Promise<Workspace[]> {
     return await this.readWorkspacesFile();
   }
 
@@ -92,7 +97,7 @@ export class WorkspaceService {
    * @returns The resolved absolute path
    * @throws WorkspaceServiceError for validation or creation failures
    */
-  static async validateAndCreatePath(
+  async validateAndCreatePath(
     basePath: string,
     folderName?: string,
     createNew: boolean = false
@@ -269,7 +274,7 @@ export class WorkspaceService {
    * @param createNew Whether to create a new directory for the workspace
    * @throws WorkspaceServiceError for validation failures or duplicates
    */
-  static async addWorkspace(
+  async addWorkspace(
     workspace: Workspace,
     createNew: boolean = false
   ): Promise<void> {
@@ -313,9 +318,7 @@ export class WorkspaceService {
    * @param workspaceName The name of the workspace to find
    * @returns The workspace if found, null otherwise
    */
-  static async getWorkspaceByName(
-    workspaceName: string
-  ): Promise<Workspace | null> {
+  async getWorkspaceByName(workspaceName: string): Promise<Workspace | null> {
     if (!workspaceName?.trim()) {
       return null;
     }
@@ -329,7 +332,7 @@ export class WorkspaceService {
    * @param workspaceName The name of the workspace to remove
    * @throws WorkspaceServiceError if workspace is not found or name is empty
    */
-  static async removeWorkspace(workspaceName: string): Promise<void> {
+  async removeWorkspace(workspaceName: string): Promise<void> {
     if (!workspaceName?.trim()) {
       throw new WorkspaceServiceError("Workspace name is required");
     }

@@ -12,6 +12,22 @@ import { RemixServer } from "@remix-run/react";
 import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 
+// Initialize configuration validation
+import { validateConfig } from "./lib/config";
+import { logger } from "./lib/logger";
+
+// Validate configuration on server startup
+try {
+  validateConfig();
+  logger.info("Server startup configuration validation successful");
+} catch (error) {
+  logger.error(
+    "Server startup configuration validation failed",
+    error as Error
+  );
+  process.exit(1);
+}
+
 const ABORT_DELAY = 5_000;
 
 export default function handleRequest(
@@ -79,7 +95,7 @@ function handleBotRequest(
           // errors encountered during initial shell rendering since they'll
           // reject and get logged in handleDocumentRequest.
           if (shellRendered) {
-            console.error(error);
+            logger.error("Streaming rendering error", error as Error);
           }
         },
       }
@@ -129,7 +145,7 @@ function handleBrowserRequest(
           // errors encountered during initial shell rendering since they'll
           // reject and get logged in handleDocumentRequest.
           if (shellRendered) {
-            console.error(error);
+            logger.error("Streaming rendering error", error as Error);
           }
         },
       }

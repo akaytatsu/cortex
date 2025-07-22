@@ -2,7 +2,7 @@ import type { MetaFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { SessionService } from "../services/session.service";
-import { WorkspaceService } from "../services/workspace.service";
+import { serviceContainer } from "../lib/service-container";
 import { LogoutButton } from "../components/LogoutButton";
 import { WorkspaceList } from "../components/WorkspaceList";
 import { EmptyWorkspaces } from "../components/EmptyWorkspaces";
@@ -12,7 +12,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
   await SessionService.requireUserId(request);
 
   // Load workspaces
-  const workspaces = await WorkspaceService.listWorkspaces();
+  const workspaceService = serviceContainer.getWorkspaceService();
+  const workspaces = await workspaceService.listWorkspaces();
 
   // Check for error and success messages in query params
   const url = new URL(request.url);

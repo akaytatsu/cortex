@@ -1,8 +1,7 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { FileSystemService } from "../services/filesystem.service";
+import { serviceContainer } from "../lib/service-container";
 import { SessionService } from "../services/session.service";
-import { WorkspaceService } from "../services/workspace.service";
 import type { FileSaveRequest, FileSaveResponse } from "shared-types";
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -39,7 +38,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     // Get workspace path
-    const workspace = await WorkspaceService.getWorkspaceByName(workspaceName);
+    const workspaceService = serviceContainer.getWorkspaceService();
+    const workspace = await workspaceService.getWorkspaceByName(workspaceName);
     if (!workspace) {
       return json<FileSaveResponse>(
         { success: false, message: "Workspace not found" },
@@ -48,7 +48,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     // Save file
-    const result = await FileSystemService.saveFileContent(
+    const fileSystemService = serviceContainer.getFileSystemService();
+    const result = await fileSystemService.saveFileContent(
       workspace.path,
       saveRequest
     );

@@ -19,9 +19,11 @@ vi.mock("path", async () => {
 
 describe("WorkspaceService", () => {
   const mockFs = vi.mocked(fs);
+  let workspaceService: WorkspaceService;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    workspaceService = new WorkspaceService();
   });
 
   afterEach(() => {
@@ -36,7 +38,7 @@ describe("WorkspaceService", () => {
       enoentError.code = "ENOENT";
       mockFs.readFile.mockRejectedValue(enoentError);
 
-      const result = await WorkspaceService.listWorkspaces();
+      const result = await workspaceService.listWorkspaces();
 
       expect(result).toEqual([]);
     });
@@ -52,7 +54,7 @@ describe("WorkspaceService", () => {
         `- name: Test Workspace\n  path: /test/path\n- name: Another Workspace\n  path: /another/path`
       );
 
-      const result = await WorkspaceService.listWorkspaces();
+      const result = await workspaceService.listWorkspaces();
 
       expect(result).toEqual(mockWorkspaces);
     });
@@ -61,7 +63,7 @@ describe("WorkspaceService", () => {
       mockFs.access.mockResolvedValue(undefined);
       mockFs.readFile.mockResolvedValue("invalid yaml content");
 
-      await expect(WorkspaceService.listWorkspaces()).rejects.toThrow(
+      await expect(workspaceService.listWorkspaces()).rejects.toThrow(
         "Invalid workspaces file format"
       );
     });
@@ -87,7 +89,7 @@ describe("WorkspaceService", () => {
         path: "/new/path",
       };
 
-      await WorkspaceService.addWorkspace(newWorkspace);
+      await workspaceService.addWorkspace(newWorkspace);
 
       expect(mockFs.writeFile).toHaveBeenCalledWith(
         expect.any(String),
@@ -106,7 +108,7 @@ describe("WorkspaceService", () => {
         path: "/new/path",
       };
 
-      await WorkspaceService.addWorkspace(newWorkspace);
+      await workspaceService.addWorkspace(newWorkspace);
 
       expect(mockFs.writeFile).toHaveBeenCalledWith(
         expect.any(String),
@@ -122,7 +124,7 @@ describe("WorkspaceService", () => {
       };
 
       await expect(
-        WorkspaceService.addWorkspace(invalidWorkspace)
+        workspaceService.addWorkspace(invalidWorkspace)
       ).rejects.toThrow("Workspace name is required");
     });
 
@@ -133,7 +135,7 @@ describe("WorkspaceService", () => {
       };
 
       await expect(
-        WorkspaceService.addWorkspace(invalidWorkspace)
+        workspaceService.addWorkspace(invalidWorkspace)
       ).rejects.toThrow("Workspace path is required");
     });
 
@@ -148,7 +150,7 @@ describe("WorkspaceService", () => {
       };
 
       await expect(
-        WorkspaceService.addWorkspace(duplicateWorkspace)
+        workspaceService.addWorkspace(duplicateWorkspace)
       ).rejects.toThrow("A workspace with this name already exists");
     });
 
@@ -162,7 +164,7 @@ describe("WorkspaceService", () => {
         path: "  /spaced/path  ",
       };
 
-      await WorkspaceService.addWorkspace(workspaceWithSpaces);
+      await workspaceService.addWorkspace(workspaceWithSpaces);
 
       expect(mockFs.writeFile).toHaveBeenCalledWith(
         expect.any(String),
@@ -181,7 +183,7 @@ describe("WorkspaceService", () => {
     it("should validate existing directory successfully", async () => {
       const testPath = "/home/user/existing-project";
 
-      const result = await WorkspaceService.validateAndCreatePath(
+      const result = await workspaceService.validateAndCreatePath(
         testPath,
         undefined,
         false
@@ -196,13 +198,13 @@ describe("WorkspaceService", () => {
       const dangerousPath = "/home/user/../sensitive";
 
       await expect(
-        WorkspaceService.validateAndCreatePath(dangerousPath, undefined, false)
+        workspaceService.validateAndCreatePath(dangerousPath, undefined, false)
       ).rejects.toThrow('Path cannot contain ".." for security reasons');
     });
 
     it("should reject empty path", async () => {
       await expect(
-        WorkspaceService.validateAndCreatePath("", undefined, false)
+        workspaceService.validateAndCreatePath("", undefined, false)
       ).rejects.toThrow("Path cannot be empty");
     });
 
@@ -213,7 +215,7 @@ describe("WorkspaceService", () => {
       mockFs.stat.mockRejectedValue(enoentError);
 
       await expect(
-        WorkspaceService.validateAndCreatePath(
+        workspaceService.validateAndCreatePath(
           nonExistentPath,
           undefined,
           false
@@ -226,7 +228,7 @@ describe("WorkspaceService", () => {
       mockFs.stat.mockResolvedValue({ isDirectory: () => false } as fs.Stats);
 
       await expect(
-        WorkspaceService.validateAndCreatePath(filePath, undefined, false)
+        workspaceService.validateAndCreatePath(filePath, undefined, false)
       ).rejects.toThrow("Path is not a directory");
     });
 
@@ -237,7 +239,7 @@ describe("WorkspaceService", () => {
       mockFs.readdir.mockRejectedValue(eaccesError);
 
       await expect(
-        WorkspaceService.validateAndCreatePath(restrictedPath, undefined, false)
+        workspaceService.validateAndCreatePath(restrictedPath, undefined, false)
       ).rejects.toThrow("Permission denied to access directory");
     });
 
@@ -258,7 +260,7 @@ describe("WorkspaceService", () => {
         const folderName = "new-project";
         const expectedPath = "/home/user/projects/new-project";
 
-        const result = await WorkspaceService.validateAndCreatePath(
+        const result = await workspaceService.validateAndCreatePath(
           parentPath,
           folderName,
           true
@@ -274,17 +276,17 @@ describe("WorkspaceService", () => {
 
       it("should require folder name when creating new", async () => {
         await expect(
-          WorkspaceService.validateAndCreatePath("/home/user", "", true)
+          workspaceService.validateAndCreatePath("/home/user", "", true)
         ).rejects.toThrow("Folder name is required when creating new folder");
       });
 
       it("should reject folder name with path separators", async () => {
         await expect(
-          WorkspaceService.validateAndCreatePath("/home/user", "bad/name", true)
+          workspaceService.validateAndCreatePath("/home/user", "bad/name", true)
         ).rejects.toThrow("Folder name cannot contain path separators");
 
         await expect(
-          WorkspaceService.validateAndCreatePath(
+          workspaceService.validateAndCreatePath(
             "/home/user",
             "bad\\name",
             true
@@ -301,7 +303,7 @@ describe("WorkspaceService", () => {
         mockFs.stat.mockRejectedValue(enoentError);
 
         await expect(
-          WorkspaceService.validateAndCreatePath(parentPath, folderName, true)
+          workspaceService.validateAndCreatePath(parentPath, folderName, true)
         ).rejects.toThrow("Parent directory does not exist");
       });
 
@@ -313,7 +315,7 @@ describe("WorkspaceService", () => {
         mockFs.access.mockResolvedValue(undefined);
 
         await expect(
-          WorkspaceService.validateAndCreatePath(parentPath, folderName, true)
+          workspaceService.validateAndCreatePath(parentPath, folderName, true)
         ).rejects.toThrow("Folder already exists at this location");
       });
 
@@ -326,7 +328,7 @@ describe("WorkspaceService", () => {
         mockFs.mkdir.mockRejectedValue(eaccesError);
 
         await expect(
-          WorkspaceService.validateAndCreatePath(parentPath, folderName, true)
+          workspaceService.validateAndCreatePath(parentPath, folderName, true)
         ).rejects.toThrow("Permission denied to create folder");
       });
     });
@@ -344,7 +346,7 @@ describe("WorkspaceService", () => {
         `- name: Project 1\n  path: /home/user/project1\n- name: Project 2\n  path: /home/user/project2`
       );
 
-      await WorkspaceService.removeWorkspace("Project 1");
+      await workspaceService.removeWorkspace("Project 1");
 
       expect(mockFs.writeFile).toHaveBeenCalledWith(
         expect.any(String),
@@ -359,7 +361,7 @@ describe("WorkspaceService", () => {
     });
 
     it("should throw error when workspace name is empty", async () => {
-      await expect(WorkspaceService.removeWorkspace("")).rejects.toThrow(
+      await expect(workspaceService.removeWorkspace("")).rejects.toThrow(
         "Workspace name is required"
       );
     });
@@ -370,7 +372,7 @@ describe("WorkspaceService", () => {
       );
 
       await expect(
-        WorkspaceService.removeWorkspace("Nonexistent Project")
+        workspaceService.removeWorkspace("Nonexistent Project")
       ).rejects.toThrow("Workspace not found");
     });
   });
@@ -399,7 +401,7 @@ describe("WorkspaceService", () => {
 
       const workspace = { name: "Test Project", path: "/home/user/projects" };
 
-      await WorkspaceService.addWorkspace(workspace, true);
+      await workspaceService.addWorkspace(workspace, true);
 
       expect(mockFs.mkdir).toHaveBeenCalledWith(
         "/home/user/projects/Test Project",
@@ -414,7 +416,7 @@ describe("WorkspaceService", () => {
         path: "/home/user/existing-project",
       };
 
-      await WorkspaceService.addWorkspace(workspace, false);
+      await workspaceService.addWorkspace(workspace, false);
 
       expect(mockFs.mkdir).not.toHaveBeenCalled();
       expect(mockFs.writeFile).toHaveBeenCalled();

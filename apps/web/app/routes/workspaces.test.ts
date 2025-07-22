@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { loader } from "./workspaces";
+import { loader } from "./workspaces._index";
 import { SessionService } from "../services/session.service";
 import { WorkspaceService } from "../services/workspace.service";
 

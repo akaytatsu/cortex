@@ -6,12 +6,7 @@ export default defineConfig({
     globals: true,
     environment: "node",
     setupFiles: ["./test-setup.ts"],
-    pool: "forks",
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
+    pool: "threads",
     // Use jsdom for component tests
     environmentMatchGlobs: [["**/*.test.tsx", "jsdom"]],
     // Use different setup for DOM tests

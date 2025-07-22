@@ -1,12 +1,15 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { terminalService } from "../services/terminal.service";
 import type { TerminalMessage } from "shared-types";
+import { createServiceLogger } from "./logger";
 
 interface TerminalWebSocket extends WebSocket {
   sessionId?: string;
   userId?: string;
   isAlive?: boolean;
 }
+
+const logger = createServiceLogger("TerminalWebSocketServer");
 
 // Global singleton instance to prevent multiple server starts
 let globalInstance: TerminalWebSocketServer | null = null;
@@ -26,12 +29,12 @@ class TerminalWebSocketServer {
 
   async start() {
     if (this.wss) {
-      console.log("Terminal WebSocket server already started, skipping...");
+      logger.warn("Terminal WebSocket server already started, skipping");
       return;
     }
 
     if (globalStarting) {
-      console.log("Terminal WebSocket server is already starting, skipping...");
+      logger.warn("Terminal WebSocket server is already starting, skipping");
       return;
     }
 
@@ -49,8 +52,16 @@ class TerminalWebSocketServer {
         break;
       } catch (error: unknown) {
         globalStarting = false;
-        if (error instanceof Error && "code" in error && error.code === "EADDRINUSE" && attempts < maxAttempts - 1) {
-          console.log(`Port ${port} in use, trying ${port + 1}`);
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          error.code === "EADDRINUSE" &&
+          attempts < maxAttempts - 1
+        ) {
+          logger.warn(`Port ${port} in use, trying next port`, {
+            currentPort: port,
+            nextPort: port + 1,
+          });
           port++;
           attempts++;
           continue;
@@ -66,14 +77,12 @@ class TerminalWebSocketServer {
         protocol &&
         (protocol.includes("vite-hmr") || protocol.includes("vite-ping"))
       ) {
-        console.log(
-          `[WebSocket] Rejecting Vite HMR connection with protocol: ${protocol}`
-        );
+        logger.debug("Rejecting Vite HMR connection", { protocol });
         ws.close(1002, "Not a terminal connection");
         return;
       }
 
-      console.log("[WebSocket] Accepted terminal connection");
+      logger.info("Accepted terminal connection");
 
       ws.isAlive = true;
       ws.on("pong", () => {
@@ -85,7 +94,9 @@ class TerminalWebSocketServer {
           const message: TerminalMessage = JSON.parse(data.toString());
           await this.handleMessage(ws, message);
         } catch (error) {
-          console.error("[WebSocket] Error processing message:", error);
+          logger.error("Error processing WebSocket message", error as Error, {
+            sessionId: ws.sessionId,
+          });
           this.sendMessage(ws, {
             type: "error",
             data: "Invalid message format",
@@ -95,7 +106,7 @@ class TerminalWebSocketServer {
       });
 
       ws.on("close", () => {
-        console.log("WebSocket connection closed");
+        logger.info("WebSocket connection closed", { sessionId: ws.sessionId });
         if (ws.sessionId) {
           terminalService.terminateSession(ws.sessionId);
           this.clients.delete(ws.sessionId);
@@ -103,7 +114,9 @@ class TerminalWebSocketServer {
       });
 
       ws.on("error", error => {
-        console.error("WebSocket error:", error);
+        logger.error("WebSocket connection error", error as Error, {
+          sessionId: ws.sessionId,
+        });
         if (ws.sessionId) {
           terminalService.terminateSession(ws.sessionId);
           this.clients.delete(ws.sessionId);
@@ -132,7 +145,7 @@ class TerminalWebSocketServer {
     });
 
     globalStarting = false;
-    console.log(`Terminal WebSocket server started on port ${this.port}`);
+    logger.info("Terminal WebSocket server started", { port: this.port });
   }
 
   private async handleMessage(ws: TerminalWebSocket, message: TerminalMessage) {
@@ -156,7 +169,9 @@ class TerminalWebSocketServer {
         }
       }
     } catch (error) {
-      console.error("Error handling message:", error);
+      logger.error("Error handling WebSocket message", error as Error, {
+        sessionId: message.sessionId,
+      });
       this.sendMessage(ws, {
         type: "error",
         data: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -173,9 +188,9 @@ class TerminalWebSocketServer {
     try {
       // Check if session already exists to avoid duplicates
       if (this.clients.has(sessionId)) {
-        console.log(
-          `[WebSocket] Session ${sessionId} already exists, closing duplicate connection`
-        );
+        logger.warn("Session already exists, closing duplicate connection", {
+          sessionId,
+        });
         ws.close(1002, "Session already exists");
         return;
       }
@@ -195,10 +210,22 @@ class TerminalWebSocketServer {
 
       this.clients.set(sessionId, ws);
 
-      const ptyProcess = await terminalService.spawnTerminal(session);
+      await terminalService.spawnTerminal(session);
+
+      // Get the session with the active process
+      const activeSession = terminalService.getSession(sessionId);
+      if (!activeSession) {
+        throw new Error("Failed to retrieve created session");
+      }
+
+      // Store reference to the terminal process for this WebSocket
+      const ptyProcess = terminalService.getProcess(sessionId);
+      if (!ptyProcess) {
+        throw new Error("Failed to retrieve terminal process");
+      }
 
       // With node-pty, we only need to listen to 'data' events (combines stdout/stderr)
-      ptyProcess.onData(data => {
+      ptyProcess.onData((data: string) => {
         this.sendMessage(ws, {
           type: "output",
           data: data,

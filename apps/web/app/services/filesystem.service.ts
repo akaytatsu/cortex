@@ -6,6 +6,9 @@ import type {
   FileSaveRequest,
   FileSaveResponse,
 } from "shared-types";
+import type { IFileSystemService, ILogger } from "../types/services";
+import { config } from "../lib/config";
+import { createServiceLogger } from "../lib/logger";
 
 class FileSystemServiceError extends Error {
   constructor(
@@ -20,11 +23,16 @@ class FileSystemServiceError extends Error {
 /**
  * Service for file system operations within workspaces
  */
-export class FileSystemService {
+export class FileSystemService implements IFileSystemService {
+  private logger: ILogger;
+
+  constructor(logger?: ILogger) {
+    this.logger = logger || createServiceLogger("FileSystemService");
+  }
   /**
    * Validates that a path is within the allowed workspace path
    */
-  private static validatePath(workspacePath: string, targetPath: string): void {
+  private validatePath(workspacePath: string, targetPath: string): void {
     const normalizedWorkspace = path.resolve(workspacePath);
     const normalizedTarget = path.resolve(targetPath);
 
@@ -39,7 +47,7 @@ export class FileSystemService {
   /**
    * Gets the MIME type for a file based on its extension
    */
-  private static getMimeType(fileName: string): string {
+  private getMimeType(fileName: string): string {
     const ext = path.extname(fileName).toLowerCase();
     const mimeTypes: Record<string, string> = {
       ".js": "text/javascript",
@@ -79,7 +87,7 @@ export class FileSystemService {
   /**
    * Checks if a file is likely to be binary
    */
-  private static async isBinaryFile(filePath: string): Promise<boolean> {
+  private async isBinaryFile(filePath: string): Promise<boolean> {
     try {
       const buffer = await fs.readFile(filePath);
       const chunk = buffer.subarray(0, Math.min(buffer.length, 1024));
@@ -100,7 +108,7 @@ export class FileSystemService {
   /**
    * Reads the file structure of a directory recursively
    */
-  static async getDirectoryStructure(
+  async getDirectoryStructure(
     workspacePath: string,
     relativePath: string = ""
   ): Promise<FileSystemItem[]> {
@@ -182,7 +190,7 @@ export class FileSystemService {
   /**
    * Reads the content of a file
    */
-  static async getFileContent(
+  async getFileContent(
     workspacePath: string,
     relativePath: string
   ): Promise<FileContent> {
@@ -206,10 +214,10 @@ export class FileSystemService {
       }
 
       // Check file size to prevent reading huge files
-      const maxSize = 1024 * 1024 * 10; // 10MB limit
+      const maxSize = config.files.maxSizeBytes;
       if (stats.size > maxSize) {
         throw new FileSystemServiceError(
-          "File too large to display",
+          `File too large to display (${stats.size} bytes, max: ${maxSize} bytes)`,
           "FILE_TOO_LARGE"
         );
       }
@@ -257,7 +265,7 @@ export class FileSystemService {
   /**
    * Saves content to a file
    */
-  static async saveFileContent(
+  async saveFileContent(
     workspacePath: string,
     saveRequest: FileSaveRequest
   ): Promise<FileSaveResponse> {
