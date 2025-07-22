@@ -1,6 +1,6 @@
 import type { Workspace } from "shared-types";
 import { useState } from "react";
-import { Form } from "@remix-run/react";
+import { Form, Link } from "@remix-run/react";
 
 interface WorkspaceListProps {
   workspaces: Workspace[];
@@ -42,15 +42,12 @@ export function WorkspaceList({ workspaces }: WorkspaceListProps) {
             </p>
           </div>
           <div className="flex space-x-2">
-            <button
+            <Link
+              to={`/workspaces/${encodeURIComponent(workspace.name)}`}
               className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
-              onClick={() => {
-                // TODO: Navigate to workspace in future story
-                alert(`Acessando workspace: ${workspace.name}`);
-              }}
             >
-              Acessar
-            </button>
+              Entrar
+            </Link>
             <button
               className="inline-flex items-center px-3 py-2 border border-red-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:bg-gray-700 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-900/20"
               onClick={() => handleDeleteClick(workspace.name)}
