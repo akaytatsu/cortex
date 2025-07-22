@@ -3,13 +3,7 @@ import { loader, action } from './setup'
 import { prisma } from '../lib/prisma'
 
 describe('Setup Route', () => {
-  beforeEach(async () => {
-    await prisma.user.deleteMany({})
-  })
-
-  afterEach(async () => {
-    await prisma.user.deleteMany({})
-  })
+  // Database cleanup is handled by test-setup.ts globally
 
   describe('loader', () => {
     it('should allow access when no users exist', async () => {

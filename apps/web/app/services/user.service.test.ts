@@ -1,12 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { UserService } from './user.service'
 import { prisma } from '../lib/prisma'
 
 describe('UserService CRUD Operations', () => {
-  beforeEach(async () => {
-    // Ensure clean state for each test
-    await prisma.user.deleteMany()
-  })
+  // Database cleanup is handled by test-setup.ts globally
 
   describe('createUser', () => {
     it('should create a new user', async () => {
