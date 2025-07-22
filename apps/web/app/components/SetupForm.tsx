@@ -47,7 +47,8 @@ export function SetupForm({ errors }: SetupFormProps) {
     setClientErrors(prev => ({ ...prev, password: error }));
   };
 
-  const isFormValid = email && password && !clientErrors.email && !clientErrors.password;
+  const isFormValid =
+    email && password && !clientErrors.email && !clientErrors.password;
 
   return (
     <Form method="post" className="space-y-6">
