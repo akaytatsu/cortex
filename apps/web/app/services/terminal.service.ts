@@ -178,7 +178,7 @@ class TerminalService {
     try {
       activeSession.process.resize(cols, rows);
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`Error resizing terminal:`, error);
       return false;
     }
@@ -197,7 +197,7 @@ class TerminalService {
 
       this.activeSessions.delete(sessionId);
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`Error terminating terminal session:`, error);
       return false;
     }

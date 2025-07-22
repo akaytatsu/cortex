@@ -47,9 +47,9 @@ class TerminalWebSocketServer {
         this.wss = new WebSocketServer({ port });
         this.port = port; // Save the successful port
         break;
-      } catch (error: any) {
+      } catch (error: unknown) {
         globalStarting = false;
-        if (error.code === "EADDRINUSE" && attempts < maxAttempts - 1) {
+        if (error instanceof Error && "code" in error && error.code === "EADDRINUSE" && attempts < maxAttempts - 1) {
           console.log(`Port ${port} in use, trying ${port + 1}`);
           port++;
           attempts++;
