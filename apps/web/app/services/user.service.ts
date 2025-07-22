@@ -1,84 +1,133 @@
 import { prisma } from "../lib/prisma";
 import type { User } from "shared-types";
+import type { IUserService } from "../types/services";
+import { createServiceLogger } from "../lib/logger";
 
-export class UserService {
+const logger = createServiceLogger("UserService");
+
+export class UserService implements IUserService {
   static async createUser(data: {
     email: string;
     password: string;
   }): Promise<User> {
+    const requestLogger = logger.withContext({ email: data.email });
     try {
-      return await prisma.user.create({
+      requestLogger.info("Attempting to create user");
+      const user = await prisma.user.create({
         data,
       });
+      requestLogger.info("User created successfully", { userId: user.id });
+      return user;
     } catch (error) {
       // Handle unique constraint violation for email
       if (
         error instanceof Error &&
         error.message.includes("Unique constraint failed")
       ) {
+        requestLogger.error("User creation failed: email already exists", error);
         throw new Error(`User with email ${data.email} already exists`);
       }
+      requestLogger.error("Failed to create user", error as Error);
       throw error;
     }
   }
 
   static async getUserByEmail(email: string): Promise<User | null> {
-    return prisma.user.findUnique({
-      where: { email },
-    });
+    const requestLogger = logger.withContext({ email });
+    try {
+      requestLogger.debug("Searching for user by email");
+      const user = await prisma.user.findUnique({
+        where: { email },
+      });
+      requestLogger.debug("User search completed", { found: !!user, userId: user?.id });
+      return user;
+    } catch (error) {
+      requestLogger.error("Failed to find user by email", error as Error);
+      throw error;
+    }
   }
 
   static async getUserById(id: string): Promise<User | null> {
-    return prisma.user.findUnique({
-      where: { id },
-    });
+    const requestLogger = logger.withContext({ userId: id });
+    try {
+      requestLogger.debug("Searching for user by ID");
+      const user = await prisma.user.findUnique({
+        where: { id },
+      });
+      requestLogger.debug("User search by ID completed", { found: !!user });
+      return user;
+    } catch (error) {
+      requestLogger.error("Failed to find user by ID", error as Error);
+      throw error;
+    }
   }
 
   static async updateUser(
     id: string,
     data: Partial<Pick<User, "email" | "password">>
   ): Promise<User> {
+    const requestLogger = logger.withContext({ userId: id, email: data.email });
     try {
-      return await prisma.user.update({
+      requestLogger.info("Attempting to update user");
+      const user = await prisma.user.update({
         where: { id },
         data,
       });
+      requestLogger.info("User updated successfully");
+      return user;
     } catch (error) {
       if (
         error instanceof Error &&
         error.message.includes("No record was found for an update")
       ) {
+        requestLogger.error("User update failed: user not found", error);
         throw new Error(`User with id ${id} not found`);
       }
       if (
         error instanceof Error &&
         error.message.includes("Unique constraint failed")
       ) {
+        requestLogger.error("User update failed: email already exists", error);
         throw new Error(`Email ${data.email} is already in use`);
       }
+      requestLogger.error("Failed to update user", error as Error);
       throw error;
     }
   }
 
   static async deleteUser(id: string): Promise<User> {
+    const requestLogger = logger.withContext({ userId: id });
     try {
-      return await prisma.user.delete({
+      requestLogger.info("Attempting to delete user");
+      const user = await prisma.user.delete({
         where: { id },
       });
+      requestLogger.info("User deleted successfully");
+      return user;
     } catch (error) {
       if (
         error instanceof Error &&
         error.message.includes("No record was found for a delete")
       ) {
+        requestLogger.error("User deletion failed: user not found", error);
         throw new Error(`User with id ${id} not found`);
       }
+      requestLogger.error("Failed to delete user", error as Error);
       throw error;
     }
   }
 
   static async getAllUsers(): Promise<User[]> {
-    return prisma.user.findMany({
-      orderBy: { createdAt: "desc" },
-    });
+    try {
+      logger.debug("Retrieving all users");
+      const users = await prisma.user.findMany({
+        orderBy: { createdAt: "desc" },
+      });
+      logger.debug("All users retrieved", { count: users.length });
+      return users;
+    } catch (error) {
+      logger.error("Failed to retrieve all users", error as Error);
+      throw error;
+    }
   }
 }

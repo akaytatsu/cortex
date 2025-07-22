@@ -6,6 +6,9 @@ import type {
   FileSaveRequest,
   FileSaveResponse,
 } from "shared-types";
+import type { IFileSystemService } from "../types/services";
+import { config } from "../lib/config";
+import { createServiceLogger } from "../lib/logger";
 
 class FileSystemServiceError extends Error {
   constructor(
@@ -17,10 +20,12 @@ class FileSystemServiceError extends Error {
   }
 }
 
+const logger = createServiceLogger("FileSystemService");
+
 /**
  * Service for file system operations within workspaces
  */
-export class FileSystemService {
+export class FileSystemService implements IFileSystemService {
   /**
    * Validates that a path is within the allowed workspace path
    */
@@ -206,10 +211,10 @@ export class FileSystemService {
       }
 
       // Check file size to prevent reading huge files
-      const maxSize = 1024 * 1024 * 10; // 10MB limit
+      const maxSize = config.files.maxSizeBytes;
       if (stats.size > maxSize) {
         throw new FileSystemServiceError(
-          "File too large to display",
+          `File too large to display (${stats.size} bytes, max: ${maxSize} bytes)`,
           "FILE_TOO_LARGE"
         );
       }

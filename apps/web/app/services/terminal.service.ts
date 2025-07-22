@@ -2,7 +2,10 @@ import * as pty from "node-pty";
 import * as os from "os";
 import * as path from "path";
 import type { TerminalSession } from "shared-types";
+import type { ITerminalService } from "../types/services";
 import { SessionService } from "./session.service";
+import { config } from "../lib/config";
+import { createServiceLogger } from "../lib/logger";
 
 export class TerminalServiceError extends Error {
   constructor(
@@ -20,7 +23,9 @@ interface ActiveSession {
   lastActivity: Date;
 }
 
-class TerminalService {
+const logger = createServiceLogger("TerminalService");
+
+class TerminalService implements ITerminalService {
   private activeSessions = new Map<string, ActiveSession>();
   private cleanupInterval: NodeJS.Timeout | null = null;
 
@@ -29,23 +34,32 @@ class TerminalService {
   }
 
   private startCleanupTimer() {
+    const intervalMs = config.terminal.cleanupIntervalMs;
+    logger.info("Starting terminal cleanup timer", { intervalMs });
     this.cleanupInterval = setInterval(() => {
       this.cleanupInactiveSessions();
-    }, 60000); // Check every minute
+    }, intervalMs);
   }
 
   private cleanupInactiveSessions() {
     const now = new Date();
-    const maxInactivity = 30 * 60 * 1000; // 30 minutes
+    const maxInactivity = config.terminal.maxInactivityMs;
+    let cleanedCount = 0;
 
     for (const [sessionId, activeSession] of this.activeSessions) {
       if (
         now.getTime() - activeSession.lastActivity.getTime() >
         maxInactivity
       ) {
-        console.log(`Cleaning up inactive terminal session: ${sessionId}`);
+        const sessionLogger = logger.withContext({ sessionId, userId: activeSession.session.userId });
+        sessionLogger.info("Cleaning up inactive terminal session");
         this.terminateSession(sessionId);
+        cleanedCount++;
       }
+    }
+
+    if (cleanedCount > 0) {
+      logger.info("Terminal cleanup completed", { cleanedSessions: cleanedCount });
     }
   }
 
@@ -70,22 +84,32 @@ class TerminalService {
     userId: string,
     customSessionId?: string
   ): Promise<TerminalSession> {
-    const validatedPath = this.validateWorkspacePath(workspacePath);
+    const sessionLogger = logger.withContext({ userId, workspaceName, workspacePath });
+    
+    try {
+      sessionLogger.info("Creating terminal session");
+      
+      const validatedPath = this.validateWorkspacePath(workspacePath);
+      
+      const sessionId =
+        customSessionId ||
+        `terminal_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
-    const sessionId =
-      customSessionId ||
-      `terminal_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+      const session: TerminalSession = {
+        id: sessionId,
+        workspaceName,
+        workspacePath: validatedPath,
+        userId,
+        status: "active",
+        createdAt: new Date(),
+      };
 
-    const session: TerminalSession = {
-      id: sessionId,
-      workspaceName,
-      workspacePath: validatedPath,
-      userId,
-      status: "active",
-      createdAt: new Date(),
-    };
-
-    return session;
+      sessionLogger.info("Terminal session created successfully", { sessionId });
+      return session;
+    } catch (error) {
+      sessionLogger.error("Failed to create terminal session", error as Error);
+      throw error;
+    }
   }
 
   async spawnTerminal(session: TerminalSession): Promise<pty.IPty> {
@@ -125,7 +149,8 @@ class TerminalService {
     this.activeSessions.set(session.id, activeSession);
 
     ptyProcess.onExit(({ exitCode, signal }) => {
-      console.log(`Terminal process exited: ${exitCode}, signal: ${signal}`);
+      const sessionLogger = logger.withContext({ sessionId: session.id, userId: session.userId });
+      sessionLogger.info("Terminal process exited", { exitCode, signal });
       this.activeSessions.delete(session.id);
     });
 
@@ -158,7 +183,8 @@ class TerminalService {
       activeSession.process.write(data);
       return true;
     } catch (error) {
-      console.error(`Error writing to terminal:`, error);
+      const sessionLogger = logger.withContext({ sessionId });
+      sessionLogger.error("Error writing to terminal", error as Error);
       return false;
     }
   }
@@ -179,7 +205,8 @@ class TerminalService {
       activeSession.process.resize(cols, rows);
       return true;
     } catch (error: unknown) {
-      console.error(`Error resizing terminal:`, error);
+      const sessionLogger = logger.withContext({ sessionId });
+      sessionLogger.error("Error resizing terminal", error as Error);
       return false;
     }
   }
@@ -191,14 +218,19 @@ class TerminalService {
     }
 
     try {
+      const sessionLogger = logger.withContext({ sessionId });
+      sessionLogger.info("Terminating terminal session");
+      
       activeSession.process.kill("SIGTERM");
 
       // For node-pty, kill is enough - no need for SIGKILL timeout
 
       this.activeSessions.delete(sessionId);
+      sessionLogger.info("Terminal session terminated successfully");
       return true;
     } catch (error: unknown) {
-      console.error(`Error terminating terminal session:`, error);
+      const sessionLogger = logger.withContext({ sessionId });
+      sessionLogger.error("Error terminating terminal session", error as Error);
       return false;
     }
   }

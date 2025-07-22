@@ -2,6 +2,8 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as yaml from "yaml";
 import type { Workspace } from "../../../../packages/shared-types";
+import type { IWorkspaceService } from "../types/services";
+import { createServiceLogger } from "../lib/logger";
 
 class WorkspaceServiceError extends Error {
   constructor(
@@ -13,13 +15,15 @@ class WorkspaceServiceError extends Error {
   }
 }
 
+const logger = createServiceLogger("WorkspaceService");
+
 const CORTEX_ROOT = process.env.CORTEX_ROOT || process.cwd();
 const WORKSPACES_FILE = path.join(CORTEX_ROOT, "config", "workspaces.yaml");
 
 /**
  * Service for managing workspace operations including CRUD operations and path validation
  */
-export class WorkspaceService {
+export class WorkspaceService implements IWorkspaceService {
   /**
    * Ensures the config directory exists, creating it if necessary
    */
