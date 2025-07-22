@@ -14,7 +14,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
   // Load workspaces
   const workspaces = await WorkspaceService.listWorkspaces();
 
-  return json({ workspaces });
+  // Check for error and success messages in query params
+  const url = new URL(request.url);
+  const errorMessage = url.searchParams.get('error');
+  const successMessage = url.searchParams.get('success');
+
+  return json({ 
+    workspaces, 
+    errorMessage: errorMessage ? decodeURIComponent(errorMessage) : null,
+    successMessage: successMessage ? decodeURIComponent(successMessage) : null
+  });
 }
 
 export const meta: MetaFunction = () => {
@@ -25,7 +34,7 @@ export const meta: MetaFunction = () => {
 };
 
 export default function Workspaces() {
-  const { workspaces } = useLoaderData<typeof loader>();
+  const { workspaces, errorMessage, successMessage } = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -36,6 +45,26 @@ export default function Workspaces() {
           </h1>
           <LogoutButton />
         </div>
+
+        {errorMessage && (
+          <div className="px-4 sm:px-0 mb-4">
+            <div className="rounded-md bg-red-50 p-4 dark:bg-red-900/20">
+              <div className="text-sm text-red-700 dark:text-red-400">
+                {errorMessage}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="px-4 sm:px-0 mb-4">
+            <div className="rounded-md bg-green-50 p-4 dark:bg-green-900/20">
+              <div className="text-sm text-green-700 dark:text-green-400">
+                {successMessage}
+              </div>
+            </div>
+          </div>
+        )}
         
         <div className="px-4 py-6 sm:px-0">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">

@@ -22,6 +22,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
   const name = formData.get("name")?.toString();
   const path = formData.get("path")?.toString();
+  const createNewFolder = formData.get("createNewFolder") === "on";
 
   // Validation
   const errors: { name?: string; path?: string; general?: string } = {};
@@ -34,6 +35,11 @@ export async function action({ request }: ActionFunctionArgs) {
     errors.path = "Workspace path is required";
   }
 
+  // Additional validation for createNew mode
+  if (createNewFolder && path?.includes("..")) {
+    errors.path = "Path cannot contain '..' for security reasons";
+  }
+
   if (Object.keys(errors).length > 0) {
     return json({ errors }, { status: 400 });
   }
@@ -42,14 +48,16 @@ export async function action({ request }: ActionFunctionArgs) {
     await WorkspaceService.addWorkspace({
       name: name!.trim(),
       path: path!.trim(),
-    });
+    }, createNewFolder);
 
-    return redirect("/workspaces");
+    return redirect("/workspaces?success=" + encodeURIComponent("Workspace criado com sucesso!"));
   } catch (error) {
     if (error instanceof Error) {
+      // Map service error codes to user-friendly messages
+      const errorMessage = mapServiceErrorToMessage(error.message);
       return json(
         {
-          errors: { general: error.message },
+          errors: { general: errorMessage },
         },
         { status: 400 }
       );
@@ -62,6 +70,22 @@ export async function action({ request }: ActionFunctionArgs) {
       { status: 500 }
     );
   }
+}
+
+function mapServiceErrorToMessage(originalMessage: string): string {
+  const errorMappings: Record<string, string> = {
+    'Parent directory does not exist': 'O diretório pai especificado não existe. Verifique o caminho.',
+    'Parent path is not a directory': 'O caminho pai especificado não é um diretório válido.',
+    'Permission denied to create folder': 'Sem permissão para criar a pasta no local especificado.',
+    'Permission denied to access directory': 'Sem permissão para acessar o diretório especificado.',
+    'Folder already exists at this location': 'Já existe uma pasta com este nome no local especificado.',
+    'Directory does not exist': 'O diretório especificado não existe.',
+    'Path is not a directory': 'O caminho especificado não é um diretório.',
+    'A workspace with this name already exists': 'Já existe um workspace com este nome.',
+    'Path cannot contain ".." for security reasons': 'O caminho não pode conter ".." por motivos de segurança.',
+  };
+
+  return errorMappings[originalMessage] || originalMessage;
 }
 
 export const meta: MetaFunction = () => {

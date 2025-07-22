@@ -62,7 +62,111 @@ export class WorkspaceService {
     return await this.readWorkspacesFile();
   }
 
-  static async addWorkspace(workspace: Workspace): Promise<void> {
+  static async validateAndCreatePath(basePath: string, folderName?: string, createNew: boolean = false): Promise<string> {
+    const sanitizedBasePath = basePath.trim();
+    
+    // Security validation
+    if (sanitizedBasePath.includes('..')) {
+      throw new WorkspaceServiceError('Path cannot contain ".." for security reasons', 'INVALID_PATH');
+    }
+    
+    if (!sanitizedBasePath) {
+      throw new WorkspaceServiceError('Path cannot be empty', 'INVALID_PATH');
+    }
+
+    let finalPath: string;
+    
+    if (createNew) {
+      if (!folderName?.trim()) {
+        throw new WorkspaceServiceError('Folder name is required when creating new folder', 'INVALID_FOLDER_NAME');
+      }
+      
+      const sanitizedFolderName = folderName.trim();
+      
+      // Additional security check for folder name
+      if (sanitizedFolderName.includes('/') || sanitizedFolderName.includes('\\')) {
+        throw new WorkspaceServiceError('Folder name cannot contain path separators', 'INVALID_FOLDER_NAME');
+      }
+      
+      finalPath = path.join(sanitizedBasePath, sanitizedFolderName);
+      
+      try {
+        // Check if parent directory exists
+        const parentStats = await fs.stat(sanitizedBasePath);
+        if (!parentStats.isDirectory()) {
+          throw new WorkspaceServiceError('Parent path is not a directory', 'INVALID_PARENT_PATH');
+        }
+      } catch (error) {
+        if (error instanceof WorkspaceServiceError) {
+          throw error;
+        }
+        if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+          throw new WorkspaceServiceError('Parent directory does not exist', 'PARENT_NOT_FOUND');
+        }
+        throw new WorkspaceServiceError('Failed to access parent directory', 'ACCESS_ERROR');
+      }
+      
+      try {
+        // Check if target folder already exists
+        await fs.access(finalPath);
+        throw new WorkspaceServiceError('Folder already exists at this location', 'FOLDER_EXISTS');
+      } catch (error) {
+        if (error instanceof WorkspaceServiceError) {
+          throw error;
+        }
+        // ENOENT is expected - folder doesn't exist yet
+      }
+      
+      try {
+        // Create the new directory
+        await fs.mkdir(finalPath, { recursive: false });
+      } catch (error) {
+        if (error instanceof Error && 'code' in error) {
+          switch (error.code) {
+            case 'EACCES':
+              throw new WorkspaceServiceError('Permission denied to create folder', 'PERMISSION_DENIED');
+            case 'EEXIST':
+              throw new WorkspaceServiceError('Folder already exists', 'FOLDER_EXISTS');
+            default:
+              throw new WorkspaceServiceError(`Failed to create folder: ${error.message}`, 'CREATE_FAILED');
+          }
+        }
+        throw new WorkspaceServiceError('Unknown error creating folder', 'CREATE_FAILED');
+      }
+    } else {
+      finalPath = sanitizedBasePath;
+      
+      try {
+        // Validate that path exists and is a directory
+        const stats = await fs.stat(finalPath);
+        if (!stats.isDirectory()) {
+          throw new WorkspaceServiceError('Path is not a directory', 'NOT_DIRECTORY');
+        }
+      } catch (error) {
+        if (error instanceof WorkspaceServiceError) {
+          throw error;
+        }
+        if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+          throw new WorkspaceServiceError('Directory does not exist', 'DIRECTORY_NOT_FOUND');
+        }
+        throw new WorkspaceServiceError('Failed to access directory', 'ACCESS_ERROR');
+      }
+      
+      try {
+        // Test read access
+        await fs.readdir(finalPath);
+      } catch (error) {
+        if (error instanceof Error && 'code' in error && error.code === 'EACCES') {
+          throw new WorkspaceServiceError('Permission denied to access directory', 'PERMISSION_DENIED');
+        }
+        throw new WorkspaceServiceError('Cannot access directory', 'ACCESS_ERROR');
+      }
+    }
+    
+    return path.resolve(finalPath);
+  }
+
+  static async addWorkspace(workspace: Workspace, createNew: boolean = false): Promise<void> {
     if (!workspace.name?.trim()) {
       throw new WorkspaceServiceError('Workspace name is required');
     }
@@ -79,10 +183,35 @@ export class WorkspaceService {
       throw new WorkspaceServiceError('A workspace with this name already exists');
     }
 
+    // Validate and potentially create the path
+    const validatedPath = await this.validateAndCreatePath(
+      workspace.path.trim(),
+      createNew ? workspace.name.trim() : undefined,
+      createNew
+    );
+
     workspaces.push({
       name: workspace.name.trim(),
-      path: workspace.path.trim(),
+      path: validatedPath,
     });
+
+    await this.writeWorkspacesFile(workspaces);
+  }
+
+  static async removeWorkspace(workspaceName: string): Promise<void> {
+    if (!workspaceName?.trim()) {
+      throw new WorkspaceServiceError('Workspace name is required');
+    }
+
+    const workspaces = await this.readWorkspacesFile();
+    
+    const workspaceIndex = workspaces.findIndex(w => w.name === workspaceName.trim());
+    if (workspaceIndex === -1) {
+      throw new WorkspaceServiceError('Workspace not found', 'WORKSPACE_NOT_FOUND');
+    }
+
+    // Remove workspace from array (does not delete the actual folder)
+    workspaces.splice(workspaceIndex, 1);
 
     await this.writeWorkspacesFile(workspaces);
   }
