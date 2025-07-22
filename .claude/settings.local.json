@@ -11,22 +11,17 @@
       "Bash(grep:*)",
       "Bash(rm:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "cd:*",
-      "Bash(cd:*)",
       "Bash(curl:*)",
       "Bash(docker:*)",
       "Bash(curl:*)",
       "curl:*",
       "Bash(mkdir:*)",
-      "Bash(npx create-remix:*)",
+      "Bash(npx:*)",
       "Bash(npm install:*)",
       "Bash(timeout 10s npm run dev)",
-      "Bash(npm run lint)",
-      "Bash(npm run typecheck:*)",
-      "Bash(npm run build:*)",
       "Bash(find:*)",
       "Bash(ls:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm:*)"
     ],
     "deny": []
   }
