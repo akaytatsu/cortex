@@ -94,7 +94,7 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
     if (filePath) {
       fetcher.load(`/api/workspaces/${workspaceName}/file?path=${encodeURIComponent(filePath)}`);
     }
-  }, [workspaceName, filePath, fetcher]);
+  }, [workspaceName, filePath]);
 
   useEffect(() => {
     if (fetcher.data?.fileContent) {
