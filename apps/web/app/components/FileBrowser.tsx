@@ -111,6 +111,14 @@ function FileItem({ item, level, onFileSelect }: FileItemProps) {
         `}
         style={{ paddingLeft }}
         onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
+        role="button"
+        tabIndex={0}
       >
         {item.type === 'directory' && (
           <div className="w-4 h-4 flex items-center justify-center">

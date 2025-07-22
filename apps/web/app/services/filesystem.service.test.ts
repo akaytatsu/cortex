@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "fs/promises";
 import { FileSystemService } from "./filesystem.service";
-import type { FileSystemItem } from "shared-types";
 
 // Mock fs module
 vi.mock("fs/promises");
@@ -22,7 +21,11 @@ vi.mock("path", async () => {
   };
 });
 
-const mockFs = fs as any;
+const mockFs = fs as {
+  readdir: ReturnType<typeof vi.fn>;
+  stat: ReturnType<typeof vi.fn>;
+  readFile: ReturnType<typeof vi.fn>;
+};
 
 describe("FileSystemService", () => {
   beforeEach(() => {
@@ -92,7 +95,7 @@ describe("FileSystemService", () => {
     });
 
     it("should throw error for non-existent directory", async () => {
-      const error = new Error("ENOENT") as any;
+      const error = new Error("ENOENT") as Error & { code: string };
       error.code = "ENOENT";
       mockFs.readdir.mockRejectedValue(error);
 
@@ -102,7 +105,7 @@ describe("FileSystemService", () => {
     });
 
     it("should throw error for permission denied", async () => {
-      const error = new Error("EACCES") as any;
+      const error = new Error("EACCES") as Error & { code: string };
       error.code = "EACCES";
       mockFs.readdir.mockRejectedValue(error);
 
@@ -169,7 +172,7 @@ describe("FileSystemService", () => {
     });
 
     it("should throw error for non-existent file", async () => {
-      const error = new Error("ENOENT") as any;
+      const error = new Error("ENOENT") as Error & { code: string };
       error.code = "ENOENT";
       mockFs.stat.mockRejectedValue(error);
 

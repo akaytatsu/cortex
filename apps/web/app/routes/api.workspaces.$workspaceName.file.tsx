@@ -5,21 +5,21 @@ import { FileSystemService } from "../services/filesystem.service";
 import { SessionService } from "../services/session.service";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
-  await SessionService.requireUserId(request);
-
-  const { workspaceName } = params;
-  const url = new URL(request.url);
-  const filePath = url.searchParams.get("path");
-
-  if (!workspaceName) {
-    return json({ error: "Workspace name is required" }, { status: 400 });
-  }
-
-  if (!filePath) {
-    return json({ error: "File path is required" }, { status: 400 });
-  }
-
   try {
+    await SessionService.requireUserId(request);
+
+    const { workspaceName } = params;
+    const url = new URL(request.url);
+    const filePath = url.searchParams.get("path");
+
+    if (!workspaceName) {
+      return json({ error: "Workspace name is required" }, { status: 400 });
+    }
+
+    if (!filePath) {
+      return json({ error: "File path is required" }, { status: 400 });
+    }
+
     // Get workspace details
     const workspaces = await WorkspaceService.listWorkspaces();
     const workspace = workspaces.find(w => w.name === workspaceName);

@@ -5,15 +5,15 @@ import { FileSystemService } from "../services/filesystem.service";
 import { SessionService } from "../services/session.service";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
-  await SessionService.requireUserId(request);
-
-  const { workspaceName } = params;
-
-  if (!workspaceName) {
-    return json({ error: "Workspace name is required" }, { status: 400 });
-  }
-
   try {
+    await SessionService.requireUserId(request);
+
+    const { workspaceName } = params;
+
+    if (!workspaceName) {
+      return json({ error: "Workspace name is required" }, { status: 400 });
+    }
+
     // Get workspace details
     const workspaces = await WorkspaceService.listWorkspaces();
     const workspace = workspaces.find(w => w.name === workspaceName);

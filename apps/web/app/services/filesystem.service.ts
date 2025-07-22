@@ -1,6 +1,6 @@
 import * as fs from "fs/promises";
 import * as path from "path";
-import type { FileSystemItem, FileContent } from "../../../../packages/shared-types";
+import type { FileSystemItem, FileContent } from "shared-types";
 
 class FileSystemServiceError extends Error {
   constructor(
@@ -118,7 +118,6 @@ export class FileSystemService {
         }
 
         const itemPath = path.join(relativePath, entry.name);
-        const fullPath = path.join(targetPath, entry.name);
 
         if (entry.isDirectory()) {
           const directoryItem: FileSystemItem = {
