@@ -1,10 +1,11 @@
 import type { MetaFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
-import { AuthService } from "../services/auth.service";
+import { serviceContainer } from "../lib/service-container";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function loader(_args: LoaderFunctionArgs) {
-  const hasUsers = await AuthService.hasUsers();
+  const authService = serviceContainer.getAuthService();
+  const hasUsers = await authService.hasUsers();
 
   if (!hasUsers) {
     return redirect("/setup");

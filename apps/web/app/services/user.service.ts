@@ -1,16 +1,19 @@
 import { prisma } from "../lib/prisma";
 import type { User } from "shared-types";
-import type { IUserService } from "../types/services";
+import type { IUserService, ILogger } from "../types/services";
 import { createServiceLogger } from "../lib/logger";
 
-const logger = createServiceLogger("UserService");
-
 export class UserService implements IUserService {
-  static async createUser(data: {
+  private logger: ILogger;
+
+  constructor(logger?: ILogger) {
+    this.logger = logger || createServiceLogger("UserService");
+  }
+  async createUser(data: {
     email: string;
     password: string;
   }): Promise<User> {
-    const requestLogger = logger.withContext({ email: data.email });
+    const requestLogger = this.logger.withContext({ email: data.email });
     try {
       requestLogger.info("Attempting to create user");
       const user = await prisma.user.create({
@@ -32,8 +35,8 @@ export class UserService implements IUserService {
     }
   }
 
-  static async getUserByEmail(email: string): Promise<User | null> {
-    const requestLogger = logger.withContext({ email });
+  async getUserByEmail(email: string): Promise<User | null> {
+    const requestLogger = this.logger.withContext({ email });
     try {
       requestLogger.debug("Searching for user by email");
       const user = await prisma.user.findUnique({
@@ -47,8 +50,8 @@ export class UserService implements IUserService {
     }
   }
 
-  static async getUserById(id: string): Promise<User | null> {
-    const requestLogger = logger.withContext({ userId: id });
+  async getUserById(id: string): Promise<User | null> {
+    const requestLogger = this.logger.withContext({ userId: id });
     try {
       requestLogger.debug("Searching for user by ID");
       const user = await prisma.user.findUnique({
@@ -62,11 +65,11 @@ export class UserService implements IUserService {
     }
   }
 
-  static async updateUser(
+  async updateUser(
     id: string,
     data: Partial<Pick<User, "email" | "password">>
   ): Promise<User> {
-    const requestLogger = logger.withContext({ userId: id, email: data.email });
+    const requestLogger = this.logger.withContext({ userId: id, email: data.email });
     try {
       requestLogger.info("Attempting to update user");
       const user = await prisma.user.update({
@@ -95,8 +98,8 @@ export class UserService implements IUserService {
     }
   }
 
-  static async deleteUser(id: string): Promise<User> {
-    const requestLogger = logger.withContext({ userId: id });
+  async deleteUser(id: string): Promise<User> {
+    const requestLogger = this.logger.withContext({ userId: id });
     try {
       requestLogger.info("Attempting to delete user");
       const user = await prisma.user.delete({
@@ -117,16 +120,16 @@ export class UserService implements IUserService {
     }
   }
 
-  static async getAllUsers(): Promise<User[]> {
+  async getAllUsers(): Promise<User[]> {
     try {
-      logger.debug("Retrieving all users");
+      this.logger.debug("Retrieving all users");
       const users = await prisma.user.findMany({
         orderBy: { createdAt: "desc" },
       });
-      logger.debug("All users retrieved", { count: users.length });
+      this.logger.debug("All users retrieved", { count: users.length });
       return users;
     } catch (error) {
-      logger.error("Failed to retrieve all users", error as Error);
+      this.logger.error("Failed to retrieve all users", error as Error);
       throw error;
     }
   }

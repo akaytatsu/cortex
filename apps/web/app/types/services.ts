@@ -40,6 +40,7 @@ export interface ITerminalService {
   ): Promise<TerminalSession>;
   spawnTerminal(session: TerminalSession): Promise<pty.IPty>;
   getSession(sessionId: string): TerminalSession | null;
+  getProcess(sessionId: string): pty.IPty | null;
   updateLastActivity(sessionId: string): void;
   writeToTerminal(sessionId: string, data: string): boolean;
   resizeTerminal(sessionId: string, cols?: number, rows?: number): boolean;
@@ -82,7 +83,7 @@ export interface LogContext {
   sessionId?: string;
   workspacePath?: string;
   correlationId?: string;
-  [key: string]: any;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface ILogger {

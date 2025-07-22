@@ -1,7 +1,6 @@
 import { json } from "@remix-run/node";
 import type { LoaderFunctionArgs } from "@remix-run/node";
-import { WorkspaceService } from "../services/workspace.service";
-import { FileSystemService } from "../services/filesystem.service";
+import { serviceContainer } from "../lib/service-container";
 import { SessionService } from "../services/session.service";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
@@ -15,15 +14,16 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     }
 
     // Get workspace details
-    const workspaces = await WorkspaceService.listWorkspaces();
-    const workspace = workspaces.find(w => w.name === workspaceName);
+    const workspaceService = serviceContainer.getWorkspaceService();
+    const workspace = await workspaceService.getWorkspaceByName(workspaceName);
 
     if (!workspace) {
       return json({ error: "Workspace not found" }, { status: 404 });
     }
 
     // Get directory structure
-    const files = await FileSystemService.getDirectoryStructure(workspace.path);
+    const fileSystemService = serviceContainer.getFileSystemService();
+    const files = await fileSystemService.getDirectoryStructure(workspace.path);
 
     return json({ files });
   } catch (error) {

@@ -164,6 +164,11 @@ class TerminalService implements ITerminalService {
     return activeSession?.session || null;
   }
 
+  getProcess(sessionId: string): pty.IPty | null {
+    const activeSession = this.activeSessions.get(sessionId);
+    return activeSession?.process || null;
+  }
+
   updateLastActivity(sessionId: string): void {
     const activeSession = this.activeSessions.get(sessionId);
     if (activeSession) {

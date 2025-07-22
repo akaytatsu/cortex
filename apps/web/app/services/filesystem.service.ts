@@ -6,7 +6,7 @@ import type {
   FileSaveRequest,
   FileSaveResponse,
 } from "shared-types";
-import type { IFileSystemService } from "../types/services";
+import type { IFileSystemService, ILogger } from "../types/services";
 import { config } from "../lib/config";
 import { createServiceLogger } from "../lib/logger";
 
@@ -20,16 +20,19 @@ class FileSystemServiceError extends Error {
   }
 }
 
-const logger = createServiceLogger("FileSystemService");
-
 /**
  * Service for file system operations within workspaces
  */
 export class FileSystemService implements IFileSystemService {
+  private logger: ILogger;
+
+  constructor(logger?: ILogger) {
+    this.logger = logger || createServiceLogger("FileSystemService");
+  }
   /**
    * Validates that a path is within the allowed workspace path
    */
-  private static validatePath(workspacePath: string, targetPath: string): void {
+  private validatePath(workspacePath: string, targetPath: string): void {
     const normalizedWorkspace = path.resolve(workspacePath);
     const normalizedTarget = path.resolve(targetPath);
 
@@ -44,7 +47,7 @@ export class FileSystemService implements IFileSystemService {
   /**
    * Gets the MIME type for a file based on its extension
    */
-  private static getMimeType(fileName: string): string {
+  private getMimeType(fileName: string): string {
     const ext = path.extname(fileName).toLowerCase();
     const mimeTypes: Record<string, string> = {
       ".js": "text/javascript",
@@ -84,7 +87,7 @@ export class FileSystemService implements IFileSystemService {
   /**
    * Checks if a file is likely to be binary
    */
-  private static async isBinaryFile(filePath: string): Promise<boolean> {
+  private async isBinaryFile(filePath: string): Promise<boolean> {
     try {
       const buffer = await fs.readFile(filePath);
       const chunk = buffer.subarray(0, Math.min(buffer.length, 1024));
@@ -105,7 +108,7 @@ export class FileSystemService implements IFileSystemService {
   /**
    * Reads the file structure of a directory recursively
    */
-  static async getDirectoryStructure(
+  async getDirectoryStructure(
     workspacePath: string,
     relativePath: string = ""
   ): Promise<FileSystemItem[]> {
@@ -187,7 +190,7 @@ export class FileSystemService implements IFileSystemService {
   /**
    * Reads the content of a file
    */
-  static async getFileContent(
+  async getFileContent(
     workspacePath: string,
     relativePath: string
   ): Promise<FileContent> {
@@ -262,7 +265,7 @@ export class FileSystemService implements IFileSystemService {
   /**
    * Saves content to a file
    */
-  static async saveFileContent(
+  async saveFileContent(
     workspacePath: string,
     saveRequest: FileSaveRequest
   ): Promise<FileSaveResponse> {

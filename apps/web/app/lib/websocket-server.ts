@@ -194,10 +194,22 @@ class TerminalWebSocketServer {
 
       this.clients.set(sessionId, ws);
 
-      const ptyProcess = await terminalService.spawnTerminal(session);
+      await terminalService.spawnTerminal(session);
+
+      // Get the session with the active process
+      const activeSession = terminalService.getSession(sessionId);
+      if (!activeSession) {
+        throw new Error("Failed to retrieve created session");
+      }
+
+      // Store reference to the terminal process for this WebSocket
+      const ptyProcess = terminalService.getProcess(sessionId);
+      if (!ptyProcess) {
+        throw new Error("Failed to retrieve terminal process");
+      }
 
       // With node-pty, we only need to listen to 'data' events (combines stdout/stderr)
-      ptyProcess.onData(data => {
+      ptyProcess.onData((data: string) => {
         this.sendMessage(ws, {
           type: "output",
           data: data,

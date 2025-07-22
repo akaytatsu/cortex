@@ -6,7 +6,7 @@ import type {
 import { json, redirect } from "@remix-run/node";
 import { useActionData } from "@remix-run/react";
 import { SessionService } from "../services/session.service";
-import { WorkspaceService } from "../services/workspace.service";
+import { serviceContainer } from "../lib/service-container";
 import { AddWorkspaceForm } from "../components/AddWorkspaceForm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -45,7 +45,8 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   try {
-    await WorkspaceService.addWorkspace(
+    const workspaceService = serviceContainer.getWorkspaceService();
+    await workspaceService.addWorkspace(
       {
         name: name!.trim(),
         path: path!.trim(),

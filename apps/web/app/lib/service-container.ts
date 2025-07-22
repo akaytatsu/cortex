@@ -41,12 +41,12 @@ class ServiceContainer {
   }
 
   private registerDefaultServices(): void {
-    // Register service factories
-    this.factories.set("auth", () => AuthService as any);
-    this.factories.set("user", () => UserService as any);
+    // Register service factories - creating proper instances
+    this.factories.set("auth", () => new AuthService());
+    this.factories.set("user", () => new UserService());
     this.factories.set("terminal", () => terminalService);
-    this.factories.set("filesystem", () => FileSystemService as any);
-    this.factories.set("workspace", () => WorkspaceService as any);
+    this.factories.set("filesystem", () => new FileSystemService());
+    this.factories.set("workspace", () => new WorkspaceService());
     this.factories.set("logger", () => createServiceLogger("ServiceContainer"));
   }
 

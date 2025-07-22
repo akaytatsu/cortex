@@ -1,26 +1,29 @@
 import { prisma } from "../lib/prisma";
 import type { User, UserPublic } from "shared-types";
-import type { IAuthService } from "../types/services";
+import type { IAuthService, ILogger } from "../types/services";
 import bcrypt from "bcryptjs";
 import { config } from "../lib/config";
 import { createServiceLogger } from "../lib/logger";
 import { UserService } from "./user.service";
 
-const logger = createServiceLogger("AuthService");
-
 export class AuthService implements IAuthService {
+  private logger: ILogger;
+
+  constructor(logger?: ILogger) {
+    this.logger = logger || createServiceLogger("AuthService");
+  }
   /**
    * Verifica se existem usuários no banco de dados
    */
-  static async hasUsers(): Promise<boolean> {
+  async hasUsers(): Promise<boolean> {
     try {
-      logger.debug("Checking if users exist in database");
+      this.logger.debug("Checking if users exist in database");
       const userCount = await prisma.user.count();
       const hasUsers = userCount > 0;
-      logger.debug("User count check completed", { userCount, hasUsers });
+      this.logger.debug("User count check completed", { userCount, hasUsers });
       return hasUsers;
     } catch (error) {
-      logger.error("Failed to check user count", error as Error);
+      this.logger.error("Failed to check user count", error as Error);
       if (error instanceof Error) {
         throw new Error(`Failed to check user count: ${error.message}`);
       }
@@ -31,11 +34,11 @@ export class AuthService implements IAuthService {
   /**
    * Cria o primeiro usuário (para setup inicial)
    */
-  static async createFirstUser(data: {
+  async createFirstUser(data: {
     email: string;
     password: string;
   }): Promise<User> {
-    const requestLogger = logger.withContext({ email: data.email });
+    const requestLogger = this.logger.withContext({ email: data.email });
     try {
       requestLogger.info("Attempting to create first user");
       
@@ -75,11 +78,11 @@ export class AuthService implements IAuthService {
   /**
    * Valida as credenciais de login do usuário
    */
-  static async validateLogin(data: {
+  async validateLogin(data: {
     email: string;
     password: string;
   }): Promise<UserPublic> {
-    const requestLogger = logger.withContext({ email: data.email });
+    const requestLogger = this.logger.withContext({ email: data.email });
     try {
       requestLogger.debug("Attempting user login validation");
       

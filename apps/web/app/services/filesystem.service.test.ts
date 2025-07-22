@@ -32,8 +32,11 @@ const mockFs = fs as {
 };
 
 describe("FileSystemService", () => {
+  let fileSystemService: FileSystemService;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    fileSystemService = new FileSystemService();
   });
 
   afterEach(() => {
@@ -58,7 +61,7 @@ describe("FileSystemService", () => {
         .mockResolvedValueOnce(mockSubDirents);
 
       const result =
-        await FileSystemService.getDirectoryStructure("/workspace");
+        await fileSystemService.getDirectoryStructure("/workspace");
 
       expect(result).toHaveLength(3);
       expect(result[0]).toEqual({
@@ -94,7 +97,7 @@ describe("FileSystemService", () => {
       mockFs.readdir.mockResolvedValue(mockDirents);
 
       const result =
-        await FileSystemService.getDirectoryStructure("/workspace");
+        await fileSystemService.getDirectoryStructure("/workspace");
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("src");
@@ -106,7 +109,7 @@ describe("FileSystemService", () => {
       mockFs.readdir.mockRejectedValue(error);
 
       await expect(
-        FileSystemService.getDirectoryStructure("/nonexistent")
+        fileSystemService.getDirectoryStructure("/nonexistent")
       ).rejects.toThrow("Directory not found");
     });
 
@@ -116,13 +119,13 @@ describe("FileSystemService", () => {
       mockFs.readdir.mockRejectedValue(error);
 
       await expect(
-        FileSystemService.getDirectoryStructure("/forbidden")
+        fileSystemService.getDirectoryStructure("/forbidden")
       ).rejects.toThrow("Permission denied to access directory");
     });
 
     it("should prevent path traversal attacks", async () => {
       await expect(
-        FileSystemService.getDirectoryStructure("/workspace", "../../../etc")
+        fileSystemService.getDirectoryStructure("/workspace", "../../../etc")
       ).rejects.toThrow("Access denied: path is outside workspace");
     });
   });
@@ -139,7 +142,7 @@ describe("FileSystemService", () => {
         .mockResolvedValueOnce(Buffer.from("console.log('hello');")) // for binary check
         .mockResolvedValueOnce("console.log('hello');"); // for content
 
-      const result = await FileSystemService.getFileContent(
+      const result = await fileSystemService.getFileContent(
         "/workspace",
         "src/index.js"
       );
@@ -165,7 +168,7 @@ describe("FileSystemService", () => {
       mockFs.readFile.mockResolvedValue(binaryBuffer);
 
       await expect(
-        FileSystemService.getFileContent("/workspace", "image.png")
+        fileSystemService.getFileContent("/workspace", "image.png")
       ).rejects.toThrow("Cannot read binary file");
     });
 
@@ -178,7 +181,7 @@ describe("FileSystemService", () => {
       mockFs.stat.mockResolvedValue(mockStats);
 
       await expect(
-        FileSystemService.getFileContent("/workspace", "huge-file.txt")
+        fileSystemService.getFileContent("/workspace", "huge-file.txt")
       ).rejects.toThrow("File too large to display");
     });
 
@@ -188,7 +191,7 @@ describe("FileSystemService", () => {
       mockFs.stat.mockRejectedValue(error);
 
       await expect(
-        FileSystemService.getFileContent("/workspace", "nonexistent.txt")
+        fileSystemService.getFileContent("/workspace", "nonexistent.txt")
       ).rejects.toThrow("File not found");
     });
 
@@ -201,13 +204,13 @@ describe("FileSystemService", () => {
       mockFs.stat.mockResolvedValue(mockStats);
 
       await expect(
-        FileSystemService.getFileContent("/workspace", "src")
+        fileSystemService.getFileContent("/workspace", "src")
       ).rejects.toThrow("Path is not a file");
     });
 
     it("should prevent path traversal attacks", async () => {
       await expect(
-        FileSystemService.getFileContent("/workspace", "../../../etc/passwd")
+        fileSystemService.getFileContent("/workspace", "../../../etc/passwd")
       ).rejects.toThrow("Access denied: path is outside workspace");
     });
   });
@@ -224,7 +227,7 @@ describe("FileSystemService", () => {
       mockFs.writeFile.mockResolvedValue(undefined);
       mockFs.rename.mockResolvedValue(undefined);
 
-      const result = await FileSystemService.saveFileContent(
+      const result = await fileSystemService.saveFileContent(
         "/workspace",
         saveRequest
       );
@@ -256,7 +259,7 @@ describe("FileSystemService", () => {
       mockFs.writeFile.mockResolvedValue(undefined);
       mockFs.rename.mockResolvedValue(undefined);
 
-      const result = await FileSystemService.saveFileContent(
+      const result = await fileSystemService.saveFileContent(
         "/workspace",
         saveRequest
       );
@@ -280,7 +283,7 @@ describe("FileSystemService", () => {
         .mockRejectedValueOnce(accessError);
 
       await expect(
-        FileSystemService.saveFileContent("/workspace", saveRequest)
+        fileSystemService.saveFileContent("/workspace", saveRequest)
       ).rejects.toThrow("Permission denied to write file");
     });
 
@@ -291,7 +294,7 @@ describe("FileSystemService", () => {
       };
 
       await expect(
-        FileSystemService.saveFileContent("/workspace", saveRequest)
+        fileSystemService.saveFileContent("/workspace", saveRequest)
       ).rejects.toThrow("Access denied: path is outside workspace");
     });
 
@@ -307,7 +310,7 @@ describe("FileSystemService", () => {
       mockFs.writeFile.mockRejectedValue(diskFullError);
 
       await expect(
-        FileSystemService.saveFileContent("/workspace", saveRequest)
+        fileSystemService.saveFileContent("/workspace", saveRequest)
       ).rejects.toThrow("Not enough disk space to save file");
     });
 
@@ -323,7 +326,7 @@ describe("FileSystemService", () => {
       mockFs.writeFile.mockRejectedValue(dirError);
 
       await expect(
-        FileSystemService.saveFileContent("/workspace", saveRequest)
+        fileSystemService.saveFileContent("/workspace", saveRequest)
       ).rejects.toThrow("Directory not found for file path");
     });
 
@@ -337,7 +340,7 @@ describe("FileSystemService", () => {
       mockFs.writeFile.mockResolvedValue(undefined);
       mockFs.rename.mockResolvedValue(undefined);
 
-      await FileSystemService.saveFileContent("/workspace", saveRequest);
+      await fileSystemService.saveFileContent("/workspace", saveRequest);
 
       expect(mockFs.writeFile).toHaveBeenCalledWith(
         "/resolved/workspace/atomic.txt.tmp",
@@ -360,7 +363,7 @@ describe("FileSystemService", () => {
       mockFs.writeFile.mockResolvedValue(undefined);
       mockFs.rename.mockResolvedValue(undefined);
 
-      const result = await FileSystemService.saveFileContent(
+      const result = await fileSystemService.saveFileContent(
         "/workspace",
         saveRequest
       );
@@ -383,7 +386,7 @@ describe("FileSystemService", () => {
       mockFs.writeFile.mockResolvedValue(undefined);
       mockFs.rename.mockResolvedValue(undefined);
 
-      const result = await FileSystemService.saveFileContent(
+      const result = await fileSystemService.saveFileContent(
         "/workspace",
         saveRequest
       );

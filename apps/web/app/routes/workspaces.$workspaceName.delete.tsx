@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
 import { SessionService } from "../services/session.service";
-import { WorkspaceService } from "../services/workspace.service";
+import { serviceContainer } from "../lib/service-container";
 
 export async function action({ request, params }: ActionFunctionArgs) {
   // Require authentication
@@ -14,7 +14,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 
   try {
-    await WorkspaceService.removeWorkspace(decodeURIComponent(workspaceName));
+    const workspaceService = serviceContainer.getWorkspaceService();
+    await workspaceService.removeWorkspace(decodeURIComponent(workspaceName));
     return redirect(
       "/workspaces?success=" +
         encodeURIComponent("Workspace removido com sucesso!")

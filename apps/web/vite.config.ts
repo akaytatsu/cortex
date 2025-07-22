@@ -24,7 +24,23 @@ export default defineConfig({
         v3_lazyRouteDiscovery: true,
       },
       ignoredRouteFiles: ["**/*.test.*"],
+      serverNodeBuiltinsPolyfill: {
+        modules: {
+          path: true,
+          fs: true,
+        },
+      },
     }),
     tsconfigPaths(),
   ],
+  ssr: {
+    noExternal: [],
+    external: ["node-pty"],
+  },
+  optimizeDeps: {
+    exclude: ["node-pty"],
+  },
+  define: {
+    global: 'globalThis',
+  },
 });
