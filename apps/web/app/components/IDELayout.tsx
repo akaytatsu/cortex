@@ -4,6 +4,7 @@ import type { Workspace } from "shared-types";
 import { FileBrowser } from "./FileBrowser";
 import { CodeViewer } from "./CodeViewer";
 import { Terminal } from "./Terminal";
+import { FileWebSocketProvider } from "../contexts/FileWebSocketContext";
 
 interface IDELayoutProps {
   workspace: Workspace;
@@ -102,7 +103,10 @@ export function IDELayout({ workspace }: IDELayoutProps) {
           </div>
           <FileBrowser
             workspaceName={workspace.name}
-            onFileSelect={setSelectedFile}
+            onFileSelect={(filePath) => {
+              console.log('IDELayout: File selected', { filePath, currentSelectedFile: selectedFile });
+              setSelectedFile(filePath);
+            }}
           />
         </div>
 
@@ -124,10 +128,14 @@ export function IDELayout({ workspace }: IDELayoutProps) {
                 : "100%",
             }}
           >
-            <CodeViewer
+            <FileWebSocketProvider 
               workspaceName={workspace.name}
-              filePath={selectedFile}
-            />
+            >
+              <CodeViewer
+                workspaceName={workspace.name}
+                filePath={selectedFile}
+              />
+            </FileWebSocketProvider>
           </div>
 
           {/* Bottom Panel Resize Handle */}

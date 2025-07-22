@@ -59,3 +59,92 @@ export interface TerminalMessage {
   data: string;
   sessionId: string;
 }
+
+// WebSocket messages for file operations
+export interface WSFileMessage {
+  type: 'file_content' | 'file_change' | 'save_request' | 'save_confirmation' |
+        'file_created' | 'file_deleted' | 'error' | 'connection_status';
+  payload: unknown;
+  messageId?: string; // for request/response correlation
+}
+
+export interface FileContentMessage extends WSFileMessage {
+  type: 'file_content';
+  payload: {
+    path: string;
+    content: string;
+    lastModified: Date;
+    mimeType: string;
+  };
+}
+
+export interface FileChangeMessage extends WSFileMessage {
+  type: 'file_change';
+  payload: {
+    path: string;
+    changes: TextDelta[];
+    timestamp: Date;
+  };
+}
+
+export interface SaveRequestMessage extends WSFileMessage {
+  type: 'save_request';
+  payload: {
+    path: string;
+    content: string;
+    lastKnownModified?: Date;
+  };
+  messageId: string;
+}
+
+export interface SaveConfirmationMessage extends WSFileMessage {
+  type: 'save_confirmation';
+  payload: {
+    success: boolean;
+    message?: string;
+    newLastModified?: Date;
+  };
+  messageId: string;
+}
+
+export interface ErrorMessage extends WSFileMessage {
+  type: 'error';
+  payload: {
+    message: string;
+    code?: string;
+  };
+  messageId?: string;
+}
+
+export interface ConnectionStatusMessage extends WSFileMessage {
+  type: 'connection_status';
+  payload: {
+    status: 'connected' | 'disconnected' | 'reconnecting';
+    timestamp: Date;
+  };
+}
+
+// WebSocket connection and session models
+export interface WSConnection {
+  id: string;
+  userId: string;
+  workspaceName: string;
+  connectedAt: Date;
+  lastActivity: Date;
+}
+
+export interface FileSession {
+  filePath: string;
+  connections: WSConnection[];
+  lastModified: Date;
+  pendingChanges: TextDelta[];
+}
+
+export interface TextDelta {
+  operation: 'insert' | 'delete' | 'retain';
+  position: number;
+  text?: string;
+  length?: number;
+  timestamp: Date;
+  connectionId: string;
+}

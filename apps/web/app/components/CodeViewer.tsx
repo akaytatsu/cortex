@@ -5,7 +5,13 @@ import type {
   FileContent,
   FileSaveRequest,
   FileSaveResponse,
+  FileContentMessage,
+  SaveConfirmationMessage,
+  ErrorMessage,
 } from "shared-types";
+import { useFileWebSocketContext } from "../contexts/FileWebSocketContext";
+import { ConnectionStatus } from "./ConnectionStatus";
+import { useDebounceCallback } from "../hooks/useDebounce";
 
 // Temporarily removing Prism.js to avoid import issues
 
@@ -66,6 +72,7 @@ function getLanguageFromMimeType(mimeType: string, fileName: string): string {
 }
 
 export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
+  console.log('CodeViewer: Component rendered with props', { workspaceName, filePath });
   const fetcher = useFetcher<{ fileContent: FileContent; error?: string }>();
   const saveFetcher = useFetcher<FileSaveResponse>();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -73,15 +80,146 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
   const [fileContent, setFileContent] = useState<FileContent | null>(null);
   const [editedContent, setEditedContent] = useState<string>("");
   const [isDirty, setIsDirty] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [wsError, setWsError] = useState<string | null>(null);
+  const [lastSaveMessage, setLastSaveMessage] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+  
+  // WebSocket connection
+  const {
+    isConnected,
+    connectionStatus,
+    error: connectionError,
+    requestFileContent,
+    saveFile,
+    reconnect,
+    registerFileContentHandler,
+    registerSaveConfirmationHandler,
+    registerErrorHandler,
+  } = useFileWebSocketContext();
+  
+  console.log('CodeViewer: WebSocket states', { 
+    isConnected, 
+    connectionStatus, 
+    connectionError,
+    filePath 
+  });
+  
   // Prism disabled temporarily
 
+  // Handle WebSocket file content response
+  const handleFileContent = useCallback((message: FileContentMessage) => {
+    console.log('CodeViewer: Received file content message', { 
+      receivedPath: message.payload.path, 
+      currentFilePath: filePath,
+      contentLength: message.payload.content?.length 
+    });
+    
+    if (message.payload.path === filePath) {
+      console.log('CodeViewer: Setting file content for:', message.payload.path);
+      const content: FileContent = {
+        path: message.payload.path,
+        content: message.payload.content,
+        mimeType: message.payload.mimeType,
+      };
+      
+      setFileContent(content);
+      setEditedContent(content.content);
+      editedContentRef.current = content.content;
+      setIsDirty(false);
+      setIsLoading(false);
+      setWsError(null);
+    } else {
+      console.log('CodeViewer: Ignoring file content for different path');
+    }
+  }, [filePath]);
+
+  // Handle WebSocket save confirmation
+  const handleSaveConfirmation = useCallback((message: SaveConfirmationMessage) => {
+    setIsSaving(false);
+    setSaveSuccess(message.payload.success);
+    setLastSaveMessage(message.payload.message || null);
+    
+    if (message.payload.success) {
+      setIsDirty(false);
+      // Update fileContent to reflect saved state
+      setFileContent(currentFileContent => {
+        if (currentFileContent) {
+          return {
+            ...currentFileContent,
+            content: editedContentRef.current,
+          };
+        }
+        return currentFileContent;
+      });
+    }
+
+    // Clear message after 3 seconds
+    setTimeout(() => {
+      setLastSaveMessage(null);
+      setSaveSuccess(false);
+    }, 3000);
+  }, []);
+
+  // Handle WebSocket errors
+  const handleWebSocketError = useCallback((message: ErrorMessage) => {
+    setWsError(message.payload.message);
+    setIsLoading(false);
+    setIsSaving(false);
+  }, []);
+
+  // Register WebSocket handlers
   useEffect(() => {
-    if (filePath) {
+    registerFileContentHandler(handleFileContent);
+    registerSaveConfirmationHandler(handleSaveConfirmation);
+    registerErrorHandler(handleWebSocketError);
+  }, [registerFileContentHandler, registerSaveConfirmationHandler, registerErrorHandler, handleFileContent, handleSaveConfirmation, handleWebSocketError]);
+
+  // Load file content via WebSocket when filePath changes
+  useEffect(() => {
+    console.log('CodeViewer: useEffect triggered', { 
+      filePath, 
+      isConnected, 
+      connectionStatus 
+    });
+    
+    if (filePath && isConnected && connectionStatus === 'connected') {
+      console.log('CodeViewer: Loading file via WebSocket', { filePath });
+      setIsLoading(true);
+      setWsError(null);
+      
+      // Add a small delay to ensure connection is fully established
+      const timeoutId = setTimeout(() => {
+        console.log('CodeViewer: Calling requestFileContent for:', filePath);
+        requestFileContent(filePath).catch((error) => {
+          console.error('Error requesting file content:', error);
+          setWsError(error instanceof Error ? error.message : 'Failed to load file');
+          setIsLoading(false);
+        });
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
+    } else if (filePath && (!isConnected || connectionStatus === 'disconnected')) {
+      // Fallback to HTTP if WebSocket is not connected
+      console.log('CodeViewer: Loading file via HTTP fallback', { 
+        filePath, 
+        isConnected, 
+        connectionStatus 
+      });
+      setIsLoading(true);
+      setWsError(null);
       fetcher.load(
         `/api/workspaces/${workspaceName}/file?path=${encodeURIComponent(filePath)}`
       );
+    } else {
+      console.log('CodeViewer: Conditions not met for loading file', { 
+        filePath, 
+        isConnected, 
+        connectionStatus 
+      });
     }
-  }, [workspaceName, filePath]);
+  }, [workspaceName, filePath, isConnected, connectionStatus, requestFileContent]);
 
   useEffect(() => {
     if (fetcher.data?.fileContent) {
@@ -97,33 +235,60 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
     }
   }, [fetcher.data]);
 
+  // Debounced content change for potential auto-save (not implemented in this story)
+  const debouncedContentChange = useDebounceCallback((content: string) => {
+    console.debug('Debounced content change', { 
+      filePath, 
+      contentLength: content.length 
+    });
+    // Future: This could trigger auto-save if enabled
+  }, 2000); // 2 second debounce
+
   const handleContentChange = useCallback(
     (newContent: string) => {
       setEditedContent(newContent);
       editedContentRef.current = newContent;
       setIsDirty(fileContent ? newContent !== fileContent.content : false);
+      
+      // Trigger debounced callback for future auto-save functionality
+      debouncedContentChange(newContent);
     },
-    [fileContent]
+    [fileContent, debouncedContentChange]
   );
 
   const handleSave = useCallback(async () => {
     if (!filePath || !fileContent || !isDirty) return;
 
-    const saveRequest: FileSaveRequest = {
-      path: filePath,
-      content: editedContentRef.current,
-    };
+    try {
+      if (isConnected) {
+        // Save via WebSocket
+        setIsSaving(true);
+        setLastSaveMessage(null);
+        await saveFile(filePath, editedContentRef.current);
+      } else {
+        // Fallback to HTTP
+        const saveRequest: FileSaveRequest = {
+          path: filePath,
+          content: editedContentRef.current,
+        };
 
-    saveFetcher.submit(saveRequest, {
-      method: "POST",
-      action: `/api/workspaces/${workspaceName}/file/save`,
-      encType: "application/json",
-    });
+        saveFetcher.submit(saveRequest, {
+          method: "POST",
+          action: `/api/workspaces/${workspaceName}/file/save`,
+          encType: "application/json",
+        });
+      }
+    } catch (error) {
+      console.error('Error saving file:', error);
+      setIsSaving(false);
+      setWsError(error instanceof Error ? error.message : 'Failed to save file');
+    }
   }, [
     filePath,
     fileContent,
-    editedContent,
     isDirty,
+    isConnected,
+    saveFile,
     workspaceName,
     saveFetcher,
   ]);
@@ -177,7 +342,7 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
   }
 
   // Loading state
-  if (fetcher.state === "loading") {
+  if (isLoading || fetcher.state === "loading") {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="flex items-center space-x-2 text-sm text-gray-500">
@@ -189,7 +354,8 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
   }
 
   // Error state
-  if (fetcher.data?.error) {
+  if (fetcher.data?.error || wsError) {
+    const errorMessage = wsError || fetcher.data?.error;
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
@@ -197,8 +363,16 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
           <h3 className="text-lg font-medium text-red-500 mb-2">
             Erro ao carregar arquivo
           </h3>
-          <p className="text-sm text-red-400 mb-4">{fetcher.data.error}</p>
+          <p className="text-sm text-red-400 mb-4">{errorMessage}</p>
           <p className="text-xs text-gray-500">{filePath}</p>
+          {wsError && !isConnected && (
+            <button
+              onClick={reconnect}
+              className="mt-2 px-3 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 rounded"
+            >
+              Tentar Reconectar
+            </button>
+          )}
         </div>
       </div>
     );
@@ -239,9 +413,16 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
           </span>
         </div>
         <div className="flex items-center space-x-3">
+          {/* Connection status indicator */}
+          <ConnectionStatus
+            status={connectionStatus}
+            error={connectionError}
+            onReconnect={reconnect}
+          />
+          
           <button
             onClick={handleSave}
-            disabled={!isDirty || saveFetcher.state === "submitting"}
+            disabled={!isDirty || isSaving || saveFetcher.state === "submitting"}
             className={`
               flex items-center space-x-1 px-2 py-1 rounded text-xs
               ${
@@ -249,10 +430,10 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
                   ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800"
                   : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
               }
-              ${saveFetcher.state === "submitting" ? "opacity-50" : ""}
+              ${isSaving || saveFetcher.state === "submitting" ? "opacity-50" : ""}
             `}
           >
-            {saveFetcher.state === "submitting" ? (
+            {isSaving || saveFetcher.state === "submitting" ? (
               <Loader2 className="w-3 h-3 animate-spin" />
             ) : (
               <Save className="w-3 h-3" />
@@ -281,15 +462,15 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
       </div>
 
       {/* Save status messages */}
-      {saveFetcher.data?.message && (
+      {(lastSaveMessage || saveFetcher.data?.message) && (
         <div
           className={`px-4 py-2 text-xs border-t border-gray-200 dark:border-gray-700 ${
-            saveFetcher.data.success
+            saveSuccess || saveFetcher.data?.success
               ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
               : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300"
           }`}
         >
-          {saveFetcher.data.message}
+          {lastSaveMessage || saveFetcher.data?.message}
         </div>
       )}
     </div>
