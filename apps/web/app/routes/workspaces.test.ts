@@ -1,69 +1,60 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { loader } from "./workspaces";
-import { prisma } from "../lib/prisma";
 import { SessionService } from "../services/session.service";
+import { WorkspaceService } from "../services/workspace.service";
 
 describe("Workspaces Route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe("loader", () => {
     it("should redirect to /login when not authenticated", async () => {
+      vi.spyOn(SessionService, 'requireUserId').mockRejectedValue(
+        new Response(null, {
+          status: 302,
+          headers: { location: "/login" }
+        })
+      );
+
       const request = new Request("http://localhost:3000/workspaces");
 
       await expect(loader({ request, params: {}, context: {} })).rejects.toBeInstanceOf(Response);
-      
-      try {
-        await loader({ request, params: {}, context: {} });
-      } catch (response) {
-        expect((response as Response).status).toBe(302);
-        expect((response as Response).headers.get("location")).toBe("/login");
-      }
     });
 
-    it("should return user data when authenticated", async () => {
-      // Create a user first
-      const user = await prisma.user.create({
-        data: {
-          email: "test@example.com",
-          password: "hashedpassword",
-        },
-      });
+    it("should return workspaces data when authenticated", async () => {
+      const mockWorkspaces = [
+        { name: "Test Workspace", path: "/test/path" },
+        { name: "Another Workspace", path: "/another/path" }
+      ];
 
-      // Create session
-      const sessionResponse = await SessionService.createUserSession(
-        user.id,
-        "/test"
-      );
-      const sessionCookie = sessionResponse.headers.get("Set-Cookie")!;
+      vi.spyOn(SessionService, 'requireUserId').mockResolvedValue("user-123");
+      vi.spyOn(WorkspaceService, 'listWorkspaces').mockResolvedValue(mockWorkspaces);
 
-      const request = new Request("http://localhost:3000/workspaces", {
-        headers: {
-          Cookie: sessionCookie,
-        },
-      });
-
+      const request = new Request("http://localhost:3000/workspaces");
       const response = await loader({ request, params: {}, context: {} });
 
       expect(response).toBeInstanceOf(Response);
       const data = await (response as Response).json();
-      expect(data.user.id).toBe(user.id);
-      expect(data.user.email).toBe(user.email);
-      expect(data.user.password).toBeUndefined(); // Password should not be returned
+      expect(data.workspaces).toEqual(mockWorkspaces);
+      expect(SessionService.requireUserId).toHaveBeenCalledWith(request);
+      expect(WorkspaceService.listWorkspaces).toHaveBeenCalled();
     });
 
-    it("should throw error when user not found", async () => {
-      // Create session with non-existent user ID
-      const sessionResponse = await SessionService.createUserSession(
-        "non-existent-id",
-        "/test"
-      );
-      const sessionCookie = sessionResponse.headers.get("Set-Cookie")!;
+    it("should return empty workspaces array when no workspaces exist", async () => {
+      vi.spyOn(SessionService, 'requireUserId').mockResolvedValue("user-123");
+      vi.spyOn(WorkspaceService, 'listWorkspaces').mockResolvedValue([]);
 
-      const request = new Request("http://localhost:3000/workspaces", {
-        headers: {
-          Cookie: sessionCookie,
-        },
-      });
+      const request = new Request("http://localhost:3000/workspaces");
+      const response = await loader({ request, params: {}, context: {} });
 
-      await expect(loader({ request, params: {}, context: {} })).rejects.toThrow("User not found");
+      expect(response).toBeInstanceOf(Response);
+      const data = await (response as Response).json();
+      expect(data.workspaces).toEqual([]);
     });
   });
 });

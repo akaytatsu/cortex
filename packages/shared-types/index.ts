@@ -13,3 +13,8 @@ export interface UserPublic {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface Workspace {
+  name: string;
+  path: string;
+}
