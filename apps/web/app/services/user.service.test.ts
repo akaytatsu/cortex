@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { UserService } from './user.service'
-import { prisma } from '~/lib/prisma'
+import { prisma } from '../lib/prisma'
 
 describe('UserService CRUD Operations', () => {
   beforeEach(async () => {
