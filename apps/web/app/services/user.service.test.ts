@@ -34,7 +34,7 @@ describe('UserService CRUD Operations', () => {
 
       await UserService.createUser(userData)
       
-      await expect(UserService.createUser(userData)).rejects.toThrow()
+      await expect(UserService.createUser(userData)).rejects.toThrow('User with email duplicate@example.com already exists')
     })
   })
 
@@ -91,6 +91,12 @@ describe('UserService CRUD Operations', () => {
       expect(updatedUser.email).toBe(updateData.email)
       expect(updatedUser.updatedAt.getTime()).toBeGreaterThan(createdUser.updatedAt.getTime())
     })
+
+    it('should fail to update non-existent user', async () => {
+      const updateData = { email: 'updated@example.com' }
+      
+      await expect(UserService.updateUser('non-existent-id', updateData)).rejects.toThrow('User with id non-existent-id not found')
+    })
   })
 
   describe('deleteUser', () => {
@@ -108,6 +114,10 @@ describe('UserService CRUD Operations', () => {
       // Verify user is actually deleted
       const foundUser = await UserService.getUserById(createdUser.id)
       expect(foundUser).toBeNull()
+    })
+
+    it('should fail to delete non-existent user', async () => {
+      await expect(UserService.deleteUser('non-existent-id')).rejects.toThrow('User with id non-existent-id not found')
     })
   })
 
