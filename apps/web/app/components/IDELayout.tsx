@@ -4,6 +4,10 @@ import type { Workspace } from "shared-types";
 import { FileBrowser } from "./FileBrowser";
 import { CodeViewer } from "./CodeViewer";
 import { Terminal } from "./Terminal";
+import { Button } from "./ui/Button";
+import { Card } from "./ui/Card";
+import { useTheme } from "../hooks/useTheme";
+import { useResponsive } from "../hooks/useResponsive";
 
 interface IDELayoutProps {
   workspace: Workspace;
@@ -14,6 +18,10 @@ export function IDELayout({ workspace }: IDELayoutProps) {
   const [bottomPanelHeight, setBottomPanelHeight] = useState(200);
   const [isBottomPanelVisible, setIsBottomPanelVisible] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  
+  const { theme, toggleTheme } = useTheme();
+  const { isMobile } = useResponsive();
 
   const handleSidebarResize = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -67,107 +75,163 @@ export function IDELayout({ workspace }: IDELayoutProps) {
     document.body.style.userSelect = "none";
   };
 
+  const effectiveSidebarWidth = isSidebarCollapsed ? 0 : sidebarWidth;
+
   return (
-    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-      {/* Header/Breadcrumb */}
-      <header className="flex items-center justify-between px-4 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+    <div className="h-screen flex flex-col bg-surface">
+      {/* Modern Header with Gradient */}
+      <header className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-primary-600 to-secondary-600 shadow-lg">
         <div className="flex items-center space-x-4">
-          <Link
-            to="/workspaces"
-            className="inline-flex items-center px-3 py-1 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="text-white hover:bg-white/10"
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           >
-            ← Voltar para Workspaces
+            {isSidebarCollapsed ? "→" : "←"}
+          </Button>
+          <Link to="/workspaces">
+            <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
+              ← Workspaces
+            </Button>
           </Link>
-          <div className="h-4 border-l border-gray-300 dark:border-gray-600"></div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <div className="h-4 border-l border-white/20"></div>
+          <h1 className="text-lg font-semibold text-white">
             {workspace.name}
           </h1>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
+          <span className="text-sm text-white/70">
             {workspace.path}
           </span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleTheme}
+            className="text-white hover:bg-white/10"
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </Button>
         </div>
       </header>
 
       {/* Main Layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar - File Explorer */}
-        <div
-          className="bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col"
-          style={{ width: sidebarWidth }}
-        >
-          <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-              Explorer
-            </h2>
-          </div>
-          <FileBrowser
-            workspaceName={workspace.name}
-            onFileSelect={setSelectedFile}
-          />
-        </div>
+        {/* Enhanced Sidebar - File Explorer */}
+        {!isSidebarCollapsed && (
+          <>
+            <Card 
+              variant="outlined"
+              className="border-r border-border flex flex-col bg-card shadow-sm"
+              style={{ width: effectiveSidebarWidth }}
+            >
+              <Card.Header className="px-4 py-3 border-b border-border bg-muted/50">
+                <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center">
+                  📁 Explorer
+                  {isMobile && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsSidebarCollapsed(true)}
+                      className="ml-auto"
+                    >
+                      ✕
+                    </Button>
+                  )}
+                </h2>
+              </Card.Header>
+              <Card.Content className="flex-1 p-0 overflow-hidden">
+                <FileBrowser
+                  workspaceName={workspace.name}
+                  onFileSelect={setSelectedFile}
+                />
+              </Card.Content>
+            </Card>
 
-        {/* Sidebar Resize Handle */}
-        <button
-          className="w-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-col-resize focus:outline-none focus:ring-2 focus:ring-blue-500"
-          onMouseDown={handleSidebarResize}
-          aria-label="Redimensionar sidebar"
-        ></button>
+            {/* Enhanced Resize Handle */}
+            {!isMobile && (
+              <button 
+                className="w-1 bg-border hover:bg-primary-300 cursor-col-resize transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                onMouseDown={handleSidebarResize}
+                aria-label="Redimensionar sidebar"
+              />
+            )}
+          </>
+        )}
 
-        {/* Main Content Area */}
+        {/* Enhanced Main Content Area */}
         <div className="flex-1 flex flex-col">
-          {/* Main Content */}
-          <div
-            className="flex-1 bg-white dark:bg-gray-800"
+          {/* Main Content with Modern Card Design */}
+          <Card
+            variant="elevated"
+            className="flex-1 bg-card shadow-sm border-none rounded-none"
             style={{
               height: isBottomPanelVisible
                 ? `calc(100% - ${bottomPanelHeight}px)`
                 : "100%",
             }}
           >
-            <CodeViewer
-              workspaceName={workspace.name}
-              filePath={selectedFile}
-            />
-          </div>
+            <Card.Content className="p-0 h-full">
+              <CodeViewer
+                workspaceName={workspace.name}
+                filePath={selectedFile}
+              />
+            </Card.Content>
+          </Card>
 
-          {/* Bottom Panel Resize Handle */}
+          {/* Enhanced Bottom Panel Resize Handle */}
           {isBottomPanelVisible && (
             <button
-              className="h-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-row-resize focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="h-1 bg-border hover:bg-primary-300 cursor-row-resize transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
               onMouseDown={handleBottomPanelResize}
               aria-label="Redimensionar painel inferior"
-            ></button>
+            />
           )}
 
-          {/* Bottom Panel (Terminal) */}
+          {/* Enhanced Bottom Panel (Terminal) */}
           {isBottomPanelVisible && (
-            <div
-              className="bg-gray-900 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700"
+            <Card
+              variant="elevated"
+              className="bg-card border-t border-border shadow-lg rounded-none"
               style={{ height: bottomPanelHeight }}
             >
-              <Terminal
-                workspaceName={workspace.name}
-                workspacePath={workspace.path}
-                onClose={() => setIsBottomPanelVisible(false)}
-              />
-            </div>
+              <Card.Content className="p-0 h-full">
+                <Terminal
+                  workspaceName={workspace.name}
+                  workspacePath={workspace.path}
+                  onClose={() => setIsBottomPanelVisible(false)}
+                />
+              </Card.Content>
+            </Card>
           )}
         </div>
       </div>
 
-      {/* Status Bar */}
-      <footer className="h-6 bg-blue-600 dark:bg-blue-700 flex items-center justify-between px-4">
+      {/* Enhanced Status Bar */}
+      <footer className="h-8 bg-gradient-to-r from-primary-600 to-secondary-600 flex items-center justify-between px-4 shadow-inner">
         <div className="flex items-center space-x-4 text-xs text-white">
-          <span>Ready</span>
-          <button
+          <span className="flex items-center">
+            <span className="w-2 h-2 bg-success-400 rounded-full mr-2 animate-pulse"></span>
+            Ready
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setIsBottomPanelVisible(!isBottomPanelVisible)}
-            className="hover:bg-blue-500 dark:hover:bg-blue-600 px-2 py-0.5 rounded"
+            className="text-white hover:bg-white/10 text-xs px-2 py-1 h-6"
           >
-            Terminal
-          </button>
+            {isBottomPanelVisible ? "🔽" : "🔼"} Terminal
+          </Button>
+          {selectedFile && (
+            <span className="text-white/70">
+              📄 {selectedFile.split('/').pop()}
+            </span>
+          )}
         </div>
-        <div className="text-xs text-white">
-          {workspace.name} - {workspace.path}
+        <div className="flex items-center space-x-2 text-xs text-white/90">
+          <span>{workspace.name}</span>
+          <span className="text-white/50">•</span>
+          <span className="text-white/70">{workspace.path}</span>
         </div>
       </footer>
     </div>

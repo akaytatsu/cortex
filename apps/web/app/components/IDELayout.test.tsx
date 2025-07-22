@@ -2,12 +2,30 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { BrowserRouter } from "react-router-dom";
 import { IDELayout } from "./IDELayout";
+import { ThemeProvider } from "./providers/ThemeProvider";
 import type { Workspace } from "shared-types";
+
+// Mock window.matchMedia
+beforeAll(() => {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation(query => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+});
 
 // Mock Remix React to use regular React Router for testing
 interface MockLinkProps {
@@ -22,6 +40,11 @@ vi.mock("@remix-run/react", () => ({
       {children}
     </a>
   ),
+  useFetcher: () => ({
+    data: { files: [] },
+    state: 'idle',
+    load: vi.fn(),
+  }),
 }));
 
 const mockWorkspace: Workspace = {
@@ -31,9 +54,11 @@ const mockWorkspace: Workspace = {
 
 const renderIDELayout = (workspace: Workspace = mockWorkspace) => {
   return render(
-    <BrowserRouter>
-      <IDELayout workspace={workspace} />
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <IDELayout workspace={workspace} />
+      </BrowserRouter>
+    </ThemeProvider>
   );
 };
 
