@@ -3,6 +3,7 @@ import { Link } from "@remix-run/react";
 import type { Workspace } from "shared-types";
 import { FileBrowser } from "./FileBrowser";
 import { CodeViewer } from "./CodeViewer";
+import { Terminal } from "./Terminal";
 
 interface IDELayoutProps {
   workspace: Workspace;
@@ -138,27 +139,17 @@ export function IDELayout({ workspace }: IDELayoutProps) {
             ></button>
           )}
 
-          {/* Bottom Panel (Terminal - Future) */}
+          {/* Bottom Panel (Terminal) */}
           {isBottomPanelVisible && (
             <div
               className="bg-gray-900 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700"
               style={{ height: bottomPanelHeight }}
             >
-              <div className="flex items-center justify-between px-4 py-2 bg-gray-800 dark:bg-gray-700 border-b border-gray-600 dark:border-gray-600">
-                <h3 className="text-sm font-medium text-gray-200 dark:text-gray-300">
-                  Terminal
-                </h3>
-                <button
-                  onClick={() => setIsBottomPanelVisible(false)}
-                  className="text-gray-400 hover:text-gray-200 text-sm"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="p-4 font-mono text-sm text-green-400 bg-gray-900">
-                <p>$ Terminal será implementado em stories futuras</p>
-                <p className="text-gray-500">Workspace: {workspace.path}</p>
-              </div>
+              <Terminal
+                workspaceName={workspace.name}
+                workspacePath={workspace.path}
+                onClose={() => setIsBottomPanelVisible(false)}
+              />
             </div>
           )}
         </div>

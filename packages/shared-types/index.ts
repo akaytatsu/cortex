@@ -43,3 +43,19 @@ export interface FileSaveResponse {
   message?: string;
   newLastModified?: Date;
 }
+
+export interface TerminalSession {
+  id: string;
+  workspaceName: string;
+  workspacePath: string;
+  userId: string;
+  pid?: number;
+  status: 'active' | 'inactive' | 'terminated';
+  createdAt: Date;
+}
+
+export interface TerminalMessage {
+  type: 'input' | 'output' | 'error' | 'exit';
+  data: string;
+  sessionId: string;
+}
