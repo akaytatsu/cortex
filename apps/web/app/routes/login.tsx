@@ -1,4 +1,8 @@
-import type { MetaFunction, LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
+import type {
+  MetaFunction,
+  LoaderFunctionArgs,
+  ActionFunctionArgs,
+} from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { useActionData } from "@remix-run/react";
 import { SessionService } from "../services/session.service";
@@ -11,13 +15,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
   if (!hasUsers) {
     return redirect("/setup");
   }
-  
+
   // Se já está logado, redireciona para workspaces
   const userId = await SessionService.getUserId(request);
   if (userId) {
     return redirect("/workspaces");
   }
-  
+
   return json({});
 }
 
@@ -57,23 +61,29 @@ export async function action({ request }: ActionFunctionArgs) {
 
   try {
     // Valida as credenciais usando valores trimmed
-    const user = await AuthService.validateLogin({ 
-      email: email!.trim(), 
-      password: password!.trim() 
+    const user = await AuthService.validateLogin({
+      email: email!.trim(),
+      password: password!.trim(),
     });
-    
+
     // Cria a sessão e redireciona para workspaces
     return SessionService.createUserSession(user.id, "/workspaces");
   } catch (error) {
     if (error instanceof Error) {
-      return json({ 
-        errors: { general: error.message } 
-      }, { status: 401 });
+      return json(
+        {
+          errors: { general: error.message },
+        },
+        { status: 401 }
+      );
     }
-    
-    return json({ 
-      errors: { general: "An unexpected error occurred. Please try again." } 
-    }, { status: 500 });
+
+    return json(
+      {
+        errors: { general: "An unexpected error occurred. Please try again." },
+      },
+      { status: 500 }
+    );
   }
 }
 

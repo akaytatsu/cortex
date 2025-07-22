@@ -7,11 +7,11 @@ import { UserService } from "../services/user.service";
 export async function loader({ request }: LoaderFunctionArgs) {
   const userId = await SessionService.requireUserId(request);
   const user = await UserService.getUserById(userId);
-  
+
   if (!user) {
     throw new Error("User not found");
   }
-  
+
   return json({ user });
 }
 
@@ -24,7 +24,7 @@ export const meta: MetaFunction = () => {
 
 export default function Workspaces() {
   const { user } = useLoaderData<typeof loader>();
-  
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">

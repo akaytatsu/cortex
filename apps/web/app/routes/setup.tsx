@@ -1,4 +1,8 @@
-import type { MetaFunction, LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
+import type {
+  MetaFunction,
+  LoaderFunctionArgs,
+  ActionFunctionArgs,
+} from "@remix-run/node";
 import { redirect, json } from "@remix-run/node";
 import { useActionData } from "@remix-run/react";
 import { AuthService } from "../services/auth.service";
@@ -8,17 +12,17 @@ import { SetupForm } from "../components/SetupForm";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function loader(_args: LoaderFunctionArgs) {
   const hasUsers = await AuthService.hasUsers();
-  
+
   if (hasUsers) {
     return redirect("/login");
   }
-  
+
   return null;
 }
 
 export async function action({ request }: ActionFunctionArgs) {
   const hasUsers = await AuthService.hasUsers();
-  
+
   if (hasUsers) {
     return redirect("/login");
   }
@@ -55,12 +59,9 @@ export async function action({ request }: ActionFunctionArgs) {
     return SessionService.createUserSession(user.id);
   } catch (error) {
     if (error instanceof Error) {
-      return json(
-        { errors: { general: error.message } },
-        { status: 400 }
-      );
+      return json({ errors: { general: error.message } }, { status: 400 });
     }
-    
+
     return json(
       { errors: { general: "An unexpected error occurred" } },
       { status: 500 }
@@ -77,7 +78,7 @@ export const meta: MetaFunction = () => {
 
 export default function Setup() {
   const actionData = useActionData<typeof action>();
-  
+
   return (
     <div className="flex h-screen items-center justify-center">
       <div className="w-full max-w-md space-y-8">

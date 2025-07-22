@@ -5,11 +5,11 @@ import { AuthService } from "../services/auth.service";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function loader(_args: LoaderFunctionArgs) {
   const hasUsers = await AuthService.hasUsers();
-  
+
   if (!hasUsers) {
     return redirect("/setup");
   }
-  
+
   return redirect("/login");
 }
 

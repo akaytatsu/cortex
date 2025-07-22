@@ -1,17 +1,17 @@
-import { describe, it, expect } from 'vitest'
-import { UserService } from './user.service'
+import { describe, it, expect } from "vitest";
+import { UserService } from "./user.service";
 
-describe('UserService CRUD Operations', () => {
+describe("UserService CRUD Operations", () => {
   // Database cleanup is handled by test-setup.ts globally
 
-  describe('createUser', () => {
-    it('should create a new user', async () => {
+  describe("createUser", () => {
+    it("should create a new user", async () => {
       const userData = {
-        email: 'test@example.com',
-        password: 'hashedpassword',
-      }
+        email: "test@example.com",
+        password: "hashedpassword",
+      };
 
-      const user = await UserService.createUser(userData)
+      const user = await UserService.createUser(userData);
 
       expect(user).toMatchObject({
         id: expect.any(String),
@@ -19,128 +19,141 @@ describe('UserService CRUD Operations', () => {
         password: userData.password,
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
-      })
-    })
+      });
+    });
 
-    it('should fail to create user with duplicate email', async () => {
+    it("should fail to create user with duplicate email", async () => {
       const userData = {
-        email: 'duplicate@example.com',
-        password: 'hashedpassword',
-      }
+        email: "duplicate@example.com",
+        password: "hashedpassword",
+      };
 
-      await UserService.createUser(userData)
-      
-      await expect(UserService.createUser(userData)).rejects.toThrow('User with email duplicate@example.com already exists')
-    })
-  })
+      await UserService.createUser(userData);
 
-  describe('getUserByEmail', () => {
-    it('should find user by email', async () => {
+      await expect(UserService.createUser(userData)).rejects.toThrow(
+        "User with email duplicate@example.com already exists"
+      );
+    });
+  });
+
+  describe("getUserByEmail", () => {
+    it("should find user by email", async () => {
       const userData = {
-        email: 'find@example.com',
-        password: 'hashedpassword',
-      }
+        email: "find@example.com",
+        password: "hashedpassword",
+      };
 
-      const createdUser = await UserService.createUser(userData)
-      const foundUser = await UserService.getUserByEmail(userData.email)
+      const createdUser = await UserService.createUser(userData);
+      const foundUser = await UserService.getUserByEmail(userData.email);
 
-      expect(foundUser).toEqual(createdUser)
-    })
+      expect(foundUser).toEqual(createdUser);
+    });
 
-    it('should return null for non-existent email', async () => {
-      const foundUser = await UserService.getUserByEmail('nonexistent@example.com')
-      expect(foundUser).toBeNull()
-    })
-  })
+    it("should return null for non-existent email", async () => {
+      const foundUser = await UserService.getUserByEmail(
+        "nonexistent@example.com"
+      );
+      expect(foundUser).toBeNull();
+    });
+  });
 
-  describe('getUserById', () => {
-    it('should find user by ID', async () => {
+  describe("getUserById", () => {
+    it("should find user by ID", async () => {
       const userData = {
-        email: 'findbyid@example.com',
-        password: 'hashedpassword',
-      }
+        email: "findbyid@example.com",
+        password: "hashedpassword",
+      };
 
-      const createdUser = await UserService.createUser(userData)
-      const foundUser = await UserService.getUserById(createdUser.id)
+      const createdUser = await UserService.createUser(userData);
+      const foundUser = await UserService.getUserById(createdUser.id);
 
-      expect(foundUser).toEqual(createdUser)
-    })
+      expect(foundUser).toEqual(createdUser);
+    });
 
-    it('should return null for non-existent ID', async () => {
-      const foundUser = await UserService.getUserById('nonexistent-id')
-      expect(foundUser).toBeNull()
-    })
-  })
+    it("should return null for non-existent ID", async () => {
+      const foundUser = await UserService.getUserById("nonexistent-id");
+      expect(foundUser).toBeNull();
+    });
+  });
 
-  describe('updateUser', () => {
-    it('should update user data', async () => {
+  describe("updateUser", () => {
+    it("should update user data", async () => {
       const userData = {
-        email: 'update@example.com',
-        password: 'hashedpassword',
-      }
+        email: "update@example.com",
+        password: "hashedpassword",
+      };
 
-      const createdUser = await UserService.createUser(userData)
-      
-      const updateData = { email: 'updated@example.com' }
-      const updatedUser = await UserService.updateUser(createdUser.id, updateData)
+      const createdUser = await UserService.createUser(userData);
 
-      expect(updatedUser.email).toBe(updateData.email)
-      expect(updatedUser.updatedAt.getTime()).toBeGreaterThan(createdUser.updatedAt.getTime())
-    })
+      const updateData = { email: "updated@example.com" };
+      const updatedUser = await UserService.updateUser(
+        createdUser.id,
+        updateData
+      );
 
-    it('should fail to update non-existent user', async () => {
-      const updateData = { email: 'updated@example.com' }
-      
-      await expect(UserService.updateUser('non-existent-id', updateData)).rejects.toThrow('User with id non-existent-id not found')
-    })
-  })
+      expect(updatedUser.email).toBe(updateData.email);
+      expect(updatedUser.updatedAt.getTime()).toBeGreaterThan(
+        createdUser.updatedAt.getTime()
+      );
+    });
 
-  describe('deleteUser', () => {
-    it('should delete user', async () => {
+    it("should fail to update non-existent user", async () => {
+      const updateData = { email: "updated@example.com" };
+
+      await expect(
+        UserService.updateUser("non-existent-id", updateData)
+      ).rejects.toThrow("User with id non-existent-id not found");
+    });
+  });
+
+  describe("deleteUser", () => {
+    it("should delete user", async () => {
       const userData = {
-        email: 'delete@example.com',
-        password: 'hashedpassword',
-      }
+        email: "delete@example.com",
+        password: "hashedpassword",
+      };
 
-      const createdUser = await UserService.createUser(userData)
-      const deletedUser = await UserService.deleteUser(createdUser.id)
+      const createdUser = await UserService.createUser(userData);
+      const deletedUser = await UserService.deleteUser(createdUser.id);
 
-      expect(deletedUser).toEqual(createdUser)
+      expect(deletedUser).toEqual(createdUser);
 
       // Verify user is actually deleted
-      const foundUser = await UserService.getUserById(createdUser.id)
-      expect(foundUser).toBeNull()
-    })
+      const foundUser = await UserService.getUserById(createdUser.id);
+      expect(foundUser).toBeNull();
+    });
 
-    it('should fail to delete non-existent user', async () => {
-      await expect(UserService.deleteUser('non-existent-id')).rejects.toThrow('User with id non-existent-id not found')
-    })
-  })
+    it("should fail to delete non-existent user", async () => {
+      await expect(UserService.deleteUser("non-existent-id")).rejects.toThrow(
+        "User with id non-existent-id not found"
+      );
+    });
+  });
 
-  describe('getAllUsers', () => {
-    it('should return all users ordered by creation date', async () => {
+  describe("getAllUsers", () => {
+    it("should return all users ordered by creation date", async () => {
       const users = [
-        { email: 'user1@example.com', password: 'password1' },
-        { email: 'user2@example.com', password: 'password2' },
-        { email: 'user3@example.com', password: 'password3' },
-      ]
+        { email: "user1@example.com", password: "password1" },
+        { email: "user2@example.com", password: "password2" },
+        { email: "user3@example.com", password: "password3" },
+      ];
 
       // Create users with small delays to ensure different timestamps
       for (const userData of users) {
-        await UserService.createUser(userData)
-        await new Promise(resolve => setTimeout(resolve, 10))
+        await UserService.createUser(userData);
+        await new Promise(resolve => setTimeout(resolve, 10));
       }
 
-      const allUsers = await UserService.getAllUsers()
+      const allUsers = await UserService.getAllUsers();
 
-      expect(allUsers).toHaveLength(3)
-      expect(allUsers[0].email).toBe('user3@example.com') // Most recent first
-      expect(allUsers[2].email).toBe('user1@example.com') // Oldest last
-    })
+      expect(allUsers).toHaveLength(3);
+      expect(allUsers[0].email).toBe("user3@example.com"); // Most recent first
+      expect(allUsers[2].email).toBe("user1@example.com"); // Oldest last
+    });
 
-    it('should return empty array when no users exist', async () => {
-      const allUsers = await UserService.getAllUsers()
-      expect(allUsers).toEqual([])
-    })
-  })
-})
+    it("should return empty array when no users exist", async () => {
+      const allUsers = await UserService.getAllUsers();
+      expect(allUsers).toEqual([]);
+    });
+  });
+});
