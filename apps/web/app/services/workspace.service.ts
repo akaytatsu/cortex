@@ -13,7 +13,13 @@ class WorkspaceServiceError extends Error {
 const CORTEX_ROOT = process.env.CORTEX_ROOT || process.cwd();
 const WORKSPACES_FILE = path.join(CORTEX_ROOT, 'config', 'workspaces.yaml');
 
+/**
+ * Service for managing workspace operations including CRUD operations and path validation
+ */
 export class WorkspaceService {
+  /**
+   * Ensures the config directory exists, creating it if necessary
+   */
   private static async ensureConfigDir(): Promise<void> {
     const configDir = path.dirname(WORKSPACES_FILE);
     try {
@@ -58,10 +64,21 @@ export class WorkspaceService {
     }
   }
 
+  /**
+   * Returns list of all configured workspaces
+   */
   static async listWorkspaces(): Promise<Workspace[]> {
     return await this.readWorkspacesFile();
   }
 
+  /**
+   * Validates and optionally creates a workspace path
+   * @param basePath The base directory path
+   * @param folderName The folder name to create (required when createNew is true)
+   * @param createNew Whether to create a new folder or validate existing path
+   * @returns The resolved absolute path
+   * @throws WorkspaceServiceError for validation or creation failures
+   */
   static async validateAndCreatePath(basePath: string, folderName?: string, createNew: boolean = false): Promise<string> {
     const sanitizedBasePath = basePath.trim();
     
@@ -166,6 +183,12 @@ export class WorkspaceService {
     return path.resolve(finalPath);
   }
 
+  /**
+   * Adds a new workspace to the configuration
+   * @param workspace The workspace to add
+   * @param createNew Whether to create a new directory for the workspace
+   * @throws WorkspaceServiceError for validation failures or duplicates
+   */
   static async addWorkspace(workspace: Workspace, createNew: boolean = false): Promise<void> {
     if (!workspace.name?.trim()) {
       throw new WorkspaceServiceError('Workspace name is required');
@@ -198,6 +221,11 @@ export class WorkspaceService {
     await this.writeWorkspacesFile(workspaces);
   }
 
+  /**
+   * Removes a workspace from the configuration (does not delete the directory)
+   * @param workspaceName The name of the workspace to remove
+   * @throws WorkspaceServiceError if workspace is not found or name is empty
+   */
   static async removeWorkspace(workspaceName: string): Promise<void> {
     if (!workspaceName?.trim()) {
       throw new WorkspaceServiceError('Workspace name is required');

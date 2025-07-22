@@ -71,7 +71,7 @@ export function AddWorkspaceForm({ errors }: AddWorkspaceFormProps) {
           htmlFor="name"
           className="block text-sm font-medium text-gray-700 dark:text-gray-300"
         >
-          Workspace Name
+          Nome do Workspace
         </label>
         <div className="mt-1">
           <input
@@ -155,14 +155,14 @@ export function AddWorkspaceForm({ errors }: AddWorkspaceFormProps) {
               {createNewFolder ? "Criando Workspace..." : "Criando Workspace..."}
             </>
           ) : (
-            "Create Workspace"
+            "Criar Workspace"
           )}
         </button>
         <a
           href="/workspaces"
           className="flex-1 flex justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
         >
-          Cancel
+          Cancelar
         </a>
       </div>
     </Form>
