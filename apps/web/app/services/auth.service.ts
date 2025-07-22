@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma'
-import type { User } from 'shared-types'
+import type { User, UserPublic } from 'shared-types'
 import bcrypt from 'bcryptjs'
 import { UserService } from './user.service'
 
@@ -51,7 +51,7 @@ export class AuthService {
   /**
    * Valida as credenciais de login do usuário
    */
-  static async validateLogin(data: { email: string; password: string }): Promise<User> {
+  static async validateLogin(data: { email: string; password: string }): Promise<UserPublic> {
     try {
       // Busca o usuário pelo email
       const user = await UserService.getUserByEmail(data.email)
@@ -65,10 +65,9 @@ export class AuthService {
         throw new Error('Invalid email or password')
       }
 
-      // Retorna o usuário sem a senha
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // Retorna o usuário sem a senha usando o tipo UserPublic
       const { password, ...userWithoutPassword } = user
-      return userWithoutPassword as User
+      return userWithoutPassword
     } catch (error) {
       if (error instanceof Error) {
         throw error

@@ -41,13 +41,13 @@ export async function action({ request }: ActionFunctionArgs) {
   // Validação server-side
   const errors: { email?: string; password?: string; general?: string } = {};
 
-  if (!email) {
+  if (!email?.trim()) {
     errors.email = "Email is required";
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
     errors.email = "Please enter a valid email address";
   }
 
-  if (!password) {
+  if (!password?.trim()) {
     errors.password = "Password is required";
   }
 
@@ -56,8 +56,11 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   try {
-    // Valida as credenciais
-    const user = await AuthService.validateLogin({ email: email!, password: password! });
+    // Valida as credenciais usando valores trimmed
+    const user = await AuthService.validateLogin({ 
+      email: email!.trim(), 
+      password: password!.trim() 
+    });
     
     // Cria a sessão e redireciona para workspaces
     return SessionService.createUserSession(user.id, "/workspaces");
