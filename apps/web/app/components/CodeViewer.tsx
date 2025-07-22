@@ -36,53 +36,53 @@ interface CodeViewerProps {
 
 function getLanguageFromMimeType(mimeType: string, fileName: string): string {
   // Try to get language from file extension first
-  const ext = fileName.split('.').pop()?.toLowerCase();
-  
+  const ext = fileName.split(".").pop()?.toLowerCase();
+
   const extensionMap: Record<string, string> = {
-    'js': 'javascript',
-    'jsx': 'jsx',
-    'ts': 'typescript',
-    'tsx': 'tsx',
-    'json': 'json',
-    'css': 'css',
-    'scss': 'scss',
-    'sass': 'sass',
-    'less': 'less',
-    'html': 'html',
-    'py': 'python',
-    'java': 'java',
-    'php': 'php',
-    'go': 'go',
-    'rs': 'rust',
-    'c': 'c',
-    'cpp': 'cpp',
-    'h': 'c',
-    'hpp': 'cpp',
-    'sql': 'sql',
-    'sh': 'bash',
-    'bash': 'bash',
-    'yml': 'yaml',
-    'yaml': 'yaml',
-    'md': 'markdown',
-    'xml': 'xml',
+    js: "javascript",
+    jsx: "jsx",
+    ts: "typescript",
+    tsx: "tsx",
+    json: "json",
+    css: "css",
+    scss: "scss",
+    sass: "sass",
+    less: "less",
+    html: "html",
+    py: "python",
+    java: "java",
+    php: "php",
+    go: "go",
+    rs: "rust",
+    c: "c",
+    cpp: "cpp",
+    h: "c",
+    hpp: "cpp",
+    sql: "sql",
+    sh: "bash",
+    bash: "bash",
+    yml: "yaml",
+    yaml: "yaml",
+    md: "markdown",
+    xml: "xml",
   };
-  
+
   if (ext && extensionMap[ext]) {
     return extensionMap[ext];
   }
-  
+
   // Fallback to mime type
-  if (mimeType.includes('javascript')) return 'javascript';
-  if (mimeType.includes('typescript')) return 'typescript';
-  if (mimeType.includes('json')) return 'json';
-  if (mimeType.includes('css')) return 'css';
-  if (mimeType.includes('html')) return 'html';
-  if (mimeType.includes('python')) return 'python';
-  if (mimeType.includes('java')) return 'java';
-  if (mimeType.includes('yaml')) return 'yaml';
-  if (mimeType.includes('markdown')) return 'markdown';
-  
-  return 'text';
+  if (mimeType.includes("javascript")) return "javascript";
+  if (mimeType.includes("typescript")) return "typescript";
+  if (mimeType.includes("json")) return "json";
+  if (mimeType.includes("css")) return "css";
+  if (mimeType.includes("html")) return "html";
+  if (mimeType.includes("python")) return "python";
+  if (mimeType.includes("java")) return "java";
+  if (mimeType.includes("yaml")) return "yaml";
+  if (mimeType.includes("markdown")) return "markdown";
+
+  return "text";
 }
 
 export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
@@ -92,7 +92,9 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
 
   useEffect(() => {
     if (filePath) {
-      fetcher.load(`/api/workspaces/${workspaceName}/file?path=${encodeURIComponent(filePath)}`);
+      fetcher.load(
+        `/api/workspaces/${workspaceName}/file?path=${encodeURIComponent(filePath)}`
+      );
     }
   }, [workspaceName, filePath]);
 
@@ -108,13 +110,13 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
     if (fileContent && codeRef.current) {
       try {
         // Verificar se o PrismJS está disponível
-        if (typeof Prism !== 'undefined' && Prism.highlightElement) {
+        if (typeof Prism !== "undefined" && Prism.highlightElement) {
           Prism.highlightElement(codeRef.current);
         } else {
-          console.warn('PrismJS não está disponível');
+          console.warn("PrismJS não está disponível");
         }
       } catch (error) {
-        console.warn('Erro ao aplicar syntax highlighting:', error);
+        console.warn("Erro ao aplicar syntax highlighting:", error);
       }
     }
   }, [fileContent]);
@@ -157,12 +159,8 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
           <h3 className="text-lg font-medium text-red-500 mb-2">
             Erro ao carregar arquivo
           </h3>
-          <p className="text-sm text-red-400 mb-4">
-            {fetcher.data.error}
-          </p>
-          <p className="text-xs text-gray-500">
-            {filePath}
-          </p>
+          <p className="text-sm text-red-400 mb-4">{fetcher.data.error}</p>
+          <p className="text-xs text-gray-500">{filePath}</p>
         </div>
       </div>
     );
@@ -177,16 +175,14 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
           <h3 className="text-lg font-medium text-gray-500 mb-2">
             Arquivo não encontrado
           </h3>
-          <p className="text-xs text-gray-400">
-            {filePath}
-          </p>
+          <p className="text-xs text-gray-400">{filePath}</p>
         </div>
       </div>
     );
   }
 
   const language = getLanguageFromMimeType(fileContent.mimeType, filePath);
-  const fileName = filePath.split('/').pop() || '';
+  const fileName = filePath.split("/").pop() || "";
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-gray-900">
@@ -202,7 +198,7 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
           </span>
         </div>
         <div className="text-xs text-gray-400 dark:text-gray-500">
-          {fileContent.content.split('\\n').length} linhas
+          {fileContent.content.split("\n").length} linhas
         </div>
       </div>
 
@@ -212,11 +208,11 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
           <code
             ref={codeRef}
             className={`language-${language} block h-full p-4`}
-            style={{ 
+            style={{
               margin: 0,
-              background: 'transparent',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word'
+              background: "transparent",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
             }}
           >
             {fileContent.content}

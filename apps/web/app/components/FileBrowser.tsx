@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useFetcher } from "@remix-run/react";
-import { 
-  Folder, 
-  FolderOpen, 
-  File, 
+import {
+  Folder,
+  FolderOpen,
+  File,
   FileText,
   Code,
   Image,
@@ -12,7 +12,7 @@ import {
   Database,
   Loader2,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
 } from "lucide-react";
 import type { FileSystemItem } from "shared-types";
 
@@ -28,61 +28,65 @@ interface FileItemProps {
 }
 
 function getFileIcon(fileName: string, isOpen?: boolean) {
-  const ext = fileName.split('.').pop()?.toLowerCase();
-  
+  const ext = fileName.split(".").pop()?.toLowerCase();
+
   // Directory icons
   if (!ext) {
-    return isOpen ? <FolderOpen className="w-4 h-4" /> : <Folder className="w-4 h-4" />;
+    return isOpen ? (
+      <FolderOpen className="w-4 h-4" />
+    ) : (
+      <Folder className="w-4 h-4" />
+    );
   }
-  
+
   // File icons based on extension
   switch (ext) {
-    case 'js':
-    case 'jsx':
-    case 'ts':
-    case 'tsx':
-    case 'vue':
-    case 'py':
-    case 'java':
-    case 'php':
-    case 'cpp':
-    case 'c':
-    case 'h':
-    case 'go':
-    case 'rs':
-    case 'rb':
+    case "js":
+    case "jsx":
+    case "ts":
+    case "tsx":
+    case "vue":
+    case "py":
+    case "java":
+    case "php":
+    case "cpp":
+    case "c":
+    case "h":
+    case "go":
+    case "rs":
+    case "rb":
       return <Code className="w-4 h-4 text-blue-500" />;
-    
-    case 'json':
-    case 'yaml':
-    case 'yml':
-    case 'toml':
-    case 'xml':
-    case 'env':
+
+    case "json":
+    case "yaml":
+    case "yml":
+    case "toml":
+    case "xml":
+    case "env":
       return <Settings className="w-4 h-4 text-gray-500" />;
-    
-    case 'md':
-    case 'txt':
-    case 'readme':
+
+    case "md":
+    case "txt":
+    case "readme":
       return <FileText className="w-4 h-4 text-green-500" />;
-    
-    case 'png':
-    case 'jpg':
-    case 'jpeg':
-    case 'gif':
-    case 'svg':
-    case 'webp':
+
+    case "png":
+    case "jpg":
+    case "jpeg":
+    case "gif":
+    case "svg":
+    case "webp":
       return <Image className="w-4 h-4 text-purple-500" />;
-    
-    case 'sql':
-    case 'db':
-    case 'sqlite':
+
+    case "sql":
+    case "db":
+    case "sqlite":
       return <Database className="w-4 h-4 text-orange-500" />;
-    
-    case 'package':
-    case 'lock':
+
+    case "package":
+    case "lock":
       return <Package className="w-4 h-4 text-red-500" />;
-    
+
     default:
       return <File className="w-4 h-4 text-gray-400" />;
   }
@@ -90,9 +94,9 @@ function getFileIcon(fileName: string, isOpen?: boolean) {
 
 function FileItem({ item, level, onFileSelect }: FileItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  
+
   const handleClick = () => {
-    if (item.type === 'directory') {
+    if (item.type === "directory") {
       setIsExpanded(!isExpanded);
     } else {
       onFileSelect?.(item.path);
@@ -107,12 +111,12 @@ function FileItem({ item, level, onFileSelect }: FileItemProps) {
         className={`
           flex items-center space-x-2 px-2 py-1 text-sm cursor-pointer rounded
           hover:bg-gray-100 dark:hover:bg-gray-700
-          ${item.type === 'file' ? 'text-gray-700 dark:text-gray-300' : 'text-gray-800 dark:text-gray-200 font-medium'}
+          ${item.type === "file" ? "text-gray-700 dark:text-gray-300" : "text-gray-800 dark:text-gray-200 font-medium"}
         `}
         style={{ paddingLeft }}
         onClick={handleClick}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
+        onKeyDown={e => {
+          if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             handleClick();
           }
@@ -120,7 +124,7 @@ function FileItem({ item, level, onFileSelect }: FileItemProps) {
         role="button"
         tabIndex={0}
       >
-        {item.type === 'directory' && (
+        {item.type === "directory" && (
           <div className="w-4 h-4 flex items-center justify-center">
             {isExpanded ? (
               <ChevronDown className="w-3 h-3 text-gray-500" />
@@ -129,14 +133,14 @@ function FileItem({ item, level, onFileSelect }: FileItemProps) {
             )}
           </div>
         )}
-        {item.type === 'file' && <div className="w-4" />}
+        {item.type === "file" && <div className="w-4" />}
         {getFileIcon(item.name, isExpanded)}
         <span className="truncate">{item.name}</span>
       </div>
-      
-      {item.type === 'directory' && isExpanded && item.children && (
+
+      {item.type === "directory" && isExpanded && item.children && (
         <div>
-          {item.children.map((child) => (
+          {item.children.map(child => (
             <FileItem
               key={child.path}
               item={child}
@@ -200,7 +204,7 @@ export function FileBrowser({ workspaceName, onFileSelect }: FileBrowserProps) {
   return (
     <div className="flex-1 overflow-auto">
       <div className="space-y-1 p-2">
-        {files.map((file) => (
+        {files.map(file => (
           <FileItem
             key={file.path}
             item={file}
