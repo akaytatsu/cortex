@@ -39,7 +39,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     // Get workspace path
-    const workspace = WorkspaceService.getWorkspaceByName(workspaceName);
+    const workspace = await WorkspaceService.getWorkspaceByName(workspaceName);
     if (!workspace) {
       return json<FileSaveResponse>(
         { success: false, message: "Workspace not found" },

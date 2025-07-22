@@ -309,6 +309,20 @@ export class WorkspaceService {
   }
 
   /**
+   * Gets a workspace by name
+   * @param workspaceName The name of the workspace to find
+   * @returns The workspace if found, null otherwise
+   */
+  static async getWorkspaceByName(workspaceName: string): Promise<Workspace | null> {
+    if (!workspaceName?.trim()) {
+      return null;
+    }
+
+    const workspaces = await this.readWorkspacesFile();
+    return workspaces.find(w => w.name === workspaceName.trim()) || null;
+  }
+
+  /**
    * Removes a workspace from the configuration (does not delete the directory)
    * @param workspaceName The name of the workspace to remove
    * @throws WorkspaceServiceError if workspace is not found or name is empty

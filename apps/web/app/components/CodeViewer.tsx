@@ -65,6 +65,7 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
   const fetcher = useFetcher<{ fileContent: FileContent; error?: string }>();
   const saveFetcher = useFetcher<FileSaveResponse>();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editedContentRef = useRef<string>("");
   const [fileContent, setFileContent] = useState<FileContent | null>(null);
   const [editedContent, setEditedContent] = useState<string>("");
   const [isDirty, setIsDirty] = useState<boolean>(false);
@@ -82,16 +83,19 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
     if (fetcher.data?.fileContent) {
       setFileContent(fetcher.data.fileContent);
       setEditedContent(fetcher.data.fileContent.content);
+      editedContentRef.current = fetcher.data.fileContent.content;
       setIsDirty(false);
     } else if (fetcher.data?.error) {
       setFileContent(null);
       setEditedContent("");
+      editedContentRef.current = "";
       setIsDirty(false);
     }
   }, [fetcher.data]);
 
   const handleContentChange = useCallback((newContent: string) => {
     setEditedContent(newContent);
+    editedContentRef.current = newContent;
     setIsDirty(fileContent ? newContent !== fileContent.content : false);
   }, [fileContent]);
 
@@ -100,7 +104,7 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
 
     const saveRequest: FileSaveRequest = {
       path: filePath,
-      content: editedContent,
+      content: editedContentRef.current,
     };
 
     saveFetcher.submit(saveRequest, {
@@ -125,15 +129,18 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
   useEffect(() => {
     if (saveFetcher.data?.success) {
       setIsDirty(false);
-      // Update fileContent to reflect saved state
-      if (fileContent) {
-        setFileContent({
-          ...fileContent,
-          content: editedContent
-        });
-      }
+      // Update fileContent to reflect saved state using callback to avoid dependency
+      setFileContent(currentFileContent => {
+        if (currentFileContent) {
+          return {
+            ...currentFileContent,
+            content: editedContentRef.current
+          };
+        }
+        return currentFileContent;
+      });
     }
-  }, [saveFetcher.data, editedContent, fileContent]);
+  }, [saveFetcher.data]);
 
   // No file selected
   if (!filePath) {
