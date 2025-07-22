@@ -25,7 +25,8 @@
       "Bash(npm run typecheck:*)",
       "Bash(npm run build:*)",
       "Bash(find:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": []
   }
