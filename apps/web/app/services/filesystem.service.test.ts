@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "fs/promises";
 import { FileSystemService } from "./filesystem.service";
+import type { FileSaveRequest } from "shared-types";
 
 // Mock fs module
 vi.mock("fs/promises");
@@ -25,6 +26,9 @@ const mockFs = fs as {
   readdir: ReturnType<typeof vi.fn>;
   stat: ReturnType<typeof vi.fn>;
   readFile: ReturnType<typeof vi.fn>;
+  writeFile: ReturnType<typeof vi.fn>;
+  access: ReturnType<typeof vi.fn>;
+  rename: ReturnType<typeof vi.fn>;
 };
 
 describe("FileSystemService", () => {
@@ -198,6 +202,168 @@ describe("FileSystemService", () => {
       await expect(
         FileSystemService.getFileContent("/workspace", "../../../etc/passwd")
       ).rejects.toThrow("Access denied: path is outside workspace");
+    });
+  });
+
+  describe("saveFileContent", () => {
+    it("should save new file successfully", async () => {
+      const saveRequest: FileSaveRequest = {
+        path: "newfile.txt",
+        content: "Hello, World!"
+      };
+
+      // Mock file doesn't exist initially
+      mockFs.access.mockRejectedValueOnce(new Error("ENOENT"));
+      mockFs.writeFile.mockResolvedValue(undefined);
+      mockFs.rename.mockResolvedValue(undefined);
+
+      const result = await FileSystemService.saveFileContent("/workspace", saveRequest);
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("criado e salvo");
+      expect(result.newLastModified).toBeInstanceOf(Date);
+      expect(mockFs.writeFile).toHaveBeenCalledWith("/resolved/workspace/newfile.txt.tmp", "Hello, World!", "utf-8");
+      expect(mockFs.rename).toHaveBeenCalledWith("/resolved/workspace/newfile.txt.tmp", "/resolved/workspace/newfile.txt");
+    });
+
+    it("should update existing file successfully", async () => {
+      const saveRequest: FileSaveRequest = {
+        path: "existing.txt",
+        content: "Updated content"
+      };
+
+      // Mock file exists and is writable
+      mockFs.access.mockResolvedValueOnce(undefined).mockResolvedValueOnce(undefined);
+      mockFs.writeFile.mockResolvedValue(undefined);
+      mockFs.rename.mockResolvedValue(undefined);
+
+      const result = await FileSystemService.saveFileContent("/workspace", saveRequest);
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("salvo com sucesso");
+      expect(result.newLastModified).toBeInstanceOf(Date);
+    });
+
+    it("should throw error for write permission denied", async () => {
+      const saveRequest: FileSaveRequest = {
+        path: "readonly.txt",
+        content: "Content"
+      };
+
+      // Mock file exists but not writable
+      const accessError = new Error("EACCES") as Error & { code: string };
+      accessError.code = "EACCES";
+      mockFs.access.mockResolvedValueOnce(undefined).mockRejectedValueOnce(accessError);
+
+      await expect(
+        FileSystemService.saveFileContent("/workspace", saveRequest)
+      ).rejects.toThrow("Permission denied to write file");
+    });
+
+    it("should prevent path traversal attacks", async () => {
+      const saveRequest: FileSaveRequest = {
+        path: "../../../malicious.txt",
+        content: "Bad content"
+      };
+
+      await expect(
+        FileSystemService.saveFileContent("/workspace", saveRequest)
+      ).rejects.toThrow("Access denied: path is outside workspace");
+    });
+
+    it("should handle disk full error", async () => {
+      const saveRequest: FileSaveRequest = {
+        path: "file.txt",
+        content: "Content"
+      };
+
+      mockFs.access.mockRejectedValueOnce(new Error("ENOENT"));
+      const diskFullError = new Error("ENOSPC") as Error & { code: string };
+      diskFullError.code = "ENOSPC";
+      mockFs.writeFile.mockRejectedValue(diskFullError);
+
+      await expect(
+        FileSystemService.saveFileContent("/workspace", saveRequest)
+      ).rejects.toThrow("Not enough disk space to save file");
+    });
+
+    it("should handle directory not found error", async () => {
+      const saveRequest: FileSaveRequest = {
+        path: "nonexistent/directory/file.txt",
+        content: "Content"
+      };
+
+      mockFs.access.mockRejectedValueOnce(new Error("ENOENT"));
+      const dirError = new Error("ENOENT") as Error & { code: string };
+      dirError.code = "ENOENT";
+      mockFs.writeFile.mockRejectedValue(dirError);
+
+      await expect(
+        FileSystemService.saveFileContent("/workspace", saveRequest)
+      ).rejects.toThrow("Directory not found for file path");
+    });
+
+    it("should use atomic writes with temp files", async () => {
+      const saveRequest: FileSaveRequest = {
+        path: "atomic.txt",
+        content: "Atomic content"
+      };
+
+      mockFs.access.mockRejectedValueOnce(new Error("ENOENT"));
+      mockFs.writeFile.mockResolvedValue(undefined);
+      mockFs.rename.mockResolvedValue(undefined);
+
+      await FileSystemService.saveFileContent("/workspace", saveRequest);
+
+      expect(mockFs.writeFile).toHaveBeenCalledWith(
+        "/resolved/workspace/atomic.txt.tmp",
+        "Atomic content",
+        "utf-8"
+      );
+      expect(mockFs.rename).toHaveBeenCalledWith(
+        "/resolved/workspace/atomic.txt.tmp",
+        "/resolved/workspace/atomic.txt"
+      );
+    });
+
+    it("should handle empty content", async () => {
+      const saveRequest: FileSaveRequest = {
+        path: "empty.txt",
+        content: ""
+      };
+
+      mockFs.access.mockRejectedValueOnce(new Error("ENOENT"));
+      mockFs.writeFile.mockResolvedValue(undefined);
+      mockFs.rename.mockResolvedValue(undefined);
+
+      const result = await FileSystemService.saveFileContent("/workspace", saveRequest);
+
+      expect(result.success).toBe(true);
+      expect(mockFs.writeFile).toHaveBeenCalledWith(
+        "/resolved/workspace/empty.txt.tmp",
+        "",
+        "utf-8"
+      );
+    });
+
+    it("should handle Unicode content", async () => {
+      const saveRequest: FileSaveRequest = {
+        path: "unicode.txt",
+        content: "Hello 🌍! Olá 🇧🇷! こんにちは 🇯🇵!"
+      };
+
+      mockFs.access.mockRejectedValueOnce(new Error("ENOENT"));
+      mockFs.writeFile.mockResolvedValue(undefined);
+      mockFs.rename.mockResolvedValue(undefined);
+
+      const result = await FileSystemService.saveFileContent("/workspace", saveRequest);
+
+      expect(result.success).toBe(true);
+      expect(mockFs.writeFile).toHaveBeenCalledWith(
+        "/resolved/workspace/unicode.txt.tmp",
+        "Hello 🌍! Olá 🇧🇷! こんにちは 🇯🇵!",
+        "utf-8"
+      );
     });
   });
 });

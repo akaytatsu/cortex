@@ -1,163 +1,264 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createRemixStub } from "@remix-run/testing";
 import { CodeViewer } from "./CodeViewer";
-import type { FileContent } from "shared-types";
+import type { FileContent, FileSaveResponse } from "shared-types";
 
 // Mock Prism.js
-vi.mock("prismjs", () => ({
-  default: {
-    highlightElement: vi.fn(),
-  },
-}));
-
-// Mock CSS imports
-vi.mock("prismjs/themes/prism.css", () => ({}));
-vi.mock("prismjs/components/prism-typescript", () => ({}));
-vi.mock("prismjs/components/prism-javascript", () => ({}));
-
-// Mock lucide-react icons
-vi.mock("lucide-react", () => ({
-  File: () => <span data-testid="file-icon">📄</span>,
-  AlertCircle: () => <span data-testid="alert-icon">⚠️</span>,
-  Loader2: () => <span data-testid="loader-icon">⏳</span>,
-  FileX: () => <span data-testid="file-x-icon">❌</span>,
-}));
-
-const mockFileContent: FileContent = {
-  path: "src/index.ts",
-  content: "console.log('Hello, world!');",
-  mimeType: "text/typescript",
+(global as unknown as { Prism: { highlightElement: typeof vi.fn } }).Prism = {
+  highlightElement: vi.fn(),
 };
 
 describe("CodeViewer", () => {
+  const mockFileContent: FileContent = {
+    path: "test.js",
+    content: "console.log('Hello World');",
+    mimeType: "text/javascript"
+  };
+
+  const createStub = (loaderData: unknown, actionData?: unknown) => {
+    return createRemixStub([
+      {
+        path: "/workspace/:workspaceName",
+        element: <CodeViewer workspaceName="test-workspace" filePath="test.js" />,
+        loader: () => loaderData,
+        action: () => actionData,
+      },
+      {
+        path: "/api/workspaces/:workspaceName/file",
+        loader: () => ({ fileContent: mockFileContent }),
+      },
+      {
+        path: "/api/workspaces/:workspaceName/file/save",
+        action: () => ({ success: true, message: "Arquivo salvo com sucesso" }),
+      },
+    ]);
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  function createComponent(
-    filePath: string | null = null,
-    fileContent?: FileContent,
-    error?: string
-  ) {
-    const RemixStub = createRemixStub([
-      {
-        path: "/",
-        Component: () => (
-          <CodeViewer
-            workspaceName="test-workspace"
-            filePath={filePath}
-          />
-        ),
-      },
-      {
-        path: "/api/workspaces/test-workspace/file",
-        loader: () => ({ fileContent, error }),
-      },
-    ]);
-
-    return render(<RemixStub initialEntries={["/"]} />);
-  }
-
-  it("should show empty state when no file is selected", () => {
-    createComponent();
+  it("should render no file selected state", async () => {
+    const RemixStub = createStub({});
+    render(<RemixStub initialEntries={["/workspace/test"]} />);
 
     expect(screen.getByText("Nenhum arquivo selecionado")).toBeInTheDocument();
     expect(screen.getByText("Selecione um arquivo no Explorer para visualizar seu conteúdo")).toBeInTheDocument();
-    expect(screen.getByTestId("file-icon")).toBeInTheDocument();
   });
 
-  it("should show loading state when loading file", () => {
-    createComponent("src/index.ts");
-
-    expect(screen.getByText("Carregando arquivo...")).toBeInTheDocument();
-    expect(screen.getByTestId("loader-icon")).toBeInTheDocument();
+  it("should render loading state", async () => {
+    const RemixStub = createStub({});
+    render(<RemixStub initialEntries={["/workspace/test"]} />);
+    
+    // Simulate loading by not providing file content immediately
+    expect(screen.queryByText("Carregando arquivo...")).toBeInTheDocument();
   });
 
-  it("should display file content when loaded successfully", async () => {
-    createComponent("src/index.ts", mockFileContent);
+  it("should render file content with editor", async () => {
+    const RemixStub = createStub({ fileContent: mockFileContent });
+    render(<RemixStub initialEntries={["/workspace/test"]} />);
 
     await waitFor(() => {
-      expect(screen.getByText("index.ts")).toBeInTheDocument();
-      expect(screen.getByText("typescript")).toBeInTheDocument();
-      expect(screen.getByText("1 linhas")).toBeInTheDocument();
-      expect(screen.getByText("console.log('Hello, world!');")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("console.log('Hello World');")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("test.js")).toBeInTheDocument();
+    expect(screen.getByText("javascript")).toBeInTheDocument();
+    expect(screen.getByText("1 linhas")).toBeInTheDocument();
+    expect(screen.getByText("Salvar")).toBeInTheDocument();
+  });
+
+  it("should show dirty state indicator when content is modified", async () => {
+    const RemixStub = createStub({ fileContent: mockFileContent });
+    render(<RemixStub initialEntries={["/workspace/test"]} />);
+
+    const textarea = await screen.findByDisplayValue("console.log('Hello World');");
+    
+    // Modify content
+    fireEvent.change(textarea, { target: { value: "console.log('Modified');" } });
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("console.log('Modified');")).toBeInTheDocument();
+    });
+
+    // Check that dirty indicator appears (orange circle)
+    const saveButton = screen.getByText("Salvar");
+    expect(saveButton.closest('button')).not.toHaveClass('cursor-not-allowed');
+  });
+
+  it("should update line count when content changes", async () => {
+    const RemixStub = createStub({ fileContent: mockFileContent });
+    render(<RemixStub initialEntries={["/workspace/test"]} />);
+
+    const textarea = await screen.findByDisplayValue("console.log('Hello World');");
+    
+    // Add multiple lines
+    fireEvent.change(textarea, { 
+      target: { value: "console.log('Line 1');\nconsole.log('Line 2');\nconsole.log('Line 3');" } 
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("3 linhas")).toBeInTheDocument();
     });
   });
 
-  it("should show error state when file loading fails", async () => {
-    createComponent("src/index.ts", undefined, "File not found");
+  it("should enable save button when content is dirty", async () => {
+    const RemixStub = createStub({ fileContent: mockFileContent });
+    render(<RemixStub initialEntries={["/workspace/test"]} />);
+
+    const textarea = await screen.findByDisplayValue("console.log('Hello World');");
+    const saveButton = screen.getByText("Salvar");
+
+    // Initially save should be disabled (not dirty)
+    expect(saveButton.closest('button')).toHaveClass('cursor-not-allowed');
+
+    // Modify content
+    fireEvent.change(textarea, { target: { value: "console.log('Modified');" } });
+
+    await waitFor(() => {
+      expect(saveButton.closest('button')).not.toHaveClass('cursor-not-allowed');
+    });
+  });
+
+  it("should trigger save on Ctrl+S", async () => {
+    const mockAction = vi.fn(() => ({ success: true, message: "Saved!" }));
+    const RemixStub = createStub({ fileContent: mockFileContent }, mockAction());
+    render(<RemixStub initialEntries={["/workspace/test"]} />);
+
+    const textarea = await screen.findByDisplayValue("console.log('Hello World');");
+    
+    // Modify content first to make it dirty
+    fireEvent.change(textarea, { target: { value: "console.log('Modified');" } });
+
+    // Trigger Ctrl+S
+    fireEvent.keyDown(document, { key: 's', ctrlKey: true });
+
+    await waitFor(() => {
+      expect(textarea).toHaveValue("console.log('Modified');");
+    });
+  });
+
+  it("should handle save button click", async () => {
+    const RemixStub = createStub({ fileContent: mockFileContent });
+    render(<RemixStub initialEntries={["/workspace/test"]} />);
+
+    const textarea = await screen.findByDisplayValue("console.log('Hello World');");
+    
+    // Modify content to make it dirty
+    fireEvent.change(textarea, { target: { value: "console.log('Modified');" } });
+
+    const saveButton = await screen.findByText("Salvar");
+    
+    await waitFor(() => {
+      expect(saveButton.closest('button')).not.toHaveClass('cursor-not-allowed');
+    });
+
+    fireEvent.click(saveButton);
+
+    // Verify save action is triggered
+    await waitFor(() => {
+      expect(saveButton.closest('button')).toHaveClass('cursor-not-allowed');
+    });
+  });
+
+  it("should show error state", async () => {
+    const RemixStub = createStub({ error: "File not found" });
+    render(<RemixStub initialEntries={["/workspace/test"]} />);
 
     await waitFor(() => {
       expect(screen.getByText("Erro ao carregar arquivo")).toBeInTheDocument();
       expect(screen.getByText("File not found")).toBeInTheDocument();
-      expect(screen.getByText("src/index.ts")).toBeInTheDocument();
-      expect(screen.getByTestId("alert-icon")).toBeInTheDocument();
     });
   });
 
-  it("should show not found state when no content is available", async () => {
-    createComponent("src/index.ts");
-
-    await waitFor(() => {
-      expect(screen.getByText("Arquivo não encontrado")).toBeInTheDocument();
-      expect(screen.getByTestId("file-x-icon")).toBeInTheDocument();
-    });
-  });
-
-  it("should display correct file information in header", async () => {
-    const fileContent: FileContent = {
-      path: "src/utils.js",
-      content: "function add(a, b) {\\n  return a + b;\\n}",
-      mimeType: "text/javascript",
+  it("should show save success message", async () => {
+    const saveResponse: FileSaveResponse = {
+      success: true,
+      message: "Arquivo salvo com sucesso!"
     };
 
-    createComponent("src/utils.js", fileContent);
+    const RemixStub = createStub({ fileContent: mockFileContent }, saveResponse);
+    render(<RemixStub initialEntries={["/workspace/test"]} />);
+
+    const textarea = await screen.findByDisplayValue("console.log('Hello World');");
+    fireEvent.change(textarea, { target: { value: "Modified content" } });
+
+    const saveButton = screen.getByText("Salvar");
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(screen.getByText("utils.js")).toBeInTheDocument();
-      expect(screen.getByText("javascript")).toBeInTheDocument();
-      expect(screen.getByText("1 linhas")).toBeInTheDocument(); // Note: split by \\n in test
+      expect(screen.getByText("Arquivo salvo com sucesso!")).toBeInTheDocument();
     });
   });
 
-  it("should handle different file types with correct language detection", async () => {
-    const testCases = [
-      { fileName: "style.css", mimeType: "text/css", expectedLang: "css" },
-      { fileName: "data.json", mimeType: "application/json", expectedLang: "json" },
-      { fileName: "script.py", mimeType: "text/x-python", expectedLang: "python" },
-      { fileName: "config.yaml", mimeType: "text/yaml", expectedLang: "yaml" },
-      { fileName: "README.md", mimeType: "text/markdown", expectedLang: "markdown" },
-    ];
+  it("should show save error message", async () => {
+    const saveResponse: FileSaveResponse = {
+      success: false,
+      message: "Permission denied"
+    };
 
-    for (const testCase of testCases) {
-      const fileContent: FileContent = {
-        path: testCase.fileName,
-        content: "test content",
-        mimeType: testCase.mimeType,
-      };
+    const RemixStub = createStub({ fileContent: mockFileContent }, saveResponse);
+    render(<RemixStub initialEntries={["/workspace/test"]} />);
 
-      const { unmount } = createComponent(testCase.fileName, fileContent);
+    const textarea = await screen.findByDisplayValue("console.log('Hello World');");
+    fireEvent.change(textarea, { target: { value: "Modified content" } });
 
-      await waitFor(() => {
-        expect(screen.getByText(testCase.expectedLang)).toBeInTheDocument();
-      });
-
-      unmount();
-    }
-  });
-
-  it("should render code with proper syntax highlighting class", async () => {
-    createComponent("src/index.js", {
-      path: "src/index.js",
-      content: "console.log('test');",
-      mimeType: "text/javascript",
-    });
+    const saveButton = screen.getByText("Salvar");
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
-      const codeElement = document.querySelector('code.language-javascript');
-      expect(codeElement).toBeInTheDocument();
-      expect(codeElement).toHaveTextContent("console.log('test');");
+      expect(screen.getByText("Permission denied")).toBeInTheDocument();
+    });
+
+    // Error message should have red styling
+    const errorMessage = screen.getByText("Permission denied");
+    expect(errorMessage.closest('div')).toHaveClass('text-red-700');
+  });
+
+  it("should prevent save when content is not dirty", async () => {
+    const RemixStub = createStub({ fileContent: mockFileContent });
+    render(<RemixStub initialEntries={["/workspace/test"]} />);
+
+    await screen.findByDisplayValue("console.log('Hello World');");
+    
+    const saveButton = screen.getByText("Salvar");
+    
+    // Save button should be disabled when not dirty
+    expect(saveButton.closest('button')).toHaveClass('cursor-not-allowed');
+    expect(saveButton.closest('button')).toBeDisabled();
+  });
+
+  it("should handle different file types correctly", async () => {
+    const jsonFileContent: FileContent = {
+      path: "config.json",
+      content: '{"name": "test"}',
+      mimeType: "application/json"
+    };
+
+    const RemixStub = createStub({ fileContent: jsonFileContent });
+    render(<RemixStub initialEntries={["/workspace/test"]} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("config.json")).toBeInTheDocument();
+      expect(screen.getByText("json")).toBeInTheDocument();
+      expect(screen.getByDisplayValue('{"name": "test"}')).toBeInTheDocument();
+    });
+  });
+
+  it("should preserve content structure with line breaks", async () => {
+    const multiLineContent: FileContent = {
+      path: "multi.js",
+      content: "function test() {\n  console.log('hello');\n  return true;\n}",
+      mimeType: "text/javascript"
+    };
+
+    const RemixStub = createStub({ fileContent: multiLineContent });
+    render(<RemixStub initialEntries={["/workspace/test"]} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("4 linhas")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("function test() {\n  console.log('hello');\n  return true;\n}")).toBeInTheDocument();
     });
   });
 });

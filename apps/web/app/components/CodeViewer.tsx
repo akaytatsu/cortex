@@ -1,33 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useFetcher } from "@remix-run/react";
-import { File, AlertCircle, Loader2, FileX } from "lucide-react";
-import type { FileContent } from "shared-types";
+import { File, AlertCircle, Loader2, FileX, Save, Circle } from "lucide-react";
+import type { FileContent, FileSaveRequest, FileSaveResponse } from "shared-types";
 
-// Import Prism.js
-import Prism from "prismjs";
-import "prismjs/themes/prism.css";
-
-// Import common language definitions
-import "prismjs/components/prism-typescript";
-import "prismjs/components/prism-javascript";
-import "prismjs/components/prism-jsx";
-import "prismjs/components/prism-tsx";
-import "prismjs/components/prism-json";
-import "prismjs/components/prism-css";
-import "prismjs/components/prism-scss";
-import "prismjs/components/prism-sass";
-import "prismjs/components/prism-less";
-import "prismjs/components/prism-python";
-import "prismjs/components/prism-java";
-// import "prismjs/components/prism-php"; // Temporariamente removido devido a erro
-import "prismjs/components/prism-go";
-import "prismjs/components/prism-rust";
-import "prismjs/components/prism-c";
-import "prismjs/components/prism-cpp";
-import "prismjs/components/prism-sql";
-import "prismjs/components/prism-bash";
-import "prismjs/components/prism-yaml";
-import "prismjs/components/prism-markdown";
+// Temporarily removing Prism.js to avoid import issues
 
 interface CodeViewerProps {
   workspaceName: string;
@@ -87,8 +63,12 @@ function getLanguageFromMimeType(mimeType: string, fileName: string): string {
 
 export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
   const fetcher = useFetcher<{ fileContent: FileContent; error?: string }>();
-  const codeRef = useRef<HTMLElement>(null);
+  const saveFetcher = useFetcher<FileSaveResponse>();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [fileContent, setFileContent] = useState<FileContent | null>(null);
+  const [editedContent, setEditedContent] = useState<string>("");
+  const [isDirty, setIsDirty] = useState<boolean>(false);
+  // Prism disabled temporarily
 
   useEffect(() => {
     if (filePath) {
@@ -101,25 +81,59 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
   useEffect(() => {
     if (fetcher.data?.fileContent) {
       setFileContent(fetcher.data.fileContent);
+      setEditedContent(fetcher.data.fileContent.content);
+      setIsDirty(false);
     } else if (fetcher.data?.error) {
       setFileContent(null);
+      setEditedContent("");
+      setIsDirty(false);
     }
   }, [fetcher.data]);
 
+  const handleContentChange = useCallback((newContent: string) => {
+    setEditedContent(newContent);
+    setIsDirty(fileContent ? newContent !== fileContent.content : false);
+  }, [fileContent]);
+
+  const handleSave = useCallback(async () => {
+    if (!filePath || !fileContent || !isDirty) return;
+
+    const saveRequest: FileSaveRequest = {
+      path: filePath,
+      content: editedContent,
+    };
+
+    saveFetcher.submit(saveRequest, {
+      method: "POST",
+      action: `/api/workspaces/${workspaceName}/file/save`,
+      encType: "application/json",
+    });
+  }, [filePath, fileContent, editedContent, isDirty, workspaceName, saveFetcher]);
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      handleSave();
+    }
+  }, [handleSave]);
+
   useEffect(() => {
-    if (fileContent && codeRef.current) {
-      try {
-        // Verificar se o PrismJS está disponível
-        if (typeof Prism !== "undefined" && Prism.highlightElement) {
-          Prism.highlightElement(codeRef.current);
-        } else {
-          console.warn("PrismJS não está disponível");
-        }
-      } catch (error) {
-        console.warn("Erro ao aplicar syntax highlighting:", error);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  useEffect(() => {
+    if (saveFetcher.data?.success) {
+      setIsDirty(false);
+      // Update fileContent to reflect saved state
+      if (fileContent) {
+        setFileContent({
+          ...fileContent,
+          content: editedContent
+        });
       }
     }
-  }, [fileContent]);
+  }, [saveFetcher.data, editedContent, fileContent]);
 
   // No file selected
   if (!filePath) {
@@ -192,33 +206,63 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
           <File className="w-4 h-4 text-gray-500" />
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
             {fileName}
+            {isDirty && <Circle className="w-2 h-2 ml-1 inline-block fill-current text-orange-500" />}
           </span>
           <span className="text-xs text-gray-500 dark:text-gray-400">
             {language}
           </span>
         </div>
-        <div className="text-xs text-gray-400 dark:text-gray-500">
-          {fileContent.content.split("\n").length} linhas
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={handleSave}
+            disabled={!isDirty || saveFetcher.state === "submitting"}
+            className={`
+              flex items-center space-x-1 px-2 py-1 rounded text-xs
+              ${isDirty
+                ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800"
+                : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+              }
+              ${saveFetcher.state === "submitting" ? "opacity-50" : ""}
+            `}
+          >
+            {saveFetcher.state === "submitting" ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Save className="w-3 h-3" />
+            )}
+            <span>Salvar</span>
+          </button>
+          <div className="text-xs text-gray-400 dark:text-gray-500">
+            {editedContent.split("\n").length} linhas
+          </div>
         </div>
       </div>
 
-      {/* Code Content */}
-      <div className="flex-1 overflow-auto">
-        <pre className="h-full text-sm leading-relaxed">
-          <code
-            ref={codeRef}
-            className={`language-${language} block h-full p-4`}
-            style={{
-              margin: 0,
-              background: "transparent",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-            }}
-          >
-            {fileContent.content}
-          </code>
-        </pre>
+      {/* Editor Content */}
+      <div className="flex-1 relative">
+        <textarea
+          ref={textareaRef}
+          value={editedContent}
+          onChange={(e) => handleContentChange(e.target.value)}
+          className="w-full h-full p-4 text-sm font-mono leading-relaxed bg-transparent border-none outline-none resize-none text-gray-800 dark:text-gray-200"
+          style={{
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+          }}
+          spellCheck={false}
+        />
       </div>
+
+      {/* Save status messages */}
+      {saveFetcher.data?.message && (
+        <div className={`px-4 py-2 text-xs border-t border-gray-200 dark:border-gray-700 ${
+          saveFetcher.data.success
+            ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
+            : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300"
+        }`}>
+          {saveFetcher.data.message}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import * as fs from "fs/promises";
 import * as path from "path";
-import type { FileSystemItem, FileContent } from "shared-types";
+import type { FileSystemItem, FileContent, FileSaveRequest, FileSaveResponse } from "shared-types";
 
 class FileSystemServiceError extends Error {
   constructor(
@@ -245,6 +245,90 @@ export class FileSystemService {
       throw new FileSystemServiceError(
         "Unknown error reading file",
         "READ_ERROR"
+      );
+    }
+  }
+
+  /**
+   * Saves content to a file
+   */
+  static async saveFileContent(
+    workspacePath: string,
+    saveRequest: FileSaveRequest
+  ): Promise<FileSaveResponse> {
+    const targetPath = path.join(workspacePath, saveRequest.path);
+    this.validatePath(workspacePath, targetPath);
+
+    try {
+      // Check if file exists
+      let fileExists = false;
+      try {
+        await fs.access(targetPath);
+        fileExists = true;
+      } catch {
+        fileExists = false;
+      }
+
+      // If file exists, check if it's writable
+      if (fileExists) {
+        try {
+          await fs.access(targetPath, fs.constants.W_OK);
+        } catch {
+          throw new FileSystemServiceError(
+            "Permission denied to write file",
+            "WRITE_PERMISSION_DENIED"
+          );
+        }
+      }
+
+      // Create backup/temp file for safe atomic write
+      const tempPath = `${targetPath}.tmp`;
+      
+      // Write content to temp file
+      await fs.writeFile(tempPath, saveRequest.content, 'utf-8');
+
+      // Atomic move from temp to final location
+      await fs.rename(tempPath, targetPath);
+
+      return {
+        success: true,
+        message: fileExists ? "Arquivo salvo com sucesso" : "Arquivo criado e salvo com sucesso",
+        newLastModified: new Date()
+      };
+
+    } catch (error) {
+      if (error instanceof FileSystemServiceError) {
+        throw error;
+      }
+
+      if (error instanceof Error && 'code' in error) {
+        switch (error.code) {
+          case 'ENOSPC':
+            throw new FileSystemServiceError(
+              "Not enough disk space to save file",
+              "DISK_FULL"
+            );
+          case 'EACCES':
+            throw new FileSystemServiceError(
+              "Permission denied to write file",
+              "WRITE_PERMISSION_DENIED"
+            );
+          case 'ENOENT':
+            throw new FileSystemServiceError(
+              "Directory not found for file path",
+              "DIRECTORY_NOT_FOUND"
+            );
+          default:
+            throw new FileSystemServiceError(
+              `Failed to save file: ${error.message}`,
+              "WRITE_ERROR"
+            );
+        }
+      }
+
+      throw new FileSystemServiceError(
+        "Unknown error saving file",
+        "WRITE_ERROR"
       );
     }
   }

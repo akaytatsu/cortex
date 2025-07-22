@@ -31,3 +31,15 @@ export interface FileContent {
   content: string;
   mimeType: string;
 }
+
+export interface FileSaveRequest {
+  path: string;
+  content: string;
+  lastModified?: Date; // for conflict detection
+}
+
+export interface FileSaveResponse {
+  success: boolean;
+  message?: string;
+  newLastModified?: Date;
+}
