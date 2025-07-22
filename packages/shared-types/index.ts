@@ -63,7 +63,8 @@ export interface TerminalMessage {
 // WebSocket messages for file operations
 export interface WSFileMessage {
   type: 'file_content' | 'file_change' | 'save_request' | 'save_confirmation' |
-        'file_created' | 'file_deleted' | 'error' | 'connection_status';
+        'file_created' | 'file_deleted' | 'error' | 'connection_status' |
+        'text_change' | 'text_change_ack';
   payload: unknown;
   messageId?: string; // for request/response correlation
 }
@@ -124,6 +125,27 @@ export interface ConnectionStatusMessage extends WSFileMessage {
   };
 }
 
+export interface TextChangeMessage extends WSFileMessage {
+  type: 'text_change';
+  payload: {
+    path: string;
+    changes: TextDelta[];
+    version: number; // for operational transforms
+    timestamp: Date;
+  };
+  messageId: string;
+}
+
+export interface TextChangeAckMessage extends WSFileMessage {
+  type: 'text_change_ack';
+  payload: {
+    success: boolean;
+    version: number;
+    message?: string;
+  };
+  messageId: string;
+}
+
 // WebSocket connection and session models
 export interface WSConnection {
   id: string;
@@ -138,6 +160,8 @@ export interface FileSession {
   connections: WSConnection[];
   lastModified: Date;
   pendingChanges: TextDelta[];
+  version: number; // for operational transforms
+  lastContent: string; // cache of last known file content
 }
 
 export interface TextDelta {

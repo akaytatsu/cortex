@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useFetcher } from "@remix-run/react";
-import { File, AlertCircle, Loader2, FileX, Save, Circle } from "lucide-react";
+import { File, AlertCircle, Loader2, FileX, Save, Circle, Wifi, WifiOff, Clock } from "lucide-react";
 import type {
   FileContent,
   FileSaveRequest,
@@ -12,6 +12,7 @@ import type {
 import { useFileWebSocketContext } from "../contexts/FileWebSocketContext";
 import { ConnectionStatus } from "./ConnectionStatus";
 import { useDebounceCallback } from "../hooks/useDebounce";
+import { useTextDelta } from "../hooks/useTextDelta";
 
 // Temporarily removing Prism.js to avoid import issues
 
@@ -85,6 +86,9 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
   const [wsError, setWsError] = useState<string | null>(null);
   const [lastSaveMessage, setLastSaveMessage] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+  const [version, setVersion] = useState<number>(0);
+  const [isTextChangePending, setIsTextChangePending] = useState<boolean>(false);
+  const [lastTextChangeStatus, setLastTextChangeStatus] = useState<'sending' | 'sent' | 'error' | null>(null);
   
   // WebSocket connection
   const {
@@ -93,11 +97,16 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
     error: connectionError,
     requestFileContent,
     saveFile,
+    sendTextChanges,
     reconnect,
     registerFileContentHandler,
     registerSaveConfirmationHandler,
     registerErrorHandler,
+    registerTextChangeAckHandler,
   } = useFileWebSocketContext();
+  
+  // Text delta utility
+  const { generateTextDeltas } = useTextDelta();
   
   console.log('CodeViewer: WebSocket states', { 
     isConnected, 
@@ -130,6 +139,7 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
       setIsDirty(false);
       setIsLoading(false);
       setWsError(null);
+      setVersion(0); // Reset version for new file
     } else {
       console.log('CodeViewer: Ignoring file content for different path');
     }
@@ -169,12 +179,36 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
     setIsSaving(false);
   }, []);
 
+  // Handle text change acknowledgment
+  const handleTextChangeAck = useCallback((message: any) => {
+    console.log('CodeViewer: Text change acknowledged', {
+      success: message.payload.success,
+      version: message.payload.version,
+      message: message.payload.message
+    });
+    
+    setIsTextChangePending(false);
+    
+    if (message.payload.success) {
+      setVersion(message.payload.version);
+      setLastTextChangeStatus('sent');
+    } else {
+      setLastTextChangeStatus('error');
+    }
+    
+    // Clear status after a short time
+    setTimeout(() => {
+      setLastTextChangeStatus(null);
+    }, 2000);
+  }, []);
+
   // Register WebSocket handlers
   useEffect(() => {
     registerFileContentHandler(handleFileContent);
     registerSaveConfirmationHandler(handleSaveConfirmation);
     registerErrorHandler(handleWebSocketError);
-  }, [registerFileContentHandler, registerSaveConfirmationHandler, registerErrorHandler, handleFileContent, handleSaveConfirmation, handleWebSocketError]);
+    registerTextChangeAckHandler(handleTextChangeAck);
+  }, [registerFileContentHandler, registerSaveConfirmationHandler, registerErrorHandler, registerTextChangeAckHandler, handleFileContent, handleSaveConfirmation, handleWebSocketError, handleTextChangeAck]);
 
   // Load file content via WebSocket when filePath changes
   useEffect(() => {
@@ -227,6 +261,7 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
       setEditedContent(fetcher.data.fileContent.content);
       editedContentRef.current = fetcher.data.fileContent.content;
       setIsDirty(false);
+      setVersion(0); // Reset version for new file
     } else if (fetcher.data?.error) {
       setFileContent(null);
       setEditedContent("");
@@ -235,23 +270,63 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
     }
   }, [fetcher.data]);
 
-  // Debounced content change for potential auto-save (not implemented in this story)
-  const debouncedContentChange = useDebounceCallback((content: string) => {
-    console.debug('Debounced content change', { 
+  // Debounced content change for sending real-time text changes
+  const debouncedContentChange = useDebounceCallback((newContent: string, oldContent: string) => {
+    console.debug('Debounced content change - sending text deltas', { 
       filePath, 
-      contentLength: content.length 
+      newContentLength: newContent.length,
+      oldContentLength: oldContent.length 
     });
-    // Future: This could trigger auto-save if enabled
-  }, 2000); // 2 second debounce
+    
+    if (filePath && isConnected && oldContent !== newContent) {
+      try {
+        // Generate text deltas
+        const deltas = generateTextDeltas(oldContent, newContent, 'client');
+        
+        if (deltas.length > 0) {
+          console.debug('Sending text changes via WebSocket', {
+            filePath,
+            deltasCount: deltas.length,
+            version
+          });
+          
+          // Show sending status
+          setIsTextChangePending(true);
+          setLastTextChangeStatus('sending');
+          
+          sendTextChanges(filePath, deltas, version).catch((error) => {
+            console.error('Failed to send text changes:', error);
+            setIsTextChangePending(false);
+            setLastTextChangeStatus('error');
+            
+            // Clear error status after 3 seconds
+            setTimeout(() => {
+              setLastTextChangeStatus(null);
+            }, 3000);
+          });
+        }
+      } catch (error) {
+        console.error('Failed to generate text deltas:', error);
+        setLastTextChangeStatus('error');
+        setTimeout(() => {
+          setLastTextChangeStatus(null);
+        }, 3000);
+      }
+    }
+  }, 500); // 500ms debounce for real-time changes
 
   const handleContentChange = useCallback(
     (newContent: string) => {
+      const oldContent = editedContentRef.current;
+      
       setEditedContent(newContent);
       editedContentRef.current = newContent;
       setIsDirty(fileContent ? newContent !== fileContent.content : false);
       
-      // Trigger debounced callback for future auto-save functionality
-      debouncedContentChange(newContent);
+      // Trigger debounced callback for real-time text changes
+      if (oldContent !== newContent) {
+        debouncedContentChange(newContent, oldContent);
+      }
     },
     [fileContent, debouncedContentChange]
   );
@@ -413,6 +488,28 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
           </span>
         </div>
         <div className="flex items-center space-x-3">
+          {/* Real-time sync status indicator */}
+          {isConnected && (lastTextChangeStatus || isTextChangePending) && (
+            <div className="flex items-center space-x-1 text-xs">
+              {lastTextChangeStatus === 'sending' || isTextChangePending ? (
+                <>
+                  <Clock className="w-3 h-3 animate-pulse text-orange-500" />
+                  <span className="text-orange-600 dark:text-orange-400">Sincronizando...</span>
+                </>
+              ) : lastTextChangeStatus === 'sent' ? (
+                <>
+                  <Wifi className="w-3 h-3 text-green-500" />
+                  <span className="text-green-600 dark:text-green-400">Sincronizado</span>
+                </>
+              ) : lastTextChangeStatus === 'error' ? (
+                <>
+                  <WifiOff className="w-3 h-3 text-red-500" />
+                  <span className="text-red-600 dark:text-red-400">Erro de sinc</span>
+                </>
+              ) : null}
+            </div>
+          )}
+          
           {/* Connection status indicator */}
           <ConnectionStatus
             status={connectionStatus}

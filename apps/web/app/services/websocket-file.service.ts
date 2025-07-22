@@ -5,9 +5,12 @@ import type {
   SaveConfirmationMessage,
   ErrorMessage,
   ConnectionStatusMessage,
+  TextChangeMessage,
+  TextChangeAckMessage,
   WSConnection,
   FileSession,
   FileSaveRequest,
+  TextDelta,
 } from "shared-types";
 import type { ILogger } from "../types/services";
 import { createServiceLogger } from "../lib/logger";
@@ -95,6 +98,8 @@ export class WebSocketFileService {
           return await this.handleFileContentRequest(connectionId, message, workspacePath);
         case 'save_request':
           return await this.handleSaveRequest(connectionId, message as SaveRequestMessage, workspacePath);
+        case 'text_change':
+          return await this.handleTextChangeRequest(connectionId, message as TextChangeMessage, workspacePath);
         case 'connection_status':
           // This is just a status message, acknowledge it
           this.logger.debug("Connection status message received", { 
@@ -245,6 +250,8 @@ export class WebSocketFileService {
         connections: [],
         lastModified: new Date(),
         pendingChanges: [],
+        version: 0,
+        lastContent: "",
       };
       this.fileSessions.set(filePath, session);
     }
@@ -252,6 +259,100 @@ export class WebSocketFileService {
     // Add connection if not already present
     if (!session.connections.find(conn => conn.id === connectionId)) {
       session.connections.push(connection);
+    }
+  }
+
+  /**
+   * Handle text change request
+   */
+  private async handleTextChangeRequest(
+    connectionId: string,
+    message: TextChangeMessage,
+    workspacePath: string
+  ): Promise<TextChangeAckMessage | ErrorMessage> {
+    try {
+      const { path, changes, version } = message.payload;
+
+      if (!path || !changes || version === undefined) {
+        return this.createErrorMessage("Path, changes, and version are required", message.messageId);
+      }
+
+      // Get or create file session
+      this.trackFileSession(connectionId, path);
+      const session = this.fileSessions.get(path);
+      
+      if (!session) {
+        return this.createErrorMessage("Failed to track file session", message.messageId);
+      }
+
+      // Handle version mismatch with basic operational transforms
+      let transformedChanges = changes;
+      
+      if (version !== session.version) {
+        this.logger.warn("Version mismatch in text changes - applying transform", {
+          connectionId,
+          filePath: path,
+          expectedVersion: session.version,
+          receivedVersion: version,
+          pendingChangesCount: session.pendingChanges.length
+        });
+        
+        // Basic conflict resolution: if there are pending changes, we need to transform
+        if (session.pendingChanges.length > 0) {
+          // For this basic implementation, we'll merge the changes
+          // In a real system, you'd use proper operational transforms
+          this.logger.info("Merging concurrent changes", {
+            connectionId,
+            filePath: path,
+            incomingChanges: changes.length,
+            pendingChanges: session.pendingChanges.length
+          });
+          
+          // Apply timestamp-based ordering for conflict resolution
+          transformedChanges = [...changes].sort((a, b) => 
+            a.timestamp.getTime() - b.timestamp.getTime()
+          );
+        }
+      }
+
+      // Apply changes to pending changes queue
+      session.pendingChanges.push(...transformedChanges);
+      session.version = Math.max(session.version, version) + 1;
+      session.lastModified = new Date();
+
+      // Update connection activity
+      this.updateConnectionActivity(connectionId);
+
+      // For now, we'll immediately acknowledge the changes
+      // In a full implementation, we might batch changes or apply operational transforms
+      const response: TextChangeAckMessage = {
+        type: 'text_change_ack',
+        payload: {
+          success: true,
+          version: session.version,
+          message: `Applied ${changes.length} text changes`,
+        },
+        messageId: message.messageId,
+      };
+
+      this.logger.debug("Text changes processed", {
+        connectionId,
+        filePath: path,
+        changesCount: changes.length,
+        newVersion: session.version,
+      });
+
+      return response;
+    } catch (error) {
+      this.logger.error("Error processing text changes", error as Error, {
+        connectionId,
+        filePath: message.payload?.path,
+      });
+
+      return this.createErrorMessage(
+        error instanceof Error ? error.message : "Failed to process text changes",
+        message.messageId
+      );
     }
   }
 

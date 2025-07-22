@@ -6,6 +6,9 @@ import type {
   SaveConfirmationMessage,
   ErrorMessage,
   ConnectionStatusMessage,
+  TextChangeMessage,
+  TextChangeAckMessage,
+  TextDelta,
 } from 'shared-types';
 import { useThrottleCallback } from './useDebounce';
 
@@ -15,6 +18,7 @@ interface UseFileWebSocketOptions {
   onSaveConfirmation?: (message: SaveConfirmationMessage) => void;
   onError?: (message: ErrorMessage) => void;
   onConnectionChange?: (status: 'connected' | 'disconnected' | 'reconnecting') => void;
+  onTextChangeAck?: (message: TextChangeAckMessage) => void;
 }
 
 interface UseFileWebSocketReturn {
@@ -23,6 +27,7 @@ interface UseFileWebSocketReturn {
   error: string | null;
   requestFileContent: (filePath: string) => Promise<void>;
   saveFile: (filePath: string, content: string, lastKnownModified?: Date) => Promise<void>;
+  sendTextChanges: (filePath: string, changes: TextDelta[], version: number) => Promise<void>;
   disconnect: () => void;
   reconnect: () => void;
 }
@@ -34,6 +39,7 @@ export function useFileWebSocket(options: UseFileWebSocketOptions): UseFileWebSo
     onSaveConfirmation,
     onError,
     onConnectionChange,
+    onTextChangeAck,
   } = options;
 
   const [isConnected, setIsConnected] = useState(false);
@@ -47,6 +53,8 @@ export function useFileWebSocket(options: UseFileWebSocketOptions): UseFileWebSo
   const maxReconnectAttempts = 5;
   const pendingRequests = useRef(new Map<string, (response: WSFileMessage) => void>());
   const lastRequestTime = useRef<{ [key: string]: number }>({});
+  const messageQueue = useRef<WSFileMessage[]>([]);
+  const isProcessingQueue = useRef(false);
 
   // Function to generate unique message ID
   const generateMessageId = useCallback(() => {
@@ -73,27 +81,80 @@ export function useFileWebSocket(options: UseFileWebSocketOptions): UseFileWebSo
     }
   }, []);
 
+  // Function to process message queue
+  const processMessageQueue = useCallback(async () => {
+    if (isProcessingQueue.current || messageQueue.current.length === 0) {
+      return;
+    }
+
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      console.debug('WebSocket not ready, keeping messages in queue', {
+        queueLength: messageQueue.current.length,
+        websocketState: wsRef.current?.readyState
+      });
+      return;
+    }
+
+    isProcessingQueue.current = true;
+    console.debug('Processing message queue', { queueLength: messageQueue.current.length });
+
+    try {
+      while (messageQueue.current.length > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
+        const message = messageQueue.current.shift();
+        if (message) {
+          console.debug('Sending queued message', { type: message.type, messageId: message.messageId });
+          wsRef.current.send(JSON.stringify(message));
+          
+          // Small delay to prevent overwhelming the server
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      }
+    } catch (error) {
+      console.error('Error processing message queue:', error);
+    } finally {
+      isProcessingQueue.current = false;
+    }
+  }, []);
+
   // Function to send message and handle response
   const sendMessage = useCallback((message: WSFileMessage): Promise<WSFileMessage> => {
     return new Promise((resolve, reject) => {
-      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-        console.warn('WebSocket not available for sending message', { 
-          websocketExists: !!wsRef.current,
-          readyState: wsRef.current?.readyState,
-          isConnected 
-        });
-        reject(new Error('WebSocket is not connected'));
-        return;
-      }
-
       const messageId = message.messageId || generateMessageId();
       message.messageId = messageId;
 
       // Store the promise resolver
       pendingRequests.current.set(messageId, resolve);
 
-      // Send the message
-      wsRef.current.send(JSON.stringify(message));
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        console.warn('WebSocket not available - adding message to queue', { 
+          websocketExists: !!wsRef.current,
+          readyState: wsRef.current?.readyState,
+          isConnected,
+          messageType: message.type
+        });
+        
+        // Add to queue for later processing
+        messageQueue.current.push(message);
+        
+        // Try to process queue (in case connection comes back)
+        setTimeout(() => processMessageQueue(), 100);
+        
+        // For now, we'll still reject if not connected
+        // In a more sophisticated implementation, you might want to keep the promise pending
+        reject(new Error('WebSocket is not connected - message queued'));
+        return;
+      }
+
+      try {
+        // Send the message immediately if connected
+        wsRef.current.send(JSON.stringify(message));
+        console.debug('Message sent immediately', { type: message.type, messageId });
+      } catch (error) {
+        console.error('Error sending message, adding to queue', { error, messageType: message.type });
+        messageQueue.current.push(message);
+        reject(error);
+        return;
+      }
 
       // Set timeout for request
       setTimeout(() => {
@@ -104,7 +165,7 @@ export function useFileWebSocket(options: UseFileWebSocketOptions): UseFileWebSo
         }
       }, 15000); // 15 second timeout
     });
-  }, [generateMessageId]);
+  }, [generateMessageId, processMessageQueue]);
 
   // Function to connect WebSocket
   const connect = useCallback(async () => {
@@ -154,6 +215,9 @@ export function useFileWebSocket(options: UseFileWebSocketOptions): UseFileWebSo
 
         console.log('useFileWebSocket: Connection established', { workspaceName, port });
         onConnectionChange?.('connected');
+        
+        // Process any queued messages
+        setTimeout(() => processMessageQueue(), 100);
       };
 
       ws.onmessage = (event) => {
@@ -194,6 +258,10 @@ export function useFileWebSocket(options: UseFileWebSocketOptions): UseFileWebSo
               onConnectionChange?.(statusMsg.payload.status);
               break;
             }
+            case 'text_change_ack':
+              console.log('useFileWebSocket: Handling text_change_ack message');
+              onTextChangeAck?.(message as TextChangeAckMessage);
+              break;
             default:
               console.log('useFileWebSocket: Unknown message type:', message.type);
           }
@@ -371,6 +439,60 @@ export function useFileWebSocket(options: UseFileWebSocketOptions): UseFileWebSo
     return throttledSaveFile(filePath, content, lastKnownModified);
   }, [throttledSaveFile]);
 
+  // Throttled function to send text changes (prevent rapid text change requests)
+  const throttledSendTextChanges = useThrottleCallback(async (filePath: string, changes: TextDelta[], version: number) => {
+    try {
+      if (!isConnected || connectionStatus !== 'connected') {
+        throw new Error(`WebSocket is not ready (connected: ${isConnected}, status: ${connectionStatus})`);
+      }
+
+      // Additional check for WebSocket state
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        throw new Error(`WebSocket state is not OPEN (readyState: ${wsRef.current?.readyState})`);
+      }
+
+      // Check if we've sent changes for this file too recently
+      const requestKey = `text_change_${filePath}`;
+      const now = Date.now();
+      const lastRequest = lastRequestTime.current[requestKey];
+      
+      if (lastRequest && (now - lastRequest) < 100) { // 100ms throttle for text changes
+        console.debug('Text change request throttled', { filePath });
+        return;
+      }
+
+      lastRequestTime.current[requestKey] = now;
+
+      console.debug('Sending text changes via WebSocket', { 
+        filePath, 
+        workspaceName, 
+        changesCount: changes.length,
+        version 
+      });
+      
+      const message: TextChangeMessage = {
+        type: 'text_change',
+        payload: {
+          path: filePath,
+          changes,
+          version,
+          timestamp: new Date(),
+        },
+        messageId: generateMessageId(),
+      };
+
+      await sendMessage(message);
+    } catch (err) {
+      console.error('Error sending text changes:', { filePath, error: err });
+      throw err;
+    }
+  }, 100); // 100ms throttle
+
+  // Function to send text changes
+  const sendTextChanges = useCallback(async (filePath: string, changes: TextDelta[], version: number) => {
+    return throttledSendTextChanges(filePath, changes, version);
+  }, [throttledSendTextChanges]);
+
   // Auto-connect on mount
   useEffect(() => {
     // Simple initialization check
@@ -397,6 +519,7 @@ export function useFileWebSocket(options: UseFileWebSocketOptions): UseFileWebSo
     error,
     requestFileContent,
     saveFile,
+    sendTextChanges,
     disconnect,
     reconnect,
   };
