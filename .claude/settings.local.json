@@ -22,7 +22,6 @@
       "Bash(find:*)",
       "Bash(ls:*)",
       "Bash(npm:*)",
-      "Bash(pkill:*)",
       "Bash(true)",
       "Bash(cp:*)",
       "Bash(DATABASE_URL:*)"

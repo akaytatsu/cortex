@@ -6,24 +6,42 @@ let XTerm: any = null;
 let FitAddon: any = null;
 let WebLinksAddon: any = null;
 
+// StrictMode has been disabled to prevent double connections
+
 interface TerminalProps {
   workspaceName: string;
   workspacePath: string;
   onClose?: () => void;
 }
 
-export function Terminal({ workspaceName, workspacePath, onClose }: TerminalProps) {
+export function Terminal({
+  workspaceName,
+  workspacePath,
+  onClose,
+}: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
-  const xtermRef = useRef<XTerm | null>(null);
+  const xtermRef = useRef<any>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const fitAddonRef = useRef<FitAddon | null>(null);
+  const fitAddonRef = useRef<any>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [sessionId] = useState(() => `terminal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const sessionIdRef = useRef(
+    `terminal_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+  );
+  const [isInitialized, setIsInitialized] = useState(false);
+  const isInitializingRef = useRef(false);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 3;
 
   useEffect(() => {
-    if (!terminalRef.current || typeof window === 'undefined') return;
+    if (!terminalRef.current || typeof window === "undefined" || isInitialized || wsRef.current || isInitializingRef.current)
+      return;
 
     const initializeTerminal = async () => {
+      isInitializingRef.current = true;
+      setIsInitialized(true);
+
       // Dynamic imports to avoid SSR issues
       if (!XTerm) {
         const xtermModule = await import("@xterm/xterm");
@@ -38,31 +56,46 @@ export function Terminal({ workspaceName, workspacePath, onClose }: TerminalProp
         WebLinksAddon = webLinksModule.WebLinksAddon;
       }
 
+      // Get the terminal WebSocket port dynamically
+      let terminalPort = 8000;
+      try {
+        const portResponse = await fetch("/api/terminal-port");
+        const portData = await portResponse.json();
+        terminalPort = portData.port;
+        console.log(`[Terminal] Got WebSocket port: ${terminalPort}`);
+      } catch (error) {
+        console.warn(
+          "[Terminal] Failed to get dynamic port, using default 8000:",
+          error
+        );
+      }
+
       const terminal = new XTerm({
         theme: {
-          background: '#1a1a1a',
-          foreground: '#ffffff',
-          cursor: '#ffffff',
-          cursorAccent: '#1a1a1a',
-          selection: '#3a3a3a',
-          black: '#000000',
-          red: '#ff5555',
-          green: '#50fa7b',
-          yellow: '#f1fa8c',
-          blue: '#bd93f9',
-          magenta: '#ff79c6',
-          cyan: '#8be9fd',
-          white: '#bfbfbf',
-          brightBlack: '#4d4d4d',
-          brightRed: '#ff6e67',
-          brightGreen: '#5af78e',
-          brightYellow: '#f4f99d',
-          brightBlue: '#caa9fa',
-          brightMagenta: '#ff92d0',
-          brightCyan: '#9aedfe',
-          brightWhite: '#e6e6e6',
+          background: "#1a1a1a",
+          foreground: "#ffffff",
+          cursor: "#ffffff",
+          cursorAccent: "#1a1a1a",
+          selection: "#3a3a3a",
+          black: "#000000",
+          red: "#ff5555",
+          green: "#50fa7b",
+          yellow: "#f1fa8c",
+          blue: "#bd93f9",
+          magenta: "#ff79c6",
+          cyan: "#8be9fd",
+          white: "#bfbfbf",
+          brightBlack: "#4d4d4d",
+          brightRed: "#ff6e67",
+          brightGreen: "#5af78e",
+          brightYellow: "#f4f99d",
+          brightBlue: "#caa9fa",
+          brightMagenta: "#ff92d0",
+          brightCyan: "#9aedfe",
+          brightWhite: "#e6e6e6",
         },
-        fontFamily: '"JetBrains Mono", "Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", monospace',
+        fontFamily:
+          '"JetBrains Mono", "Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", monospace',
         fontSize: 13,
         lineHeight: 1.2,
         cursorBlink: true,
@@ -71,69 +104,113 @@ export function Terminal({ workspaceName, workspacePath, onClose }: TerminalProp
 
       const fitAddon = new FitAddon();
       const webLinksAddon = new WebLinksAddon();
-    
+
       terminal.loadAddon(fitAddon);
       terminal.loadAddon(webLinksAddon);
-      
+
       if (!terminalRef.current) return;
-      
+
       terminal.open(terminalRef.current);
       fitAddon.fit();
 
       xtermRef.current = terminal;
       fitAddonRef.current = fitAddon;
 
-      const ws = new WebSocket(`ws://${window.location.host}/ws/terminal`);
+      const wsUrl = `ws://localhost:${terminalPort}`;
+      console.log(`[Terminal] Attempting WebSocket connection to: ${wsUrl}`);
+
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
+        console.log("[Terminal] WebSocket connection opened");
         setIsConnected(true);
+        setConnectionError(null);
+        reconnectAttemptsRef.current = 0;
+
         const initMessage: TerminalMessage = {
-          type: 'input',
-          data: JSON.stringify({ 
-            action: 'init', 
-            sessionId, 
-            workspaceName, 
-            workspacePath 
+          type: "input",
+          data: JSON.stringify({
+            action: "init",
+            sessionId: sessionIdRef.current,
+            workspaceName,
+            workspacePath,
           }),
-          sessionId
+          sessionId: sessionIdRef.current,
         };
+
+        console.log("[Terminal] Sending init message:", initMessage);
         ws.send(JSON.stringify(initMessage));
       };
 
-      ws.onmessage = (event) => {
+      ws.onmessage = event => {
         try {
           const message: TerminalMessage = JSON.parse(event.data);
-          if (message.sessionId === sessionId) {
-            if (message.type === 'output' || message.type === 'error') {
+          if (message.sessionId === sessionIdRef.current) {
+            if (message.type === "output" || message.type === "error") {
               terminal.write(message.data);
-            } else if (message.type === 'exit') {
-              terminal.write('\r\n\x1b[31mTerminal session ended\x1b[0m\r\n');
+            } else if (message.type === "exit") {
+              terminal.write("\r\n\x1b[31mTerminal session ended\x1b[0m\r\n");
               setIsConnected(false);
             }
           }
         } catch (error) {
-          console.error('Error parsing terminal message:', error);
+          console.error("Error parsing terminal message:", error);
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = event => {
+        console.log(
+          "[Terminal] WebSocket connection closed:",
+          event.code,
+          event.reason
+        );
         setIsConnected(false);
-        terminal.write('\r\n\x1b[33mConnection closed\x1b[0m\r\n');
+
+        // Don't reconnect if:
+        // - Normal close (1000)
+        // - Session already exists (1002) 
+        // - Max reconnect attempts reached
+        if (
+          event.code !== 1000 &&
+          event.code !== 1002 &&
+          reconnectAttemptsRef.current < maxReconnectAttempts
+        ) {
+          const errorMsg = `Connection closed (code: ${event.code}). Reconnecting...`;
+          setConnectionError(errorMsg);
+          terminal.write(`\r\n\x1b[33m${errorMsg}\x1b[0m\r\n`);
+
+          reconnectAttemptsRef.current += 1;
+          reconnectTimeoutRef.current = setTimeout(() => {
+            console.log(
+              `[Terminal] Reconnect attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts}`
+            );
+            // Don't trigger re-render, just show message
+          }, 2000 * reconnectAttemptsRef.current);
+        } else {
+          terminal.write("\r\n\x1b[33mConnection closed\x1b[0m\r\n");
+          if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+            const errorMsg = "Failed to reconnect after multiple attempts";
+            setConnectionError(errorMsg);
+            terminal.write(`\r\n\x1b[31m${errorMsg}\x1b[0m\r\n`);
+          }
+        }
       };
 
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        terminal.write('\r\n\x1b[31mConnection error\x1b[0m\r\n');
+      ws.onerror = error => {
+        console.error("[Terminal] WebSocket error:", error);
+        const errorMsg = "WebSocket connection failed";
+        setConnectionError(errorMsg);
+        terminal.write(`\r\n\x1b[31m${errorMsg}\x1b[0m\r\n`);
         setIsConnected(false);
       };
 
-      terminal.onData((data) => {
+      terminal.onData((data: string) => {
         if (ws.readyState === WebSocket.OPEN) {
           const message: TerminalMessage = {
-            type: 'input',
+            type: "input",
             data,
-            sessionId
+            sessionId: sessionIdRef.current,
           };
           ws.send(JSON.stringify(message));
         }
@@ -144,40 +221,54 @@ export function Terminal({ workspaceName, workspacePath, onClose }: TerminalProp
           fitAddon.fit();
           if (ws.readyState === WebSocket.OPEN) {
             const message: TerminalMessage = {
-              type: 'input',
+              type: "input",
               data: JSON.stringify({
-                action: 'resize',
+                action: "resize",
                 cols: terminal.cols,
-                rows: terminal.rows
+                rows: terminal.rows,
               }),
-              sessionId
+              sessionId: sessionIdRef.current,
             };
             ws.send(JSON.stringify(message));
           }
         }
       };
 
-      window.addEventListener('resize', handleResize);
-
+      window.addEventListener("resize", handleResize);
     };
 
     initializeTerminal().catch(console.error);
 
     return () => {
+      // Clear any pending reconnection timeouts
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+
       if (wsRef.current?.readyState === WebSocket.OPEN) {
         const message: TerminalMessage = {
-          type: 'input',
-          data: JSON.stringify({ action: 'close' }),
-          sessionId
+          type: "input",
+          data: JSON.stringify({ action: "close" }),
+          sessionId: sessionIdRef.current,
         };
         wsRef.current.send(JSON.stringify(message));
         wsRef.current.close();
       }
+      
+      // Reset refs and state
+      wsRef.current = null;
       if (xtermRef.current) {
         xtermRef.current.dispose();
+        xtermRef.current = null;
       }
+      fitAddonRef.current = null;
+      isInitializingRef.current = false;
+      setIsInitialized(false);
+      setIsConnected(false);
+      setConnectionError(null);
     };
-  }, [workspaceName, workspacePath, sessionId]);
+  }, [workspaceName, workspacePath]);
 
   const handleFitTerminal = () => {
     if (fitAddonRef.current) {
@@ -190,11 +281,18 @@ export function Terminal({ workspaceName, workspacePath, onClose }: TerminalProp
       <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-600">
         <div className="flex items-center space-x-2">
           <h3 className="text-sm font-medium text-gray-200">Terminal</h3>
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`} 
-               title={isConnected ? 'Connected' : 'Disconnected'} />
+          <div
+            className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-400" : "bg-red-400"}`}
+            title={isConnected ? "Connected" : "Disconnected"}
+          />
           <span className="text-xs text-gray-400">
             {workspaceName} ({workspacePath})
           </span>
+          {connectionError && (
+            <span className="text-xs text-red-400" title={connectionError}>
+              ⚠ {connectionError}
+            </span>
+          )}
         </div>
         <div className="flex items-center space-x-2">
           <button

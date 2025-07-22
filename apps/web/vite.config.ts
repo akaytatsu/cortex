@@ -8,18 +8,12 @@ declare module "@remix-run/node" {
   }
 }
 
-function websocketPlugin() {
-  return {
-    name: "websocket-server",
-    configureServer(server: any) {
-      import("./app/lib/websocket-server").then(({ terminalWebSocketServer }) => {
-        terminalWebSocketServer.start(server.httpServer);
-      }).catch(console.error);
-    },
-  };
-}
+// Remove the websocket plugin for now - will start server on demand
 
 export default defineConfig({
+  server: {
+    port: 8080,
+  },
   plugins: [
     remix({
       future: {
@@ -32,6 +26,5 @@ export default defineConfig({
       ignoredRouteFiles: ["**/*.test.*"],
     }),
     tsconfigPaths(),
-    websocketPlugin(),
   ],
 });

@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from "child_process";
+import * as pty from "node-pty";
 import * as os from "os";
 import * as path from "path";
 import type { TerminalSession } from "shared-types";
@@ -13,7 +13,7 @@ export class TerminalServiceError extends Error {
 
 interface ActiveSession {
   session: TerminalSession;
-  process: ChildProcess;
+  process: pty.IPty;
   lastActivity: Date;
 }
 
@@ -45,7 +45,8 @@ class TerminalService {
 
   private validateWorkspacePath(workspacePath: string): string {
     const normalizedPath = path.resolve(workspacePath);
-    const projectRoot = path.resolve(process.cwd());
+    // Get the project root by going up from apps/web to the monorepo root
+    const projectRoot = path.resolve(process.cwd(), '../..');
     
     if (!normalizedPath.startsWith(projectRoot)) {
       throw new TerminalServiceError(
@@ -60,11 +61,12 @@ class TerminalService {
   async createSession(
     workspaceName: string,
     workspacePath: string,
-    userId: string
+    userId: string,
+    customSessionId?: string
   ): Promise<TerminalSession> {
     const validatedPath = this.validateWorkspacePath(workspacePath);
     
-    const sessionId = `terminal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const sessionId = customSessionId || `terminal_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     
     const session: TerminalSession = {
       id: sessionId,
@@ -78,50 +80,47 @@ class TerminalService {
     return session;
   }
 
-  async spawnTerminal(session: TerminalSession): Promise<ChildProcess> {
-    const shell = os.platform() === "win32" ? "cmd.exe" : process.env.SHELL || "/bin/bash";
+  async spawnTerminal(session: TerminalSession): Promise<pty.IPty> {
+    const shell = os.platform() === "win32" ? "cmd.exe" : process.env.SHELL || "/usr/bin/bash";
     
-    const env = {
-      ...process.env,
-      TERM: "xterm-color",
-      COLORTERM: "truecolor",
-      PWD: session.workspacePath,
-    };
-
-    const childProcess = spawn(shell, [], {
+    const ptyProcess = pty.spawn(shell, [], {
+      name: "xterm-color",
+      cols: 80,
+      rows: 24,
       cwd: session.workspacePath,
-      env,
-      stdio: ["pipe", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        TERM: "xterm-color",
+        COLORTERM: "truecolor",
+        PWD: session.workspacePath,
+      },
     });
 
-    if (!childProcess.pid) {
+    if (!ptyProcess.pid) {
       throw new TerminalServiceError(
         "Failed to spawn terminal process",
         "SPAWN_FAILED"
       );
     }
 
-    session.pid = childProcess.pid;
+    session.pid = ptyProcess.pid;
     
     const activeSession: ActiveSession = {
       session: { ...session, status: "active" },
-      process: childProcess,
+      process: ptyProcess,
       lastActivity: new Date(),
     };
 
     this.activeSessions.set(session.id, activeSession);
 
-    childProcess.on("exit", (code, signal) => {
-      console.log(`Terminal process exited: ${code}, signal: ${signal}`);
+    ptyProcess.onExit(({exitCode, signal}) => {
+      console.log(`Terminal process exited: ${exitCode}, signal: ${signal}`);
       this.activeSessions.delete(session.id);
     });
 
-    childProcess.on("error", (error) => {
-      console.error(`Terminal process error:`, error);
-      this.activeSessions.delete(session.id);
-    });
+    // Note: node-pty doesn't expose error events the same way
 
-    return childProcess;
+    return ptyProcess;
   }
 
   getSession(sessionId: string): TerminalSession | null {
@@ -138,14 +137,14 @@ class TerminalService {
 
   writeToTerminal(sessionId: string, data: string): boolean {
     const activeSession = this.activeSessions.get(sessionId);
-    if (!activeSession || !activeSession.process.stdin) {
+    if (!activeSession || !activeSession.process) {
       return false;
     }
 
     this.updateLastActivity(sessionId);
     
     try {
-      activeSession.process.stdin.write(data);
+      activeSession.process.write(data);
       return true;
     } catch (error) {
       console.error(`Error writing to terminal:`, error);
@@ -153,7 +152,7 @@ class TerminalService {
     }
   }
 
-  resizeTerminal(sessionId: string): boolean {
+  resizeTerminal(sessionId: string, cols: number = 80, rows: number = 24): boolean {
     const activeSession = this.activeSessions.get(sessionId);
     if (!activeSession) {
       return false;
@@ -162,11 +161,9 @@ class TerminalService {
     this.updateLastActivity(sessionId);
     
     try {
-      if (typeof activeSession.process.kill === "function") {
-        process.kill(activeSession.process.pid!, "SIGWINCH");
-      }
+      activeSession.process.resize(cols, rows);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error resizing terminal:`, error);
       return false;
     }
@@ -181,15 +178,11 @@ class TerminalService {
     try {
       activeSession.process.kill("SIGTERM");
       
-      setTimeout(() => {
-        if (!activeSession.process.killed) {
-          activeSession.process.kill("SIGKILL");
-        }
-      }, 5000);
+      // For node-pty, kill is enough - no need for SIGKILL timeout
       
       this.activeSessions.delete(sessionId);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error terminating terminal session:`, error);
       return false;
     }

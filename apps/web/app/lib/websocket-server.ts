@@ -8,34 +8,88 @@ interface TerminalWebSocket extends WebSocket {
   isAlive?: boolean;
 }
 
+// Global singleton instance to prevent multiple server starts
+let globalInstance: TerminalWebSocketServer | null = null;
+let globalStarting: boolean = false;
+
 class TerminalWebSocketServer {
   private wss: WebSocketServer | null = null;
   private clients = new Map<string, TerminalWebSocket>();
+  public port: number = 8000;
 
-  start(server: unknown) {
-    this.wss = new WebSocketServer({ 
-      server,
-      path: "/ws/terminal",
-    });
+  static getInstance(): TerminalWebSocketServer {
+    if (!globalInstance) {
+      globalInstance = new TerminalWebSocketServer();
+    }
+    return globalInstance;
+  }
 
-    this.wss.on("connection", (ws: TerminalWebSocket) => {
-      console.log("New WebSocket connection for terminal");
-      
+  async start() {
+    if (this.wss) {
+      console.log("Terminal WebSocket server already started, skipping...");
+      return;
+    }
+
+    if (globalStarting) {
+      console.log("Terminal WebSocket server is already starting, skipping...");
+      return;
+    }
+
+    globalStarting = true;
+
+    // Use a dedicated port completely separate from Vite
+    let port = this.port;
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    while (attempts < maxAttempts) {
+      try {
+        this.wss = new WebSocketServer({ port });
+        this.port = port; // Save the successful port
+        break;
+      } catch (error: any) {
+        globalStarting = false;
+        if (error.code === "EADDRINUSE" && attempts < maxAttempts - 1) {
+          console.log(`Port ${port} in use, trying ${port + 1}`);
+          port++;
+          attempts++;
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    this.wss.on("connection", (ws: TerminalWebSocket, request) => {
+      // Filter out Vite HMR connections
+      const protocol = request.headers["sec-websocket-protocol"];
+      if (
+        protocol &&
+        (protocol.includes("vite-hmr") || protocol.includes("vite-ping"))
+      ) {
+        console.log(
+          `[WebSocket] Rejecting Vite HMR connection with protocol: ${protocol}`
+        );
+        ws.close(1002, "Not a terminal connection");
+        return;
+      }
+
+      console.log("[WebSocket] Accepted terminal connection");
+
       ws.isAlive = true;
       ws.on("pong", () => {
         ws.isAlive = true;
       });
 
-      ws.on("message", async (data) => {
+      ws.on("message", async data => {
         try {
           const message: TerminalMessage = JSON.parse(data.toString());
           await this.handleMessage(ws, message);
         } catch (error) {
-          console.error("Error processing WebSocket message:", error);
+          console.error("[WebSocket] Error processing message:", error);
           this.sendMessage(ws, {
             type: "error",
             data: "Invalid message format",
-            sessionId: ws.sessionId || "unknown"
+            sessionId: ws.sessionId || "unknown",
           });
         }
       });
@@ -48,7 +102,7 @@ class TerminalWebSocketServer {
         }
       });
 
-      ws.on("error", (error) => {
+      ws.on("error", error => {
         console.error("WebSocket error:", error);
         if (ws.sessionId) {
           terminalService.terminateSession(ws.sessionId);
@@ -77,7 +131,8 @@ class TerminalWebSocketServer {
       clearInterval(pingInterval);
     });
 
-    console.log("Terminal WebSocket server started on path /ws/terminal");
+    globalStarting = false;
+    console.log(`Terminal WebSocket server started on port ${this.port}`);
   }
 
   private async handleMessage(ws: TerminalWebSocket, message: TerminalMessage) {
@@ -105,83 +160,88 @@ class TerminalWebSocketServer {
       this.sendMessage(ws, {
         type: "error",
         data: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
-        sessionId: message.sessionId
+        sessionId: message.sessionId,
       });
     }
   }
 
-  private async handleInit(ws: TerminalWebSocket, data: Record<string, unknown>, sessionId: string) {
+  private async handleInit(
+    ws: TerminalWebSocket,
+    data: Record<string, unknown>,
+    sessionId: string
+  ) {
     try {
+      // Check if session already exists to avoid duplicates
+      if (this.clients.has(sessionId)) {
+        console.log(
+          `[WebSocket] Session ${sessionId} already exists, closing duplicate connection`
+        );
+        ws.close(1002, "Session already exists");
+        return;
+      }
+
       // For now, we'll skip auth validation in development
       const userId = "dev-user"; // In production, extract from session/auth
-      
+
       const session = await terminalService.createSession(
         data.workspaceName as string,
         data.workspacePath as string,
-        userId
+        userId,
+        sessionId
       );
 
-      session.id = sessionId;
       ws.sessionId = sessionId;
       ws.userId = userId;
 
       this.clients.set(sessionId, ws);
 
-      const childProcess = await terminalService.spawnTerminal(session);
+      const ptyProcess = await terminalService.spawnTerminal(session);
 
-      childProcess.stdout?.on("data", (data) => {
+      // With node-pty, we only need to listen to 'data' events (combines stdout/stderr)
+      ptyProcess.onData(data => {
         this.sendMessage(ws, {
           type: "output",
-          data: data.toString(),
-          sessionId
+          data: data,
+          sessionId,
         });
       });
 
-      childProcess.stderr?.on("data", (data) => {
-        this.sendMessage(ws, {
-          type: "error",
-          data: data.toString(),
-          sessionId
-        });
-      });
-
-      childProcess.on("exit", (code, signal) => {
+      ptyProcess.onExit(({ exitCode, signal }) => {
         this.sendMessage(ws, {
           type: "exit",
-          data: `Process exited with code ${code}, signal: ${signal}`,
-          sessionId
+          data: `Process exited with code ${exitCode}, signal: ${signal}`,
+          sessionId,
         });
         this.clients.delete(sessionId);
       });
-
-      console.log(`Terminal session initialized: ${sessionId} for workspace: ${data.workspaceName}`);
-      
     } catch (error) {
-      console.error("Error initializing terminal session:", error);
       this.sendMessage(ws, {
         type: "error",
         data: `Failed to initialize terminal: ${error instanceof Error ? error.message : "Unknown error"}`,
-        sessionId
+        sessionId,
       });
     }
   }
 
-  private handleResize(ws: TerminalWebSocket) {
+  private handleResize(ws: TerminalWebSocket, data: Record<string, unknown>) {
     if (!ws.sessionId) return;
-    
-    const success = terminalService.resizeTerminal(ws.sessionId);
+
+    const cols = (data.cols as number) || 80;
+    const rows = (data.rows as number) || 24;
+
+    const success = terminalService.resizeTerminal(ws.sessionId, cols, rows);
     if (!success) {
       this.sendMessage(ws, {
         type: "error",
         data: "Failed to resize terminal",
-        sessionId: ws.sessionId
+        sessionId: ws.sessionId,
       });
     }
   }
 
   private handleClose(ws: TerminalWebSocket) {
     if (!ws.sessionId) return;
-    
+
     terminalService.terminateSession(ws.sessionId);
     this.clients.delete(ws.sessionId);
     ws.close();
@@ -189,13 +249,13 @@ class TerminalWebSocketServer {
 
   private handleTerminalInput(ws: TerminalWebSocket, data: string) {
     if (!ws.sessionId) return;
-    
+
     const success = terminalService.writeToTerminal(ws.sessionId, data);
     if (!success) {
       this.sendMessage(ws, {
         type: "error",
         data: "Failed to write to terminal",
-        sessionId: ws.sessionId
+        sessionId: ws.sessionId,
       });
     }
   }
@@ -212,7 +272,8 @@ class TerminalWebSocketServer {
       this.wss = null;
     }
     this.clients.clear();
+    globalStarting = false;
   }
 }
 
-export const terminalWebSocketServer = new TerminalWebSocketServer();
+export const terminalWebSocketServer = TerminalWebSocketServer.getInstance();

@@ -11,8 +11,8 @@ import { hydrateRoot } from "react-dom/client";
 startTransition(() => {
   hydrateRoot(
     document,
-    <StrictMode>
-      <RemixBrowser />
-    </StrictMode>
+    // Temporarily disable StrictMode to prevent terminal WebSocket double connections
+    // TODO: Re-enable after implementing proper connection singleton
+    <RemixBrowser />
   );
 });
