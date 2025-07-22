@@ -254,6 +254,7 @@ class TerminalService implements ITerminalService {
   }
 
   async requireUserId(request: Request): Promise<string> {
+    // Note: SessionService is not part of DI container yet - using static call
     return SessionService.requireUserId(request);
   }
 

@@ -4,7 +4,7 @@ import type { IAuthService, ILogger } from "../types/services";
 import bcrypt from "bcryptjs";
 import { config } from "../lib/config";
 import { createServiceLogger } from "../lib/logger";
-import { UserService } from "./user.service";
+import { serviceContainer } from "../lib/service-container";
 
 export class AuthService implements IAuthService {
   private logger: ILogger;
@@ -87,7 +87,8 @@ export class AuthService implements IAuthService {
       requestLogger.debug("Attempting user login validation");
       
       // Busca o usuário pelo email
-      const user = await UserService.getUserByEmail(data.email);
+      const userService = serviceContainer.getUserService();
+      const user = await userService.getUserByEmail(data.email);
       if (!user) {
         requestLogger.warn("Login attempt failed: user not found");
         throw new Error("Invalid email or password");
