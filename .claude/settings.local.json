@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(find:*)",
+      "Bash(docker-compose:*)",
+      "Bash(make:*)",
+      "Bash(mv:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(rm:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "cd:*",
+      "Bash(cd:*)",
+      "Bash(curl:*)",
+      "Bash(docker:*)",
+      "Bash(curl:*)",
+      "curl:*",
+      "Bash(mkdir:*)",
+      "Bash(npx create-remix:*)",
+      "Bash(npm install:*)",
+      "Bash(timeout 10s npm run dev)",
+      "Bash(npm run lint)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run build:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)"
+    ],
+    "deny": []
+  }
+}
