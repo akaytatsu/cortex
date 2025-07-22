@@ -19,7 +19,7 @@ import "prismjs/components/prism-sass";
 import "prismjs/components/prism-less";
 import "prismjs/components/prism-python";
 import "prismjs/components/prism-java";
-import "prismjs/components/prism-php";
+// import "prismjs/components/prism-php"; // Temporariamente removido devido a erro
 import "prismjs/components/prism-go";
 import "prismjs/components/prism-rust";
 import "prismjs/components/prism-c";
@@ -106,8 +106,16 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
 
   useEffect(() => {
     if (fileContent && codeRef.current) {
-      // Apply syntax highlighting
-      Prism.highlightElement(codeRef.current);
+      try {
+        // Verificar se o PrismJS está disponível
+        if (typeof Prism !== 'undefined' && Prism.highlightElement) {
+          Prism.highlightElement(codeRef.current);
+        } else {
+          console.warn('PrismJS não está disponível');
+        }
+      } catch (error) {
+        console.warn('Erro ao aplicar syntax highlighting:', error);
+      }
     }
   }, [fileContent]);
 
