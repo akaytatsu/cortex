@@ -62,15 +62,23 @@ export interface TerminalMessage {
 
 // WebSocket messages for file operations
 export interface WSFileMessage {
-  type: 'file_content' | 'file_change' | 'save_request' | 'save_confirmation' |
-        'file_created' | 'file_deleted' | 'error' | 'connection_status' |
-        'text_change' | 'text_change_ack';
+  type:
+    | "file_content"
+    | "file_change"
+    | "save_request"
+    | "save_confirmation"
+    | "file_created"
+    | "file_deleted"
+    | "error"
+    | "connection_status"
+    | "text_change"
+    | "text_change_ack";
   payload: unknown;
   messageId?: string; // for request/response correlation
 }
 
 export interface FileContentMessage extends WSFileMessage {
-  type: 'file_content';
+  type: "file_content";
   payload: {
     path: string;
     content: string;
@@ -80,7 +88,7 @@ export interface FileContentMessage extends WSFileMessage {
 }
 
 export interface FileChangeMessage extends WSFileMessage {
-  type: 'file_change';
+  type: "file_change";
   payload: {
     path: string;
     changes: TextDelta[];
@@ -89,7 +97,7 @@ export interface FileChangeMessage extends WSFileMessage {
 }
 
 export interface SaveRequestMessage extends WSFileMessage {
-  type: 'save_request';
+  type: "save_request";
   payload: {
     path: string;
     content: string;
@@ -99,7 +107,7 @@ export interface SaveRequestMessage extends WSFileMessage {
 }
 
 export interface SaveConfirmationMessage extends WSFileMessage {
-  type: 'save_confirmation';
+  type: "save_confirmation";
   payload: {
     success: boolean;
     message?: string;
@@ -109,7 +117,7 @@ export interface SaveConfirmationMessage extends WSFileMessage {
 }
 
 export interface ErrorMessage extends WSFileMessage {
-  type: 'error';
+  type: "error";
   payload: {
     message: string;
     code?: string;
@@ -118,15 +126,15 @@ export interface ErrorMessage extends WSFileMessage {
 }
 
 export interface ConnectionStatusMessage extends WSFileMessage {
-  type: 'connection_status';
+  type: "connection_status";
   payload: {
-    status: 'connected' | 'disconnected' | 'reconnecting';
+    status: "connected" | "disconnected" | "reconnecting";
     timestamp: Date;
   };
 }
 
 export interface TextChangeMessage extends WSFileMessage {
-  type: 'text_change';
+  type: "text_change";
   payload: {
     path: string;
     changes: TextDelta[];
@@ -137,7 +145,7 @@ export interface TextChangeMessage extends WSFileMessage {
 }
 
 export interface TextChangeAckMessage extends WSFileMessage {
-  type: 'text_change_ack';
+  type: "text_change_ack";
   payload: {
     success: boolean;
     version: number;
@@ -165,7 +173,7 @@ export interface FileSession {
 }
 
 export interface TextDelta {
-  operation: 'insert' | 'delete' | 'retain';
+  operation: "insert" | "delete" | "retain";
   position: number;
   text?: string;
   length?: number;

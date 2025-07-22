@@ -18,7 +18,7 @@ let globalInstance: FileWebSocketServer | null = null;
 let globalStarting: boolean = false;
 
 // Clean up on process exit
-if (typeof process !== 'undefined') {
+if (typeof process !== "undefined") {
   const cleanup = () => {
     if (globalInstance) {
       globalInstance.stop();
@@ -27,9 +27,9 @@ if (typeof process !== 'undefined') {
     globalStarting = false;
   };
 
-  process.on('SIGINT', cleanup);
-  process.on('SIGTERM', cleanup);
-  process.on('exit', cleanup);
+  process.on("SIGINT", cleanup);
+  process.on("SIGTERM", cleanup);
+  process.on("exit", cleanup);
 }
 
 export class FileWebSocketServer {
@@ -51,7 +51,9 @@ export class FileWebSocketServer {
 
   async start() {
     if (this.wss && this.wss.readyState === this.wss.OPEN) {
-      logger.debug("File WebSocket server already running on port", { port: this.port });
+      logger.debug("File WebSocket server already running on port", {
+        port: this.port,
+      });
       return;
     }
 
@@ -98,12 +100,12 @@ export class FileWebSocketServer {
     this.wss.on("connection", (ws: FileWebSocket) => {
       // Generate unique connection ID
       const connectionId = `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       logger.info("Accepted file WebSocket connection", { connectionId });
 
       ws.connectionId = connectionId;
       ws.isAlive = true;
-      
+
       // For now, we'll skip auth validation in development
       const userId = "dev-user"; // In production, extract from session/auth
       ws.userId = userId;
@@ -119,13 +121,13 @@ export class FileWebSocketServer {
           logger.info("Received WebSocket message", {
             connectionId: ws.connectionId,
             dataLength: data.toString().length,
-            rawData: data.toString()
+            rawData: data.toString(),
           });
           const message: WSFileMessage = JSON.parse(data.toString());
           logger.info("Parsed WebSocket message", {
             connectionId: ws.connectionId,
             messageType: message.type,
-            messageId: message.messageId
+            messageId: message.messageId,
           });
           await this.handleMessage(ws, message);
         } catch (error) {
@@ -143,7 +145,9 @@ export class FileWebSocketServer {
       });
 
       ws.on("close", () => {
-        logger.info("File WebSocket connection closed", { connectionId: ws.connectionId });
+        logger.info("File WebSocket connection closed", {
+          connectionId: ws.connectionId,
+        });
         if (ws.connectionId) {
           this.fileService.unregisterConnection(ws.connectionId);
           this.clients.delete(ws.connectionId);
@@ -161,7 +165,10 @@ export class FileWebSocketServer {
       });
 
       // Send connection status
-      this.sendMessage(ws, this.fileService.createConnectionStatusMessage('connected'));
+      this.sendMessage(
+        ws,
+        this.fileService.createConnectionStatusMessage("connected")
+      );
     });
 
     // Setup ping/pong for connection health monitoring
@@ -205,7 +212,11 @@ export class FileWebSocketServer {
       // Handle workspace registration
       if (message.payload?.workspaceName && !ws.workspaceName) {
         ws.workspaceName = message.payload.workspaceName;
-        this.fileService.registerConnection(ws.connectionId, ws.userId, ws.workspaceName);
+        this.fileService.registerConnection(
+          ws.connectionId,
+          ws.userId,
+          ws.workspaceName
+        );
       }
 
       if (!ws.workspaceName) {
@@ -221,7 +232,9 @@ export class FileWebSocketServer {
 
       // Get workspace path
       const workspaceService = serviceContainer.getWorkspaceService();
-      const workspace = await workspaceService.getWorkspaceByName(ws.workspaceName);
+      const workspace = await workspaceService.getWorkspaceByName(
+        ws.workspaceName
+      );
       if (!workspace) {
         this.sendMessage(ws, {
           type: "error",

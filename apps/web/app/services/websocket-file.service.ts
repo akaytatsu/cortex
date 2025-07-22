@@ -47,7 +47,11 @@ export class WebSocketFileService {
     };
 
     this.connections.set(connectionId, connection);
-    this.logger.info("WebSocket connection registered", { connectionId, userId, workspaceName });
+    this.logger.info("WebSocket connection registered", {
+      connectionId,
+      userId,
+      workspaceName,
+    });
 
     return connection;
   }
@@ -60,7 +64,9 @@ export class WebSocketFileService {
     if (connection) {
       // Remove connection from all file sessions
       for (const [filePath, session] of this.fileSessions.entries()) {
-        session.connections = session.connections.filter(conn => conn.id !== connectionId);
+        session.connections = session.connections.filter(
+          conn => conn.id !== connectionId
+        );
         if (session.connections.length === 0) {
           this.fileSessions.delete(filePath);
           this.logger.debug("Removed empty file session", { filePath });
@@ -94,25 +100,40 @@ export class WebSocketFileService {
       this.updateConnectionActivity(connectionId);
 
       switch (message.type) {
-        case 'file_content':
-          return await this.handleFileContentRequest(connectionId, message, workspacePath);
-        case 'save_request':
-          return await this.handleSaveRequest(connectionId, message as SaveRequestMessage, workspacePath);
-        case 'text_change':
-          return await this.handleTextChangeRequest(connectionId, message as TextChangeMessage, workspacePath);
-        case 'connection_status':
+        case "file_content":
+          return await this.handleFileContentRequest(
+            connectionId,
+            message,
+            workspacePath
+          );
+        case "save_request":
+          return await this.handleSaveRequest(
+            connectionId,
+            message as SaveRequestMessage,
+            workspacePath
+          );
+        case "text_change":
+          return await this.handleTextChangeRequest(
+            connectionId,
+            message as TextChangeMessage,
+            workspacePath
+          );
+        case "connection_status":
           // This is just a status message, acknowledge it
-          this.logger.debug("Connection status message received", { 
-            type: message.type, 
-            connectionId 
+          this.logger.debug("Connection status message received", {
+            type: message.type,
+            connectionId,
           });
           return null; // No response needed
         default:
-          this.logger.warn("Unknown message type received", { 
-            type: message.type, 
-            connectionId 
+          this.logger.warn("Unknown message type received", {
+            type: message.type,
+            connectionId,
           });
-          return this.createErrorMessage("Unknown message type", message.messageId);
+          return this.createErrorMessage(
+            "Unknown message type",
+            message.messageId
+          );
       }
     } catch (error) {
       this.logger.error("Error handling WebSocket message", error as Error, {
@@ -138,17 +159,23 @@ export class WebSocketFileService {
     try {
       const filePath = message.payload?.path;
       if (!filePath) {
-        return this.createErrorMessage("File path is required", message.messageId);
+        return this.createErrorMessage(
+          "File path is required",
+          message.messageId
+        );
       }
 
       // Get file content using existing file system service
-      const fileContent = await this.fileSystemService.getFileContent(workspacePath, filePath);
-      
+      const fileContent = await this.fileSystemService.getFileContent(
+        workspacePath,
+        filePath
+      );
+
       // Track file session
       this.trackFileSession(connectionId, filePath);
 
       const response: FileContentMessage = {
-        type: 'file_content',
+        type: "file_content",
         payload: {
           path: fileContent.path,
           content: fileContent.content,
@@ -158,10 +185,10 @@ export class WebSocketFileService {
         messageId: message.messageId,
       };
 
-      this.logger.debug("File content sent", { 
-        connectionId, 
+      this.logger.debug("File content sent", {
+        connectionId,
         filePath,
-        contentLength: fileContent.content.length 
+        contentLength: fileContent.content.length,
       });
 
       return response;
@@ -190,7 +217,10 @@ export class WebSocketFileService {
       const { path, content, lastKnownModified } = message.payload;
 
       if (!path || content === undefined) {
-        return this.createErrorMessage("Path and content are required", message.messageId);
+        return this.createErrorMessage(
+          "Path and content are required",
+          message.messageId
+        );
       }
 
       // Create save request for file system service
@@ -201,13 +231,16 @@ export class WebSocketFileService {
       };
 
       // Save file using existing file system service
-      const saveResponse = await this.fileSystemService.saveFileContent(workspacePath, saveRequest);
+      const saveResponse = await this.fileSystemService.saveFileContent(
+        workspacePath,
+        saveRequest
+      );
 
       // Update file session
       this.updateFileSession(connectionId, path);
 
       const response: SaveConfirmationMessage = {
-        type: 'save_confirmation',
+        type: "save_confirmation",
         payload: {
           success: saveResponse.success,
           message: saveResponse.message,
@@ -274,29 +307,38 @@ export class WebSocketFileService {
       const { path, changes, version } = message.payload;
 
       if (!path || !changes || version === undefined) {
-        return this.createErrorMessage("Path, changes, and version are required", message.messageId);
+        return this.createErrorMessage(
+          "Path, changes, and version are required",
+          message.messageId
+        );
       }
 
       // Get or create file session
       this.trackFileSession(connectionId, path);
       const session = this.fileSessions.get(path);
-      
+
       if (!session) {
-        return this.createErrorMessage("Failed to track file session", message.messageId);
+        return this.createErrorMessage(
+          "Failed to track file session",
+          message.messageId
+        );
       }
 
       // Handle version mismatch with basic operational transforms
       let transformedChanges = changes;
-      
+
       if (version !== session.version) {
-        this.logger.warn("Version mismatch in text changes - applying transform", {
-          connectionId,
-          filePath: path,
-          expectedVersion: session.version,
-          receivedVersion: version,
-          pendingChangesCount: session.pendingChanges.length
-        });
-        
+        this.logger.warn(
+          "Version mismatch in text changes - applying transform",
+          {
+            connectionId,
+            filePath: path,
+            expectedVersion: session.version,
+            receivedVersion: version,
+            pendingChangesCount: session.pendingChanges.length,
+          }
+        );
+
         // Basic conflict resolution: if there are pending changes, we need to transform
         if (session.pendingChanges.length > 0) {
           // For this basic implementation, we'll merge the changes
@@ -305,12 +347,12 @@ export class WebSocketFileService {
             connectionId,
             filePath: path,
             incomingChanges: changes.length,
-            pendingChanges: session.pendingChanges.length
+            pendingChanges: session.pendingChanges.length,
           });
-          
+
           // Apply timestamp-based ordering for conflict resolution
-          transformedChanges = [...changes].sort((a, b) => 
-            a.timestamp.getTime() - b.timestamp.getTime()
+          transformedChanges = [...changes].sort(
+            (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
           );
         }
       }
@@ -326,7 +368,7 @@ export class WebSocketFileService {
       // For now, we'll immediately acknowledge the changes
       // In a full implementation, we might batch changes or apply operational transforms
       const response: TextChangeAckMessage = {
-        type: 'text_change_ack',
+        type: "text_change_ack",
         payload: {
           success: true,
           version: session.version,
@@ -350,7 +392,9 @@ export class WebSocketFileService {
       });
 
       return this.createErrorMessage(
-        error instanceof Error ? error.message : "Failed to process text changes",
+        error instanceof Error
+          ? error.message
+          : "Failed to process text changes",
         message.messageId
       );
     }
@@ -369,9 +413,12 @@ export class WebSocketFileService {
   /**
    * Create error message
    */
-  private createErrorMessage(message: string, messageId?: string): ErrorMessage {
+  private createErrorMessage(
+    message: string,
+    messageId?: string
+  ): ErrorMessage {
     return {
-      type: 'error',
+      type: "error",
       payload: {
         message,
       },
@@ -382,9 +429,11 @@ export class WebSocketFileService {
   /**
    * Create connection status message
    */
-  createConnectionStatusMessage(status: 'connected' | 'disconnected' | 'reconnecting'): ConnectionStatusMessage {
+  createConnectionStatusMessage(
+    status: "connected" | "disconnected" | "reconnecting"
+  ): ConnectionStatusMessage {
     return {
-      type: 'connection_status',
+      type: "connection_status",
       payload: {
         status,
         timestamp: new Date(),

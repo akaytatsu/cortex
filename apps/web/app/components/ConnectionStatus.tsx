@@ -1,40 +1,45 @@
 import { Wifi, WifiOff, RotateCcw, AlertCircle } from "lucide-react";
 
 interface ConnectionStatusProps {
-  status: 'connected' | 'disconnected' | 'reconnecting';
+  status: "connected" | "disconnected" | "reconnecting";
   error?: string | null;
   onReconnect?: () => void;
   className?: string;
 }
 
-export function ConnectionStatus({ status, error, onReconnect, className = "" }: ConnectionStatusProps) {
+export function ConnectionStatus({
+  status,
+  error,
+  onReconnect,
+  className = "",
+}: ConnectionStatusProps) {
   const getStatusConfig = () => {
     switch (status) {
-      case 'connected':
+      case "connected":
         return {
           icon: Wifi,
-          text: 'Conectado',
-          className: 'text-green-600 dark:text-green-400',
-          bgClass: 'bg-green-50 dark:bg-green-900/20',
-          borderClass: 'border-green-200 dark:border-green-800',
+          text: "Conectado",
+          className: "text-green-600 dark:text-green-400",
+          bgClass: "bg-green-50 dark:bg-green-900/20",
+          borderClass: "border-green-200 dark:border-green-800",
         };
-      case 'reconnecting':
+      case "reconnecting":
         return {
           icon: RotateCcw,
-          text: 'Reconectando...',
-          className: 'text-yellow-600 dark:text-yellow-400',
-          bgClass: 'bg-yellow-50 dark:bg-yellow-900/20',
-          borderClass: 'border-yellow-200 dark:border-yellow-800',
+          text: "Reconectando...",
+          className: "text-yellow-600 dark:text-yellow-400",
+          bgClass: "bg-yellow-50 dark:bg-yellow-900/20",
+          borderClass: "border-yellow-200 dark:border-yellow-800",
           animate: true,
         };
-      case 'disconnected':
+      case "disconnected":
       default:
         return {
           icon: WifiOff,
-          text: 'Desconectado',
-          className: 'text-red-600 dark:text-red-400',
-          bgClass: 'bg-red-50 dark:bg-red-900/20',
-          borderClass: 'border-red-200 dark:border-red-800',
+          text: "Desconectado",
+          className: "text-red-600 dark:text-red-400",
+          bgClass: "bg-red-50 dark:bg-red-900/20",
+          borderClass: "border-red-200 dark:border-red-800",
         };
     }
   };
@@ -42,7 +47,7 @@ export function ConnectionStatus({ status, error, onReconnect, className = "" }:
   const config = getStatusConfig();
   const Icon = config.icon;
 
-  if (status === 'connected' && !error) {
+  if (status === "connected" && !error) {
     // Show minimal indicator when connected and no errors
     return (
       <div className={`flex items-center space-x-1 ${className}`}>
@@ -53,9 +58,11 @@ export function ConnectionStatus({ status, error, onReconnect, className = "" }:
   }
 
   return (
-    <div className={`flex items-center space-x-2 px-2 py-1 rounded-md border ${config.bgClass} ${config.borderClass} ${className}`}>
-      <Icon 
-        className={`w-4 h-4 ${config.className} ${config.animate ? 'animate-spin' : ''}`} 
+    <div
+      className={`flex items-center space-x-2 px-2 py-1 rounded-md border ${config.bgClass} ${config.borderClass} ${className}`}
+    >
+      <Icon
+        className={`w-4 h-4 ${config.className} ${config.animate ? "animate-spin" : ""}`}
       />
       <div className="flex-1 min-w-0">
         <span className={`text-sm font-medium ${config.className}`}>
@@ -70,7 +77,7 @@ export function ConnectionStatus({ status, error, onReconnect, className = "" }:
           </div>
         )}
       </div>
-      {(status === 'disconnected' || error) && onReconnect && (
+      {(status === "disconnected" || error) && onReconnect && (
         <button
           onClick={onReconnect}
           className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 rounded transition-colors"

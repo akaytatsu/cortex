@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from "react";
 
 /**
  * Custom hook to debounce a value
@@ -77,7 +77,7 @@ export function useThrottleCallback<T extends (...args: unknown[]) => void>(
   const throttledCallback = useCallback(
     (...args: Parameters<T>) => {
       const now = Date.now();
-      
+
       if (now - lastCallRef.current >= delay) {
         lastCallRef.current = now;
         callbackRef.current(...args);

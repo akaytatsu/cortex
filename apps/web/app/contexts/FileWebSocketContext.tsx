@@ -1,34 +1,58 @@
-import { createContext, useContext, ReactNode, useCallback, useRef } from 'react';
-import { useFileWebSocket } from '../hooks/useFileWebSocket';
+import {
+  createContext,
+  useContext,
+  ReactNode,
+  useCallback,
+  useRef,
+} from "react";
+import { useFileWebSocket } from "../hooks/useFileWebSocket";
 import type {
   FileContentMessage,
   SaveConfirmationMessage,
   ErrorMessage,
   TextChangeAckMessage,
   TextDelta,
-} from 'shared-types';
+} from "shared-types";
 
 interface FileWebSocketContextValue {
   isConnected: boolean;
-  connectionStatus: 'connected' | 'disconnected' | 'reconnecting';
+  connectionStatus: "connected" | "disconnected" | "reconnecting";
   error: string | null;
   requestFileContent: (filePath: string) => Promise<void>;
-  saveFile: (filePath: string, content: string, lastKnownModified?: Date) => Promise<void>;
-  sendTextChanges: (filePath: string, changes: TextDelta[], version: number) => Promise<void>;
+  saveFile: (
+    filePath: string,
+    content: string,
+    lastKnownModified?: Date
+  ) => Promise<void>;
+  sendTextChanges: (
+    filePath: string,
+    changes: TextDelta[],
+    version: number
+  ) => Promise<void>;
   disconnect: () => void;
   reconnect: () => void;
-  registerFileContentHandler: (handler: (message: FileContentMessage) => void) => void;
-  registerSaveConfirmationHandler: (handler: (message: SaveConfirmationMessage) => void) => void;
+  registerFileContentHandler: (
+    handler: (message: FileContentMessage) => void
+  ) => void;
+  registerSaveConfirmationHandler: (
+    handler: (message: SaveConfirmationMessage) => void
+  ) => void;
   registerErrorHandler: (handler: (message: ErrorMessage) => void) => void;
-  registerTextChangeAckHandler: (handler: (message: TextChangeAckMessage) => void) => void;
+  registerTextChangeAckHandler: (
+    handler: (message: TextChangeAckMessage) => void
+  ) => void;
 }
 
-const FileWebSocketContext = createContext<FileWebSocketContextValue | undefined>(undefined);
+const FileWebSocketContext = createContext<
+  FileWebSocketContextValue | undefined
+>(undefined);
 
 interface FileWebSocketProviderProps {
   children: ReactNode;
   workspaceName: string;
-  onConnectionChange?: (status: 'connected' | 'disconnected' | 'reconnecting') => void;
+  onConnectionChange?: (
+    status: "connected" | "disconnected" | "reconnecting"
+  ) => void;
 }
 
 export function FileWebSocketProvider({
@@ -36,10 +60,18 @@ export function FileWebSocketProvider({
   workspaceName,
   onConnectionChange,
 }: FileWebSocketProviderProps) {
-  const fileContentHandlerRef = useRef<((message: FileContentMessage) => void) | null>(null);
-  const saveConfirmationHandlerRef = useRef<((message: SaveConfirmationMessage) => void) | null>(null);
-  const errorHandlerRef = useRef<((message: ErrorMessage) => void) | null>(null);
-  const textChangeAckHandlerRef = useRef<((message: TextChangeAckMessage) => void) | null>(null);
+  const fileContentHandlerRef = useRef<
+    ((message: FileContentMessage) => void) | null
+  >(null);
+  const saveConfirmationHandlerRef = useRef<
+    ((message: SaveConfirmationMessage) => void) | null
+  >(null);
+  const errorHandlerRef = useRef<((message: ErrorMessage) => void) | null>(
+    null
+  );
+  const textChangeAckHandlerRef = useRef<
+    ((message: TextChangeAckMessage) => void) | null
+  >(null);
 
   const handleFileContent = useCallback((message: FileContentMessage) => {
     if (fileContentHandlerRef.current) {
@@ -47,11 +79,14 @@ export function FileWebSocketProvider({
     }
   }, []);
 
-  const handleSaveConfirmation = useCallback((message: SaveConfirmationMessage) => {
-    if (saveConfirmationHandlerRef.current) {
-      saveConfirmationHandlerRef.current(message);
-    }
-  }, []);
+  const handleSaveConfirmation = useCallback(
+    (message: SaveConfirmationMessage) => {
+      if (saveConfirmationHandlerRef.current) {
+        saveConfirmationHandlerRef.current(message);
+      }
+    },
+    []
+  );
 
   const handleError = useCallback((message: ErrorMessage) => {
     if (errorHandlerRef.current) {
@@ -71,27 +106,42 @@ export function FileWebSocketProvider({
     onSaveConfirmation: handleSaveConfirmation,
     onError: handleError,
     onTextChangeAck: handleTextChangeAck,
-    onConnectionChange: (status) => {
-      console.log('FileWebSocketContext: Connection status changed', { status, workspaceName });
+    onConnectionChange: status => {
+      console.log("FileWebSocketContext: Connection status changed", {
+        status,
+        workspaceName,
+      });
       onConnectionChange?.(status);
     },
   });
 
-  const registerFileContentHandler = useCallback((handler: (message: FileContentMessage) => void) => {
-    fileContentHandlerRef.current = handler;
-  }, []);
+  const registerFileContentHandler = useCallback(
+    (handler: (message: FileContentMessage) => void) => {
+      fileContentHandlerRef.current = handler;
+    },
+    []
+  );
 
-  const registerSaveConfirmationHandler = useCallback((handler: (message: SaveConfirmationMessage) => void) => {
-    saveConfirmationHandlerRef.current = handler;
-  }, []);
+  const registerSaveConfirmationHandler = useCallback(
+    (handler: (message: SaveConfirmationMessage) => void) => {
+      saveConfirmationHandlerRef.current = handler;
+    },
+    []
+  );
 
-  const registerErrorHandler = useCallback((handler: (message: ErrorMessage) => void) => {
-    errorHandlerRef.current = handler;
-  }, []);
+  const registerErrorHandler = useCallback(
+    (handler: (message: ErrorMessage) => void) => {
+      errorHandlerRef.current = handler;
+    },
+    []
+  );
 
-  const registerTextChangeAckHandler = useCallback((handler: (message: TextChangeAckMessage) => void) => {
-    textChangeAckHandlerRef.current = handler;
-  }, []);
+  const registerTextChangeAckHandler = useCallback(
+    (handler: (message: TextChangeAckMessage) => void) => {
+      textChangeAckHandlerRef.current = handler;
+    },
+    []
+  );
 
   const contextValue: FileWebSocketContextValue = {
     ...websocket,
@@ -111,7 +161,9 @@ export function FileWebSocketProvider({
 export function useFileWebSocketContext(): FileWebSocketContextValue {
   const context = useContext(FileWebSocketContext);
   if (context === undefined) {
-    throw new Error('useFileWebSocketContext must be used within a FileWebSocketProvider');
+    throw new Error(
+      "useFileWebSocketContext must be used within a FileWebSocketProvider"
+    );
   }
   return context;
 }

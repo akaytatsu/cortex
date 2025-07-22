@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useFetcher } from "@remix-run/react";
-import { File, AlertCircle, Loader2, FileX, Save, Circle, Wifi, WifiOff, Clock } from "lucide-react";
+import {
+  File,
+  AlertCircle,
+  Loader2,
+  FileX,
+  Save,
+  Circle,
+  Wifi,
+  WifiOff,
+  Clock,
+} from "lucide-react";
 import type {
   FileContent,
   FileSaveRequest,
@@ -73,7 +83,10 @@ function getLanguageFromMimeType(mimeType: string, fileName: string): string {
 }
 
 export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
-  console.log('CodeViewer: Component rendered with props', { workspaceName, filePath });
+  console.log("CodeViewer: Component rendered with props", {
+    workspaceName,
+    filePath,
+  });
   const fetcher = useFetcher<{ fileContent: FileContent; error?: string }>();
   const saveFetcher = useFetcher<FileSaveResponse>();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -87,9 +100,12 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
   const [lastSaveMessage, setLastSaveMessage] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [version, setVersion] = useState<number>(0);
-  const [isTextChangePending, setIsTextChangePending] = useState<boolean>(false);
-  const [lastTextChangeStatus, setLastTextChangeStatus] = useState<'sending' | 'sent' | 'error' | null>(null);
-  
+  const [isTextChangePending, setIsTextChangePending] =
+    useState<boolean>(false);
+  const [lastTextChangeStatus, setLastTextChangeStatus] = useState<
+    "sending" | "sent" | "error" | null
+  >(null);
+
   // WebSocket connection
   const {
     isConnected,
@@ -104,73 +120,82 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
     registerErrorHandler,
     registerTextChangeAckHandler,
   } = useFileWebSocketContext();
-  
+
   // Text delta utility
   const { generateTextDeltas } = useTextDelta();
-  
-  console.log('CodeViewer: WebSocket states', { 
-    isConnected, 
-    connectionStatus, 
+
+  console.log("CodeViewer: WebSocket states", {
+    isConnected,
+    connectionStatus,
     connectionError,
-    filePath 
+    filePath,
   });
-  
+
   // Prism disabled temporarily
 
   // Handle WebSocket file content response
-  const handleFileContent = useCallback((message: FileContentMessage) => {
-    console.log('CodeViewer: Received file content message', { 
-      receivedPath: message.payload.path, 
-      currentFilePath: filePath,
-      contentLength: message.payload.content?.length 
-    });
-    
-    if (message.payload.path === filePath) {
-      console.log('CodeViewer: Setting file content for:', message.payload.path);
-      const content: FileContent = {
-        path: message.payload.path,
-        content: message.payload.content,
-        mimeType: message.payload.mimeType,
-      };
-      
-      setFileContent(content);
-      setEditedContent(content.content);
-      editedContentRef.current = content.content;
-      setIsDirty(false);
-      setIsLoading(false);
-      setWsError(null);
-      setVersion(0); // Reset version for new file
-    } else {
-      console.log('CodeViewer: Ignoring file content for different path');
-    }
-  }, [filePath]);
+  const handleFileContent = useCallback(
+    (message: FileContentMessage) => {
+      console.log("CodeViewer: Received file content message", {
+        receivedPath: message.payload.path,
+        currentFilePath: filePath,
+        contentLength: message.payload.content?.length,
+      });
+
+      if (message.payload.path === filePath) {
+        console.log(
+          "CodeViewer: Setting file content for:",
+          message.payload.path
+        );
+        const content: FileContent = {
+          path: message.payload.path,
+          content: message.payload.content,
+          mimeType: message.payload.mimeType,
+        };
+
+        setFileContent(content);
+        setEditedContent(content.content);
+        editedContentRef.current = content.content;
+        setIsDirty(false);
+        setIsLoading(false);
+        setWsError(null);
+        setVersion(0); // Reset version for new file
+      } else {
+        console.log("CodeViewer: Ignoring file content for different path");
+      }
+    },
+    [filePath]
+  );
 
   // Handle WebSocket save confirmation
-  const handleSaveConfirmation = useCallback((message: SaveConfirmationMessage) => {
-    setIsSaving(false);
-    setSaveSuccess(message.payload.success);
-    setLastSaveMessage(message.payload.message || null);
-    
-    if (message.payload.success) {
-      setIsDirty(false);
-      // Update fileContent to reflect saved state
-      setFileContent(currentFileContent => {
-        if (currentFileContent) {
-          return {
-            ...currentFileContent,
-            content: editedContentRef.current,
-          };
-        }
-        return currentFileContent;
-      });
-    }
+  const handleSaveConfirmation = useCallback(
+    (message: SaveConfirmationMessage) => {
+      setIsSaving(false);
+      setSaveSuccess(message.payload.success);
+      setLastSaveMessage(message.payload.message || null);
 
-    // Clear message after 3 seconds
-    setTimeout(() => {
-      setLastSaveMessage(null);
-      setSaveSuccess(false);
-    }, 3000);
-  }, []);
+      if (message.payload.success) {
+        setIsDirty(false);
+        // Update fileContent to reflect saved state
+        setFileContent(currentFileContent => {
+          if (currentFileContent) {
+            return {
+              ...currentFileContent,
+              content: editedContentRef.current,
+            };
+          }
+          return currentFileContent;
+        });
+      }
+
+      // Clear message after 3 seconds
+      setTimeout(() => {
+        setLastSaveMessage(null);
+        setSaveSuccess(false);
+      }, 3000);
+    },
+    []
+  );
 
   // Handle WebSocket errors
   const handleWebSocketError = useCallback((message: ErrorMessage) => {
@@ -181,21 +206,21 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
 
   // Handle text change acknowledgment
   const handleTextChangeAck = useCallback((message: any) => {
-    console.log('CodeViewer: Text change acknowledged', {
+    console.log("CodeViewer: Text change acknowledged", {
       success: message.payload.success,
       version: message.payload.version,
-      message: message.payload.message
+      message: message.payload.message,
     });
-    
+
     setIsTextChangePending(false);
-    
+
     if (message.payload.success) {
       setVersion(message.payload.version);
-      setLastTextChangeStatus('sent');
+      setLastTextChangeStatus("sent");
     } else {
-      setLastTextChangeStatus('error');
+      setLastTextChangeStatus("error");
     }
-    
+
     // Clear status after a short time
     setTimeout(() => {
       setLastTextChangeStatus(null);
@@ -208,38 +233,52 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
     registerSaveConfirmationHandler(handleSaveConfirmation);
     registerErrorHandler(handleWebSocketError);
     registerTextChangeAckHandler(handleTextChangeAck);
-  }, [registerFileContentHandler, registerSaveConfirmationHandler, registerErrorHandler, registerTextChangeAckHandler, handleFileContent, handleSaveConfirmation, handleWebSocketError, handleTextChangeAck]);
+  }, [
+    registerFileContentHandler,
+    registerSaveConfirmationHandler,
+    registerErrorHandler,
+    registerTextChangeAckHandler,
+    handleFileContent,
+    handleSaveConfirmation,
+    handleWebSocketError,
+    handleTextChangeAck,
+  ]);
 
   // Load file content via WebSocket when filePath changes
   useEffect(() => {
-    console.log('CodeViewer: useEffect triggered', { 
-      filePath, 
-      isConnected, 
-      connectionStatus 
+    console.log("CodeViewer: useEffect triggered", {
+      filePath,
+      isConnected,
+      connectionStatus,
     });
-    
-    if (filePath && isConnected && connectionStatus === 'connected') {
-      console.log('CodeViewer: Loading file via WebSocket', { filePath });
+
+    if (filePath && isConnected && connectionStatus === "connected") {
+      console.log("CodeViewer: Loading file via WebSocket", { filePath });
       setIsLoading(true);
       setWsError(null);
-      
+
       // Add a small delay to ensure connection is fully established
       const timeoutId = setTimeout(() => {
-        console.log('CodeViewer: Calling requestFileContent for:', filePath);
-        requestFileContent(filePath).catch((error) => {
-          console.error('Error requesting file content:', error);
-          setWsError(error instanceof Error ? error.message : 'Failed to load file');
+        console.log("CodeViewer: Calling requestFileContent for:", filePath);
+        requestFileContent(filePath).catch(error => {
+          console.error("Error requesting file content:", error);
+          setWsError(
+            error instanceof Error ? error.message : "Failed to load file"
+          );
           setIsLoading(false);
         });
       }, 100);
 
       return () => clearTimeout(timeoutId);
-    } else if (filePath && (!isConnected || connectionStatus === 'disconnected')) {
+    } else if (
+      filePath &&
+      (!isConnected || connectionStatus === "disconnected")
+    ) {
       // Fallback to HTTP if WebSocket is not connected
-      console.log('CodeViewer: Loading file via HTTP fallback', { 
-        filePath, 
-        isConnected, 
-        connectionStatus 
+      console.log("CodeViewer: Loading file via HTTP fallback", {
+        filePath,
+        isConnected,
+        connectionStatus,
       });
       setIsLoading(true);
       setWsError(null);
@@ -247,13 +286,19 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
         `/api/workspaces/${workspaceName}/file?path=${encodeURIComponent(filePath)}`
       );
     } else {
-      console.log('CodeViewer: Conditions not met for loading file', { 
-        filePath, 
-        isConnected, 
-        connectionStatus 
+      console.log("CodeViewer: Conditions not met for loading file", {
+        filePath,
+        isConnected,
+        connectionStatus,
       });
     }
-  }, [workspaceName, filePath, isConnected, connectionStatus, requestFileContent]);
+  }, [
+    workspaceName,
+    filePath,
+    isConnected,
+    connectionStatus,
+    requestFileContent,
+  ]);
 
   useEffect(() => {
     if (fetcher.data?.fileContent) {
@@ -271,58 +316,61 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
   }, [fetcher.data]);
 
   // Debounced content change for sending real-time text changes
-  const debouncedContentChange = useDebounceCallback((newContent: string, oldContent: string) => {
-    console.debug('Debounced content change - sending text deltas', { 
-      filePath, 
-      newContentLength: newContent.length,
-      oldContentLength: oldContent.length 
-    });
-    
-    if (filePath && isConnected && oldContent !== newContent) {
-      try {
-        // Generate text deltas
-        const deltas = generateTextDeltas(oldContent, newContent, 'client');
-        
-        if (deltas.length > 0) {
-          console.debug('Sending text changes via WebSocket', {
-            filePath,
-            deltasCount: deltas.length,
-            version
-          });
-          
-          // Show sending status
-          setIsTextChangePending(true);
-          setLastTextChangeStatus('sending');
-          
-          sendTextChanges(filePath, deltas, version).catch((error) => {
-            console.error('Failed to send text changes:', error);
-            setIsTextChangePending(false);
-            setLastTextChangeStatus('error');
-            
-            // Clear error status after 3 seconds
-            setTimeout(() => {
-              setLastTextChangeStatus(null);
-            }, 3000);
-          });
+  const debouncedContentChange = useDebounceCallback(
+    (newContent: string, oldContent: string) => {
+      console.debug("Debounced content change - sending text deltas", {
+        filePath,
+        newContentLength: newContent.length,
+        oldContentLength: oldContent.length,
+      });
+
+      if (filePath && isConnected && oldContent !== newContent) {
+        try {
+          // Generate text deltas
+          const deltas = generateTextDeltas(oldContent, newContent, "client");
+
+          if (deltas.length > 0) {
+            console.debug("Sending text changes via WebSocket", {
+              filePath,
+              deltasCount: deltas.length,
+              version,
+            });
+
+            // Show sending status
+            setIsTextChangePending(true);
+            setLastTextChangeStatus("sending");
+
+            sendTextChanges(filePath, deltas, version).catch(error => {
+              console.error("Failed to send text changes:", error);
+              setIsTextChangePending(false);
+              setLastTextChangeStatus("error");
+
+              // Clear error status after 3 seconds
+              setTimeout(() => {
+                setLastTextChangeStatus(null);
+              }, 3000);
+            });
+          }
+        } catch (error) {
+          console.error("Failed to generate text deltas:", error);
+          setLastTextChangeStatus("error");
+          setTimeout(() => {
+            setLastTextChangeStatus(null);
+          }, 3000);
         }
-      } catch (error) {
-        console.error('Failed to generate text deltas:', error);
-        setLastTextChangeStatus('error');
-        setTimeout(() => {
-          setLastTextChangeStatus(null);
-        }, 3000);
       }
-    }
-  }, 500); // 500ms debounce for real-time changes
+    },
+    500
+  ); // 500ms debounce for real-time changes
 
   const handleContentChange = useCallback(
     (newContent: string) => {
       const oldContent = editedContentRef.current;
-      
+
       setEditedContent(newContent);
       editedContentRef.current = newContent;
       setIsDirty(fileContent ? newContent !== fileContent.content : false);
-      
+
       // Trigger debounced callback for real-time text changes
       if (oldContent !== newContent) {
         debouncedContentChange(newContent, oldContent);
@@ -354,9 +402,11 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
         });
       }
     } catch (error) {
-      console.error('Error saving file:', error);
+      console.error("Error saving file:", error);
       setIsSaving(false);
-      setWsError(error instanceof Error ? error.message : 'Failed to save file');
+      setWsError(
+        error instanceof Error ? error.message : "Failed to save file"
+      );
     }
   }, [
     filePath,
@@ -491,35 +541,43 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
           {/* Real-time sync status indicator */}
           {isConnected && (lastTextChangeStatus || isTextChangePending) && (
             <div className="flex items-center space-x-1 text-xs">
-              {lastTextChangeStatus === 'sending' || isTextChangePending ? (
+              {lastTextChangeStatus === "sending" || isTextChangePending ? (
                 <>
                   <Clock className="w-3 h-3 animate-pulse text-orange-500" />
-                  <span className="text-orange-600 dark:text-orange-400">Sincronizando...</span>
+                  <span className="text-orange-600 dark:text-orange-400">
+                    Sincronizando...
+                  </span>
                 </>
-              ) : lastTextChangeStatus === 'sent' ? (
+              ) : lastTextChangeStatus === "sent" ? (
                 <>
                   <Wifi className="w-3 h-3 text-green-500" />
-                  <span className="text-green-600 dark:text-green-400">Sincronizado</span>
+                  <span className="text-green-600 dark:text-green-400">
+                    Sincronizado
+                  </span>
                 </>
-              ) : lastTextChangeStatus === 'error' ? (
+              ) : lastTextChangeStatus === "error" ? (
                 <>
                   <WifiOff className="w-3 h-3 text-red-500" />
-                  <span className="text-red-600 dark:text-red-400">Erro de sinc</span>
+                  <span className="text-red-600 dark:text-red-400">
+                    Erro de sinc
+                  </span>
                 </>
               ) : null}
             </div>
           )}
-          
+
           {/* Connection status indicator */}
           <ConnectionStatus
             status={connectionStatus}
             error={connectionError}
             onReconnect={reconnect}
           />
-          
+
           <button
             onClick={handleSave}
-            disabled={!isDirty || isSaving || saveFetcher.state === "submitting"}
+            disabled={
+              !isDirty || isSaving || saveFetcher.state === "submitting"
+            }
             className={`
               flex items-center space-x-1 px-2 py-1 rounded text-xs
               ${

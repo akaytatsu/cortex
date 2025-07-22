@@ -103,8 +103,11 @@ export function IDELayout({ workspace }: IDELayoutProps) {
           </div>
           <FileBrowser
             workspaceName={workspace.name}
-            onFileSelect={(filePath) => {
-              console.log('IDELayout: File selected', { filePath, currentSelectedFile: selectedFile });
+            onFileSelect={filePath => {
+              console.log("IDELayout: File selected", {
+                filePath,
+                currentSelectedFile: selectedFile,
+              });
               setSelectedFile(filePath);
             }}
           />
@@ -128,9 +131,7 @@ export function IDELayout({ workspace }: IDELayoutProps) {
                 : "100%",
             }}
           >
-            <FileWebSocketProvider 
-              workspaceName={workspace.name}
-            >
+            <FileWebSocketProvider workspaceName={workspace.name}>
               <CodeViewer
                 workspaceName={workspace.name}
                 filePath={selectedFile}
