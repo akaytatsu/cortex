@@ -3,6 +3,8 @@ import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { SessionService } from "../services/session.service";
 import { UserService } from "../services/user.service";
+import { LogoutButton } from "../components/LogoutButton";
+import type { UserPublic } from "shared-types";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const userId = await SessionService.requireUserId(request);
@@ -12,7 +14,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
     throw new Error("User not found");
   }
 
-  return json({ user });
+  // Remove password from user object for client-side usage
+  const userPublic: UserPublic = {
+    id: user.id,
+    email: user.email,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+
+  return json({ user: userPublic });
 }
 
 export const meta: MetaFunction = () => {
@@ -28,12 +38,18 @@ export default function Workspaces() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center mb-6 px-4 sm:px-0">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Your IDE Workspace
+          </h1>
+          <LogoutButton />
+        </div>
         <div className="px-4 py-6 sm:px-0">
           <div className="border-4 border-dashed border-gray-200 dark:border-gray-700 rounded-lg h-96 flex items-center justify-center">
             <div className="text-center">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
                 Welcome to your IDE!
-              </h1>
+              </h2>
               <p className="text-lg text-gray-600 dark:text-gray-400 mb-2">
                 Hello, {user.email}
               </p>

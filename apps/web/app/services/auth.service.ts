@@ -78,6 +78,7 @@ export class AuthService {
       }
 
       // Retorna o usuário sem a senha usando o tipo UserPublic
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...userWithoutPassword } = user;
       return userWithoutPassword;
     } catch (error) {
