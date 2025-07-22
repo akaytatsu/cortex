@@ -13,10 +13,7 @@ import type * as pty from "node-pty";
 export interface IAuthService {
   hasUsers(): Promise<boolean>;
   createFirstUser(data: { email: string; password: string }): Promise<User>;
-  validateLogin(data: {
-    email: string;
-    password: string;
-  }): Promise<UserPublic>;
+  validateLogin(data: { email: string; password: string }): Promise<UserPublic>;
 }
 
 export interface IUserService {

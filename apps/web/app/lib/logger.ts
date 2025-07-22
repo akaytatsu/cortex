@@ -77,7 +77,7 @@ class Logger implements ILogger {
     if (config.logging.enableStructured) {
       // Structured JSON logging for production/parsing
       const structuredLog = JSON.stringify(entry);
-      
+
       if (config.logging.enableConsole) {
         switch (entry.level) {
           case "error":
@@ -96,7 +96,7 @@ class Logger implements ILogger {
     } else {
       // Human-readable logging for development
       let output = `[${entry.timestamp}] ${entry.level.toUpperCase()}: ${entry.message}`;
-      
+
       if (entry.correlationId) {
         output += ` (${entry.correlationId})`;
       }
@@ -166,9 +166,10 @@ export const logger = new Logger();
 
 // Factory function for request-scoped loggers
 export function createRequestLogger(request: Request): ILogger {
-  const correlationId = request.headers.get("x-correlation-id") || 
-                       `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  
+  const correlationId =
+    request.headers.get("x-correlation-id") ||
+    `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
   return new Logger(correlationId, {
     method: request.method,
     url: request.url,
@@ -176,7 +177,10 @@ export function createRequestLogger(request: Request): ILogger {
 }
 
 // Factory function for service-scoped loggers
-export function createServiceLogger(serviceName: string, context?: LogContext): ILogger {
+export function createServiceLogger(
+  serviceName: string,
+  context?: LogContext
+): ILogger {
   return new Logger(undefined, {
     service: serviceName,
     ...context,

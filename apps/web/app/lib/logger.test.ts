@@ -81,7 +81,7 @@ describe("Logger", () => {
 
       const requestLogger = createRequestLogger(mockRequest);
       requestLogger.info("Test request log");
-      
+
       const logOutput = mockConsole.log.mock.calls[0][0];
       expect(logOutput).toContain("test-correlation-123");
       expect(logOutput).toContain("method=GET");
@@ -90,7 +90,7 @@ describe("Logger", () => {
     it("should create service logger with service context", () => {
       const serviceLogger = createServiceLogger("AuthService");
       serviceLogger.info("Test service log");
-      
+
       const logOutput = mockConsole.log.mock.calls[0][0];
       expect(logOutput).toContain("service=AuthService");
     });
@@ -100,7 +100,7 @@ describe("Logger", () => {
     it("should format error objects properly", () => {
       const testError = new Error("Test error message");
       logger.error("Error occurred", testError);
-      
+
       expect(mockConsole.error).toHaveBeenCalled();
       // Check that error was logged (either in main message or stack trace)
       const allCalls = mockConsole.error.mock.calls.flat().join(" ");

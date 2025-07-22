@@ -41,7 +41,7 @@ export class AuthService implements IAuthService {
     const requestLogger = this.logger.withContext({ email: data.email });
     try {
       requestLogger.info("Attempting to create first user");
-      
+
       // Verifica se já existe algum usuário
       const hasExistingUsers = await this.hasUsers();
       if (hasExistingUsers) {
@@ -50,7 +50,10 @@ export class AuthService implements IAuthService {
       }
 
       // Hash da senha usando configuração centralizada
-      const hashedPassword = await bcrypt.hash(data.password, config.auth.saltRounds);
+      const hashedPassword = await bcrypt.hash(
+        data.password,
+        config.auth.saltRounds
+      );
       requestLogger.debug("Password hashed successfully");
 
       const user = await prisma.user.create({
@@ -59,15 +62,20 @@ export class AuthService implements IAuthService {
           password: hashedPassword,
         },
       });
-      
-      requestLogger.info("First user created successfully", { userId: user.id });
+
+      requestLogger.info("First user created successfully", {
+        userId: user.id,
+      });
       return user;
     } catch (error) {
       if (
         error instanceof Error &&
         error.message.includes("Unique constraint failed")
       ) {
-        requestLogger.error("User creation failed: email already exists", error);
+        requestLogger.error(
+          "User creation failed: email already exists",
+          error
+        );
         throw new Error(`User with email ${data.email} already exists`);
       }
       requestLogger.error("Failed to create first user", error as Error);
@@ -85,7 +93,7 @@ export class AuthService implements IAuthService {
     const requestLogger = this.logger.withContext({ email: data.email });
     try {
       requestLogger.debug("Attempting user login validation");
-      
+
       // Busca o usuário pelo email
       const userService = serviceContainer.getUserService();
       const user = await userService.getUserByEmail(data.email);
@@ -94,7 +102,9 @@ export class AuthService implements IAuthService {
         throw new Error("Invalid email or password");
       }
 
-      requestLogger.debug("User found, validating password", { userId: user.id });
+      requestLogger.debug("User found, validating password", {
+        userId: user.id,
+      });
 
       // Verifica se a senha está correta usando bcrypt
       const isValidPassword = await bcrypt.compare(
@@ -102,7 +112,9 @@ export class AuthService implements IAuthService {
         user.password
       );
       if (!isValidPassword) {
-        requestLogger.warn("Login attempt failed: invalid password", { userId: user.id });
+        requestLogger.warn("Login attempt failed: invalid password", {
+          userId: user.id,
+        });
         throw new Error("Invalid email or password");
       }
 

@@ -70,9 +70,7 @@ export class WorkspaceService implements IWorkspaceService {
     }
   }
 
-  private async writeWorkspacesFile(
-    workspaces: Workspace[]
-  ): Promise<void> {
+  private async writeWorkspacesFile(workspaces: Workspace[]): Promise<void> {
     try {
       await this.ensureConfigDir();
       const yamlContent = yaml.stringify(workspaces);
@@ -320,9 +318,7 @@ export class WorkspaceService implements IWorkspaceService {
    * @param workspaceName The name of the workspace to find
    * @returns The workspace if found, null otherwise
    */
-  async getWorkspaceByName(
-    workspaceName: string
-  ): Promise<Workspace | null> {
+  async getWorkspaceByName(workspaceName: string): Promise<Workspace | null> {
     if (!workspaceName?.trim()) {
       return null;
     }

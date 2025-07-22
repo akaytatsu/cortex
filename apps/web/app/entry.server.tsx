@@ -21,7 +21,10 @@ try {
   validateConfig();
   logger.info("Server startup configuration validation successful");
 } catch (error) {
-  logger.error("Server startup configuration validation failed", error as Error);
+  logger.error(
+    "Server startup configuration validation failed",
+    error as Error
+  );
   process.exit(1);
 }
 

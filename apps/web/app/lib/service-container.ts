@@ -13,15 +13,15 @@ import { FileSystemService } from "../services/filesystem.service";
 import { WorkspaceService } from "../services/workspace.service";
 import { createServiceLogger } from "./logger";
 
-type ServiceType = 
+type ServiceType =
   | "auth"
-  | "user" 
+  | "user"
   | "terminal"
   | "filesystem"
   | "workspace"
   | "logger";
 
-type ServiceInstance = 
+type ServiceInstance =
   | IAuthService
   | IUserService
   | ITerminalService
@@ -60,7 +60,10 @@ class ServiceContainer {
   /**
    * Register a service factory
    */
-  registerFactory<T extends ServiceInstance>(name: string, factory: () => T): void {
+  registerFactory<T extends ServiceInstance>(
+    name: string,
+    factory: () => T
+  ): void {
     this.factories.set(name, factory);
   }
 

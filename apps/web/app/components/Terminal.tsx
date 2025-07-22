@@ -4,7 +4,9 @@ import type { TerminalMessage } from "shared-types";
 // Dynamic imports for xterm to avoid SSR issues
 let XTerm: typeof import("@xterm/xterm").Terminal | null = null;
 let FitAddon: typeof import("@xterm/addon-fit").FitAddon | null = null;
-let WebLinksAddon: typeof import("@xterm/addon-web-links").WebLinksAddon | null = null;
+let WebLinksAddon:
+  | typeof import("@xterm/addon-web-links").WebLinksAddon
+  | null = null;
 
 // StrictMode has been disabled to prevent double connections
 

@@ -52,8 +52,16 @@ class TerminalWebSocketServer {
         break;
       } catch (error: unknown) {
         globalStarting = false;
-        if (error instanceof Error && "code" in error && error.code === "EADDRINUSE" && attempts < maxAttempts - 1) {
-          logger.warn(`Port ${port} in use, trying next port`, { currentPort: port, nextPort: port + 1 });
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          error.code === "EADDRINUSE" &&
+          attempts < maxAttempts - 1
+        ) {
+          logger.warn(`Port ${port} in use, trying next port`, {
+            currentPort: port,
+            nextPort: port + 1,
+          });
           port++;
           attempts++;
           continue;
@@ -86,7 +94,9 @@ class TerminalWebSocketServer {
           const message: TerminalMessage = JSON.parse(data.toString());
           await this.handleMessage(ws, message);
         } catch (error) {
-          logger.error("Error processing WebSocket message", error as Error, { sessionId: ws.sessionId });
+          logger.error("Error processing WebSocket message", error as Error, {
+            sessionId: ws.sessionId,
+          });
           this.sendMessage(ws, {
             type: "error",
             data: "Invalid message format",
@@ -104,7 +114,9 @@ class TerminalWebSocketServer {
       });
 
       ws.on("error", error => {
-        logger.error("WebSocket connection error", error as Error, { sessionId: ws.sessionId });
+        logger.error("WebSocket connection error", error as Error, {
+          sessionId: ws.sessionId,
+        });
         if (ws.sessionId) {
           terminalService.terminateSession(ws.sessionId);
           this.clients.delete(ws.sessionId);
@@ -157,7 +169,9 @@ class TerminalWebSocketServer {
         }
       }
     } catch (error) {
-      logger.error("Error handling WebSocket message", error as Error, { sessionId: message.sessionId });
+      logger.error("Error handling WebSocket message", error as Error, {
+        sessionId: message.sessionId,
+      });
       this.sendMessage(ws, {
         type: "error",
         data: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -174,7 +188,9 @@ class TerminalWebSocketServer {
     try {
       // Check if session already exists to avoid duplicates
       if (this.clients.has(sessionId)) {
-        logger.warn("Session already exists, closing duplicate connection", { sessionId });
+        logger.warn("Session already exists, closing duplicate connection", {
+          sessionId,
+        });
         ws.close(1002, "Session already exists");
         return;
       }

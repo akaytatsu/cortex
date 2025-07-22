@@ -9,10 +9,7 @@ export class UserService implements IUserService {
   constructor(logger?: ILogger) {
     this.logger = logger || createServiceLogger("UserService");
   }
-  async createUser(data: {
-    email: string;
-    password: string;
-  }): Promise<User> {
+  async createUser(data: { email: string; password: string }): Promise<User> {
     const requestLogger = this.logger.withContext({ email: data.email });
     try {
       requestLogger.info("Attempting to create user");
@@ -27,7 +24,10 @@ export class UserService implements IUserService {
         error instanceof Error &&
         error.message.includes("Unique constraint failed")
       ) {
-        requestLogger.error("User creation failed: email already exists", error);
+        requestLogger.error(
+          "User creation failed: email already exists",
+          error
+        );
         throw new Error(`User with email ${data.email} already exists`);
       }
       requestLogger.error("Failed to create user", error as Error);
@@ -42,7 +42,10 @@ export class UserService implements IUserService {
       const user = await prisma.user.findUnique({
         where: { email },
       });
-      requestLogger.debug("User search completed", { found: !!user, userId: user?.id });
+      requestLogger.debug("User search completed", {
+        found: !!user,
+        userId: user?.id,
+      });
       return user;
     } catch (error) {
       requestLogger.error("Failed to find user by email", error as Error);
@@ -69,7 +72,10 @@ export class UserService implements IUserService {
     id: string,
     data: Partial<Pick<User, "email" | "password">>
   ): Promise<User> {
-    const requestLogger = this.logger.withContext({ userId: id, email: data.email });
+    const requestLogger = this.logger.withContext({
+      userId: id,
+      email: data.email,
+    });
     try {
       requestLogger.info("Attempting to update user");
       const user = await prisma.user.update({

@@ -51,7 +51,10 @@ class TerminalService implements ITerminalService {
         now.getTime() - activeSession.lastActivity.getTime() >
         maxInactivity
       ) {
-        const sessionLogger = logger.withContext({ sessionId, userId: activeSession.session.userId });
+        const sessionLogger = logger.withContext({
+          sessionId,
+          userId: activeSession.session.userId,
+        });
         sessionLogger.info("Cleaning up inactive terminal session");
         this.terminateSession(sessionId);
         cleanedCount++;
@@ -59,7 +62,9 @@ class TerminalService implements ITerminalService {
     }
 
     if (cleanedCount > 0) {
-      logger.info("Terminal cleanup completed", { cleanedSessions: cleanedCount });
+      logger.info("Terminal cleanup completed", {
+        cleanedSessions: cleanedCount,
+      });
     }
   }
 
@@ -84,13 +89,17 @@ class TerminalService implements ITerminalService {
     userId: string,
     customSessionId?: string
   ): Promise<TerminalSession> {
-    const sessionLogger = logger.withContext({ userId, workspaceName, workspacePath });
-    
+    const sessionLogger = logger.withContext({
+      userId,
+      workspaceName,
+      workspacePath,
+    });
+
     try {
       sessionLogger.info("Creating terminal session");
-      
+
       const validatedPath = this.validateWorkspacePath(workspacePath);
-      
+
       const sessionId =
         customSessionId ||
         `terminal_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -104,7 +113,9 @@ class TerminalService implements ITerminalService {
         createdAt: new Date(),
       };
 
-      sessionLogger.info("Terminal session created successfully", { sessionId });
+      sessionLogger.info("Terminal session created successfully", {
+        sessionId,
+      });
       return session;
     } catch (error) {
       sessionLogger.error("Failed to create terminal session", error as Error);
@@ -149,7 +160,10 @@ class TerminalService implements ITerminalService {
     this.activeSessions.set(session.id, activeSession);
 
     ptyProcess.onExit(({ exitCode, signal }) => {
-      const sessionLogger = logger.withContext({ sessionId: session.id, userId: session.userId });
+      const sessionLogger = logger.withContext({
+        sessionId: session.id,
+        userId: session.userId,
+      });
       sessionLogger.info("Terminal process exited", { exitCode, signal });
       this.activeSessions.delete(session.id);
     });
@@ -225,7 +239,7 @@ class TerminalService implements ITerminalService {
     try {
       const sessionLogger = logger.withContext({ sessionId });
       sessionLogger.info("Terminating terminal session");
-      
+
       activeSession.process.kill("SIGTERM");
 
       // For node-pty, kill is enough - no need for SIGKILL timeout

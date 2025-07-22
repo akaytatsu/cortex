@@ -137,12 +137,7 @@ export const config = {
       10 * 1000, // minimum 10 seconds
       10 * 60 * 1000 // maximum 10 minutes
     ),
-    maxSessions: getOptionalNumericEnvVar(
-      "TERMINAL_MAX_SESSIONS",
-      10,
-      1,
-      100
-    ),
+    maxSessions: getOptionalNumericEnvVar("TERMINAL_MAX_SESSIONS", 10, 1, 100),
   },
   files: {
     maxSizeBytes: getOptionalNumericEnvVar(
@@ -151,12 +146,12 @@ export const config = {
       1024, // minimum 1KB
       100 * 1024 * 1024 // maximum 100MB
     ),
-    allowedExtensions: (
-      getOptionalEnvVar(
-        "FILE_ALLOWED_EXTENSIONS",
-        ".js,.ts,.tsx,.jsx,.json,.md,.txt,.yml,.yaml,.xml,.py,.java,.php,.go,.rs,.c,.cpp,.h,.hpp,.sql,.sh,.dockerfile,.gitignore,.env"
-      )
-    ).split(",").map(ext => ext.trim()),
+    allowedExtensions: getOptionalEnvVar(
+      "FILE_ALLOWED_EXTENSIONS",
+      ".js,.ts,.tsx,.jsx,.json,.md,.txt,.yml,.yaml,.xml,.py,.java,.php,.go,.rs,.c,.cpp,.h,.hpp,.sql,.sh,.dockerfile,.gitignore,.env"
+    )
+      .split(",")
+      .map(ext => ext.trim()),
   },
   auth: {
     saltRounds: getOptionalNumericEnvVar("AUTH_SALT_ROUNDS", 12, 10, 15),
@@ -174,7 +169,8 @@ export const config = {
       | "info"
       | "debug",
     enableConsole: getOptionalEnvVar("LOG_ENABLE_CONSOLE", "true") === "true",
-    enableStructured: getOptionalEnvVar("LOG_ENABLE_STRUCTURED", "true") === "true",
+    enableStructured:
+      getOptionalEnvVar("LOG_ENABLE_STRUCTURED", "true") === "true",
   },
   sessionSecret: getOptionalEnvVar(
     "SESSION_SECRET",
@@ -205,7 +201,9 @@ export function validateConfig(): void {
     // Validate file extensions format
     config.files.allowedExtensions.forEach(ext => {
       if (!ext.startsWith(".")) {
-        throw new Error(`Invalid file extension format: ${ext}. Must start with dot.`);
+        throw new Error(
+          `Invalid file extension format: ${ext}. Must start with dot.`
+        );
       }
     });
 

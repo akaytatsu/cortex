@@ -41,6 +41,6 @@ export default defineConfig({
     exclude: ["node-pty"],
   },
   define: {
-    global: 'globalThis',
+    global: "globalThis",
   },
 });
