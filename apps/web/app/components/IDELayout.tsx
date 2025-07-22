@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Link } from "@remix-run/react";
 import type { Workspace } from "shared-types";
 import { FileBrowser } from "./FileBrowser";
-import { CodeViewer } from "./CodeViewer";
-import { Terminal } from "./Terminal";
+import { CodeEditor } from "./CodeEditor";
+import { EnhancedTerminal } from "./Terminal";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
 import { useTheme } from "../hooks/useTheme";
@@ -172,7 +172,7 @@ export function IDELayout({ workspace }: IDELayoutProps) {
             }}
           >
             <Card.Content className="p-0 h-full">
-              <CodeViewer
+              <CodeEditor
                 workspaceName={workspace.name}
                 filePath={selectedFile}
               />
@@ -196,10 +196,9 @@ export function IDELayout({ workspace }: IDELayoutProps) {
               style={{ height: bottomPanelHeight }}
             >
               <Card.Content className="p-0 h-full">
-                <Terminal
+                <EnhancedTerminal
                   workspaceName={workspace.name}
                   workspacePath={workspace.path}
-                  onClose={() => setIsBottomPanelVisible(false)}
                 />
               </Card.Content>
             </Card>
