@@ -1,12 +1,23 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import { BrowserRouter } from "react-router-dom";
 import { IDELayout } from "./IDELayout";
 import type { Workspace } from "shared-types";
 
 // Mock Remix React to use regular React Router for testing
+interface MockLinkProps {
+  to: string;
+  children: React.ReactNode;
+  [key: string]: unknown;
+}
+
 vi.mock("@remix-run/react", () => ({
-  Link: ({ to, children, ...props }: any) => (
+  Link: ({ to, children, ...props }: MockLinkProps) => (
     <a href={to} {...props}>
       {children}
     </a>
@@ -45,7 +56,7 @@ describe("IDELayout Component", () => {
   it("should render explorer section", () => {
     renderIDELayout();
 
-    expect(screen.getByText("EXPLORER")).toBeInTheDocument();
+    expect(screen.getByText("Explorer")).toBeInTheDocument();
     expect(screen.getByText("src")).toBeInTheDocument();
     expect(screen.getByText("index.js")).toBeInTheDocument();
     expect(screen.getByText("README.md")).toBeInTheDocument();
@@ -120,7 +131,7 @@ describe("IDELayout Component", () => {
     expect(screen.getByRole("banner")).toBeInTheDocument();
     
     // Sidebar (Explorer)
-    expect(screen.getByText("EXPLORER")).toBeInTheDocument();
+    expect(screen.getByText("Explorer")).toBeInTheDocument();
     
     // Main content area
     expect(screen.getByText("Bem-vindo ao test-workspace")).toBeInTheDocument();

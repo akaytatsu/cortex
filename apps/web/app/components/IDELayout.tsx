@@ -113,13 +113,11 @@ export function IDELayout({ workspace }: IDELayoutProps) {
         </div>
 
         {/* Sidebar Resize Handle */}
-        <div
-          className="w-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-col-resize"
+        <button
+          className="w-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-col-resize focus:outline-none focus:ring-2 focus:ring-blue-500"
           onMouseDown={handleSidebarResize}
-          role="separator"
           aria-label="Redimensionar sidebar"
-          tabIndex={0}
-        ></div>
+        ></button>
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col">
@@ -147,13 +145,11 @@ export function IDELayout({ workspace }: IDELayoutProps) {
 
           {/* Bottom Panel Resize Handle */}
           {isBottomPanelVisible && (
-            <div
-              className="h-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-row-resize"
+            <button
+              className="h-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-row-resize focus:outline-none focus:ring-2 focus:ring-blue-500"
               onMouseDown={handleBottomPanelResize}
-              role="separator"
               aria-label="Redimensionar painel inferior"
-              tabIndex={0}
-            ></div>
+            ></button>
           )}
 
           {/* Bottom Panel (Terminal - Future) */}

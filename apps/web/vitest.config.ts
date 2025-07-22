@@ -12,6 +12,12 @@ export default defineConfig({
         singleFork: true,
       },
     },
+    // Use jsdom for component tests
+    environmentMatchGlobs: [
+      ["**/*.test.tsx", "jsdom"],
+    ],
+    // Use different setup for DOM tests
+    setupFilesAfterEnv: ["./test-setup-dom.ts"],
   },
   resolve: {
     alias: {

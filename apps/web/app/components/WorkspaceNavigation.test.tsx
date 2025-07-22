@@ -1,17 +1,33 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import { BrowserRouter } from "react-router-dom";
 import { WorkspaceList } from "./WorkspaceList";
 import type { Workspace } from "shared-types";
 
+interface MockLinkProps {
+  to: string;
+  children: React.ReactNode;
+  [key: string]: unknown;
+}
+
+interface MockFormProps {
+  children: React.ReactNode;
+  [key: string]: unknown;
+}
+
 // Mock Remix React to use regular React Router for testing
 vi.mock("@remix-run/react", () => ({
-  Link: ({ to, children, ...props }: any) => (
+  Link: ({ to, children, ...props }: MockLinkProps) => (
     <a href={to} {...props}>
       {children}
     </a>
   ),
-  Form: ({ children, ...props }: any) => (
+  Form: ({ children, ...props }: MockFormProps) => (
     <form {...props}>
       {children}
     </form>
