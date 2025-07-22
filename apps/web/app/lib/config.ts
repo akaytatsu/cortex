@@ -59,6 +59,8 @@ export const config = {
   node: {
     env: getOptionalEnvVar('NODE_ENV', 'development', isValidNodeEnv) as 'development' | 'production' | 'test',
   },
+  sessionSecret: getOptionalEnvVar('SESSION_SECRET', 'default-dev-secret-change-in-production'),
+  env: getOptionalEnvVar('NODE_ENV', 'development', isValidNodeEnv) as 'development' | 'production' | 'test',
 } as const
 
 // Type exports for use throughout the application
