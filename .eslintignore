@@ -13,6 +13,5 @@ coverage/
 *.config.ts
 .env*
 .ai/
-docs/
 README.md
 *.md

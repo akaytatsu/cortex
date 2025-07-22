@@ -29,6 +29,8 @@ describe("Linting Configuration", () => {
     expect(config.singleQuote).toBe(false);
     expect(config.printWidth).toBe(80);
     expect(config.tabWidth).toBe(2);
+    expect(config.bracketSameLine).toBe(false);
+    expect(config.quoteProps).toBe("as-needed");
   });
 
   it("should have ignore files", () => {
