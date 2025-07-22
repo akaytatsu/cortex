@@ -18,3 +18,16 @@ export interface Workspace {
   name: string;
   path: string;
 }
+
+export interface FileSystemItem {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: FileSystemItem[];
+}
+
+export interface FileContent {
+  path: string;
+  content: string;
+  mimeType: string;
+}

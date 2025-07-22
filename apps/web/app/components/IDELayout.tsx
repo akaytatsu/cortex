@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "@remix-run/react";
 import type { Workspace } from "shared-types";
+import { FileBrowser } from "./FileBrowser";
+import { CodeViewer } from "./CodeViewer";
 
 interface IDELayoutProps {
   workspace: Workspace;
@@ -10,6 +12,7 @@ export function IDELayout({ workspace }: IDELayoutProps) {
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [bottomPanelHeight, setBottomPanelHeight] = useState(200);
   const [isBottomPanelVisible, setIsBottomPanelVisible] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
   const handleSidebarResize = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -96,26 +99,10 @@ export function IDELayout({ workspace }: IDELayoutProps) {
               Explorer
             </h2>
           </div>
-          <div className="flex-1 overflow-auto p-2">
-            <div className="space-y-1">
-              <div className="flex items-center space-x-2 px-2 py-1 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
-                <span>📁</span>
-                <span>src</span>
-              </div>
-              <div className="flex items-center space-x-2 px-2 py-1 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer ml-4">
-                <span>📄</span>
-                <span>index.js</span>
-              </div>
-              <div className="flex items-center space-x-2 px-2 py-1 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
-                <span>📄</span>
-                <span>README.md</span>
-              </div>
-              <div className="flex items-center space-x-2 px-2 py-1 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
-                <span>📄</span>
-                <span>package.json</span>
-              </div>
-            </div>
-          </div>
+          <FileBrowser 
+            workspaceName={workspace.name} 
+            onFileSelect={setSelectedFile}
+          />
         </div>
 
         {/* Sidebar Resize Handle */}
@@ -136,17 +123,10 @@ export function IDELayout({ workspace }: IDELayoutProps) {
                 : "100%",
             }}
           >
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-4xl mb-4">💻</div>
-                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Bem-vindo ao {workspace.name}
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Selecione um arquivo no Explorer para começar a editar
-                </p>
-              </div>
-            </div>
+<CodeViewer 
+              workspaceName={workspace.name}
+              filePath={selectedFile}
+            />
           </div>
 
           {/* Bottom Panel Resize Handle */}
