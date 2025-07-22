@@ -71,18 +71,18 @@ describe("Terminal Component", () => {
 
   it("renders terminal component with correct workspace info", () => {
     render(<Terminal {...defaultProps} />);
-    
+
     expect(screen.getByText("Terminal")).toBeInTheDocument();
     expect(screen.getByText("test-workspace (/test/path)")).toBeInTheDocument();
   });
 
   it("shows connection status indicator", async () => {
     render(<Terminal {...defaultProps} />);
-    
+
     // Initially disconnected (red)
     const statusIndicator = screen.getByTitle("Disconnected");
     expect(statusIndicator).toHaveClass("bg-red-400");
-    
+
     // Wait for connection (green)
     await waitFor(() => {
       const connectedIndicator = screen.getByTitle("Connected");
@@ -96,17 +96,19 @@ describe("Terminal Component", () => {
       value: { host: "localhost:3000" },
       writable: true,
     });
-    
+
     render(<Terminal {...defaultProps} />);
-    
+
     // Check that WebSocket was created with correct URL
-    expect(MockWebSocket).toHaveBeenCalledWith("ws://localhost:3000/ws/terminal");
+    expect(MockWebSocket).toHaveBeenCalledWith(
+      "ws://localhost:3000/ws/terminal"
+    );
   });
 
   it("sends initialization message when WebSocket opens", async () => {
     const mockWs = new MockWebSocket("ws://test");
     render(<Terminal {...defaultProps} />);
-    
+
     await waitFor(() => {
       expect(mockWs.send).toHaveBeenCalledWith(
         expect.stringContaining('"action":"init"')
@@ -117,7 +119,7 @@ describe("Terminal Component", () => {
   it("renders close button when onClose prop is provided", () => {
     const onClose = vi.fn();
     render(<Terminal {...defaultProps} onClose={onClose} />);
-    
+
     const closeButton = screen.getByTitle("Close terminal");
     expect(closeButton).toBeInTheDocument();
   });
@@ -125,16 +127,16 @@ describe("Terminal Component", () => {
   it("calls onClose when close button is clicked", () => {
     const onClose = vi.fn();
     render(<Terminal {...defaultProps} onClose={onClose} />);
-    
+
     const closeButton = screen.getByTitle("Close terminal");
     fireEvent.click(closeButton);
-    
+
     expect(onClose).toHaveBeenCalledOnce();
   });
 
   it("renders fit terminal button", () => {
     render(<Terminal {...defaultProps} />);
-    
+
     const fitButton = screen.getByTitle("Fit terminal");
     expect(fitButton).toBeInTheDocument();
     expect(fitButton).toHaveTextContent("⟷");
@@ -143,16 +145,16 @@ describe("Terminal Component", () => {
   it("creates unique session ID for each instance", () => {
     const { unmount } = render(<Terminal {...defaultProps} />);
     unmount();
-    
+
     render(<Terminal {...defaultProps} />);
-    
+
     // Session IDs are generated with timestamp and random string, so they should be unique
     expect(true).toBe(true); // Basic test to ensure component renders without error
   });
 
   it("handles WebSocket message events", () => {
     render(<Terminal {...defaultProps} />);
-    
+
     // WebSocket messaging is complex to test with mocks
     // Basic test ensures component renders without error
     expect(screen.getByText("Terminal")).toBeInTheDocument();
@@ -160,7 +162,7 @@ describe("Terminal Component", () => {
 
   it("handles WebSocket error events", () => {
     render(<Terminal {...defaultProps} />);
-    
+
     // WebSocket error handling is complex to test with mocks
     // Basic test ensures component renders without error
     expect(screen.getByText("Terminal")).toBeInTheDocument();
@@ -168,9 +170,9 @@ describe("Terminal Component", () => {
 
   it("cleans up resources on unmount", () => {
     const { unmount } = render(<Terminal {...defaultProps} />);
-    
+
     unmount();
-    
+
     // Cleanup is handled in useEffect return function
     // Basic test ensures component unmounts without error
     expect(true).toBe(true);

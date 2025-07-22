@@ -50,12 +50,12 @@ export interface TerminalSession {
   workspacePath: string;
   userId: string;
   pid?: number;
-  status: 'active' | 'inactive' | 'terminated';
+  status: "active" | "inactive" | "terminated";
   createdAt: Date;
 }
 
 export interface TerminalMessage {
-  type: 'input' | 'output' | 'error' | 'exit';
+  type: "input" | "output" | "error" | "exit";
   data: string;
   sessionId: string;
 }

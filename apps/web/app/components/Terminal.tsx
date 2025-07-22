@@ -35,7 +35,13 @@ export function Terminal({
   const maxReconnectAttempts = 3;
 
   useEffect(() => {
-    if (!terminalRef.current || typeof window === "undefined" || isInitialized || wsRef.current || isInitializingRef.current)
+    if (
+      !terminalRef.current ||
+      typeof window === "undefined" ||
+      isInitialized ||
+      wsRef.current ||
+      isInitializingRef.current
+    )
       return;
 
     const initializeTerminal = async () => {
@@ -169,7 +175,7 @@ export function Terminal({
 
         // Don't reconnect if:
         // - Normal close (1000)
-        // - Session already exists (1002) 
+        // - Session already exists (1002)
         // - Max reconnect attempts reached
         if (
           event.code !== 1000 &&
@@ -255,7 +261,7 @@ export function Terminal({
         wsRef.current.send(JSON.stringify(message));
         wsRef.current.close();
       }
-      
+
       // Reset refs and state
       wsRef.current = null;
       if (xtermRef.current) {

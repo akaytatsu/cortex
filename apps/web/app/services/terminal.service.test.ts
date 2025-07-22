@@ -55,7 +55,9 @@ describe("TerminalService", () => {
     it("should spawn a terminal process in the correct workspace directory", async () => {
       const { spawn } = await import("child_process");
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockChildProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockChildProcess as unknown as ReturnType<typeof spawn>
+      );
 
       const session = await terminalService.createSession(
         "test-workspace",
@@ -83,12 +85,14 @@ describe("TerminalService", () => {
     it("should use appropriate shell based on platform", async () => {
       const { spawn } = await import("child_process");
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockChildProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockChildProcess as unknown as ReturnType<typeof spawn>
+      );
 
       const originalPlatform = process.platform;
       Object.defineProperty(process, "platform", {
         value: "win32",
-        configurable: true
+        configurable: true,
       });
 
       const session = await terminalService.createSession(
@@ -100,18 +104,21 @@ describe("TerminalService", () => {
       await terminalService.spawnTerminal(session);
 
       expect(mockSpawn).toHaveBeenCalledWith("cmd.exe", [], expect.any(Object));
-      
+
       // Restore original platform
       Object.defineProperty(process, "platform", {
         value: originalPlatform,
-        configurable: true
+        configurable: true,
       });
     });
 
     it("should throw error if process fails to spawn", async () => {
       const { spawn } = await import("child_process");
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue({ ...mockChildProcess, pid: undefined } as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue({
+        ...mockChildProcess,
+        pid: undefined,
+      } as unknown as ReturnType<typeof spawn>);
 
       const session = await terminalService.createSession(
         "test-workspace",
@@ -129,20 +136,27 @@ describe("TerminalService", () => {
     it("should write data to terminal stdin", async () => {
       const { spawn } = await import("child_process");
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockChildProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockChildProcess as unknown as ReturnType<typeof spawn>
+      );
 
       const session = await terminalService.createSession(
         "test-workspace",
         process.cwd(),
         "user123"
       );
-      
+
       await terminalService.spawnTerminal(session);
-      
-      const result = terminalService.writeToTerminal(session.id, "test command\n");
-      
+
+      const result = terminalService.writeToTerminal(
+        session.id,
+        "test command\n"
+      );
+
       expect(result).toBe(true);
-      expect(mockChildProcess.stdin.write).toHaveBeenCalledWith("test command\n");
+      expect(mockChildProcess.stdin.write).toHaveBeenCalledWith(
+        "test command\n"
+      );
     });
 
     it("should return false for non-existent session", () => {
@@ -155,18 +169,20 @@ describe("TerminalService", () => {
     it("should terminate terminal process and clean up session", async () => {
       const { spawn } = await import("child_process");
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockChildProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockChildProcess as unknown as ReturnType<typeof spawn>
+      );
 
       const session = await terminalService.createSession(
         "test-workspace",
         process.cwd(),
         "user123"
       );
-      
+
       await terminalService.spawnTerminal(session);
-      
+
       const result = terminalService.terminateSession(session.id);
-      
+
       expect(result).toBe(true);
       expect(mockChildProcess.kill).toHaveBeenCalledWith("SIGTERM");
     });
@@ -181,18 +197,20 @@ describe("TerminalService", () => {
     it("should return active sessions for a user", async () => {
       const { spawn } = await import("child_process");
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockChildProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockChildProcess as unknown as ReturnType<typeof spawn>
+      );
 
       const session = await terminalService.createSession(
         "test-workspace",
         process.cwd(),
         "user123"
       );
-      
+
       await terminalService.spawnTerminal(session);
-      
+
       const sessions = terminalService.getActiveSessions("user123");
-      
+
       expect(sessions).toHaveLength(1);
       expect(sessions[0]).toMatchObject({
         workspaceName: "test-workspace",
@@ -210,23 +228,27 @@ describe("TerminalService", () => {
     it("should resize terminal and send SIGWINCH", async () => {
       const { spawn } = await import("child_process");
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockChildProcess as unknown as ReturnType<typeof spawn>);
-      
-      const mockProcessKill = vi.spyOn(process, "kill").mockImplementation(() => true);
+      mockSpawn.mockReturnValue(
+        mockChildProcess as unknown as ReturnType<typeof spawn>
+      );
+
+      const mockProcessKill = vi
+        .spyOn(process, "kill")
+        .mockImplementation(() => true);
 
       const session = await terminalService.createSession(
         "test-workspace",
         process.cwd(),
         "user123"
       );
-      
+
       await terminalService.spawnTerminal(session);
-      
+
       const result = terminalService.resizeTerminal(session.id);
-      
+
       expect(result).toBe(true);
       expect(mockProcessKill).toHaveBeenCalledWith(12345, "SIGWINCH");
-      
+
       mockProcessKill.mockRestore();
     });
   });

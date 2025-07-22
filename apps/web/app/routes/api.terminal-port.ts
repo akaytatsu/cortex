@@ -8,6 +8,6 @@ export const loader = async () => {
   } catch (error) {
     console.error("Failed to start WebSocket server:", error);
   }
-  
+
   return json({ port: terminalWebSocketServer.port });
 };

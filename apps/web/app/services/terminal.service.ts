@@ -5,7 +5,10 @@ import type { TerminalSession } from "shared-types";
 import { SessionService } from "./session.service";
 
 export class TerminalServiceError extends Error {
-  constructor(message: string, public code: string) {
+  constructor(
+    message: string,
+    public code: string
+  ) {
     super(message);
     this.name = "TerminalServiceError";
   }
@@ -36,7 +39,10 @@ class TerminalService {
     const maxInactivity = 30 * 60 * 1000; // 30 minutes
 
     for (const [sessionId, activeSession] of this.activeSessions) {
-      if (now.getTime() - activeSession.lastActivity.getTime() > maxInactivity) {
+      if (
+        now.getTime() - activeSession.lastActivity.getTime() >
+        maxInactivity
+      ) {
         console.log(`Cleaning up inactive terminal session: ${sessionId}`);
         this.terminateSession(sessionId);
       }
@@ -46,8 +52,8 @@ class TerminalService {
   private validateWorkspacePath(workspacePath: string): string {
     const normalizedPath = path.resolve(workspacePath);
     // Get the project root by going up from apps/web to the monorepo root
-    const projectRoot = path.resolve(process.cwd(), '../..');
-    
+    const projectRoot = path.resolve(process.cwd(), "../..");
+
     if (!normalizedPath.startsWith(projectRoot)) {
       throw new TerminalServiceError(
         "Workspace path must be within project boundaries",
@@ -65,9 +71,11 @@ class TerminalService {
     customSessionId?: string
   ): Promise<TerminalSession> {
     const validatedPath = this.validateWorkspacePath(workspacePath);
-    
-    const sessionId = customSessionId || `terminal_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    
+
+    const sessionId =
+      customSessionId ||
+      `terminal_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
     const session: TerminalSession = {
       id: sessionId,
       workspaceName,
@@ -81,8 +89,11 @@ class TerminalService {
   }
 
   async spawnTerminal(session: TerminalSession): Promise<pty.IPty> {
-    const shell = os.platform() === "win32" ? "cmd.exe" : process.env.SHELL || "/usr/bin/bash";
-    
+    const shell =
+      os.platform() === "win32"
+        ? "cmd.exe"
+        : process.env.SHELL || "/usr/bin/bash";
+
     const ptyProcess = pty.spawn(shell, [], {
       name: "xterm-color",
       cols: 80,
@@ -104,7 +115,7 @@ class TerminalService {
     }
 
     session.pid = ptyProcess.pid;
-    
+
     const activeSession: ActiveSession = {
       session: { ...session, status: "active" },
       process: ptyProcess,
@@ -113,7 +124,7 @@ class TerminalService {
 
     this.activeSessions.set(session.id, activeSession);
 
-    ptyProcess.onExit(({exitCode, signal}) => {
+    ptyProcess.onExit(({ exitCode, signal }) => {
       console.log(`Terminal process exited: ${exitCode}, signal: ${signal}`);
       this.activeSessions.delete(session.id);
     });
@@ -142,7 +153,7 @@ class TerminalService {
     }
 
     this.updateLastActivity(sessionId);
-    
+
     try {
       activeSession.process.write(data);
       return true;
@@ -152,14 +163,18 @@ class TerminalService {
     }
   }
 
-  resizeTerminal(sessionId: string, cols: number = 80, rows: number = 24): boolean {
+  resizeTerminal(
+    sessionId: string,
+    cols: number = 80,
+    rows: number = 24
+  ): boolean {
     const activeSession = this.activeSessions.get(sessionId);
     if (!activeSession) {
       return false;
     }
 
     this.updateLastActivity(sessionId);
-    
+
     try {
       activeSession.process.resize(cols, rows);
       return true;
@@ -177,9 +192,9 @@ class TerminalService {
 
     try {
       activeSession.process.kill("SIGTERM");
-      
+
       // For node-pty, kill is enough - no need for SIGKILL timeout
-      
+
       this.activeSessions.delete(sessionId);
       return true;
     } catch (error: any) {
