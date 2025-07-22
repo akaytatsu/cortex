@@ -10,7 +10,8 @@
     "start": "remix-serve ./build/server/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "db:reset": "rm -f prisma/dev.db prisma/test.db && npx prisma migrate reset --force"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",

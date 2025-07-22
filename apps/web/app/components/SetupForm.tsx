@@ -34,19 +34,20 @@ export function SetupForm({ errors }: SetupFormProps) {
   };
 
   const handleEmailChange = (value: string) => {
-    setEmail(value);
-    const error = validateEmail(value);
+    const trimmedValue = value.trim();
+    setEmail(trimmedValue);
+    const error = validateEmail(trimmedValue);
     setClientErrors(prev => ({ ...prev, email: error }));
   };
 
   const handlePasswordChange = (value: string) => {
-    setPassword(value);
-    const error = validatePassword(value);
+    const trimmedValue = value.trim();
+    setPassword(trimmedValue);
+    const error = validatePassword(trimmedValue);
     setClientErrors(prev => ({ ...prev, password: error }));
   };
 
-  const isFormValid =
-    !clientErrors.email && !clientErrors.password && email && password;
+  const isFormValid = email && password && !clientErrors.email && !clientErrors.password;
 
   return (
     <Form method="post" className="space-y-6">

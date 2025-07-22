@@ -17,7 +17,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:workspaces": "npm run test --workspaces --if-present"
+    "test:workspaces": "npm run test --workspaces --if-present",
+    "db:reset": "npm run db:reset --workspace=apps/web"
   },
   "engines": {
     "node": ">=22.0.0"
