@@ -77,4 +77,29 @@ Este será o **único** modelo no nosso banco de dados SQLite.
   }
   ```
 
+## 3\. In-Memory Models (Runtime State Management) **[IMPLEMENTADO]**
+
+**Terminal Session Models**
+Essas interfaces gerenciam o estado das sessões de terminal em tempo de execução.
+
+```typescript
+// Terminal Session Management - [IMPLEMENTADO]
+export interface TerminalSession {
+  id: string;
+  workspaceName: string;
+  workspacePath: string;
+  userId: string;
+  pid?: number;
+  status: 'active' | 'inactive' | 'terminated';
+  createdAt: Date;
+}
+
+// WebSocket Message Protocol - [IMPLEMENTADO]
+export interface TerminalMessage {
+  type: 'input' | 'output' | 'error' | 'exit';
+  data: string;
+  sessionId: string;
+}
+```
+
 ---

@@ -100,6 +100,9 @@ Esta tabela representa as decisões tecnológicas definitivas para o projeto Cor
 | **Linting**              | ESLint       | `~8.x`                 | Análise estática de código para qualidade.            | Definido na Estória 1.2.                                                              |
 | **Formatação**           | Prettier     | `~3.x`                 | Formatador de código.                                 | Definido na Estória 1.2.                                                              |
 | **Containerização**      | Docker       | `Mais recente estável` | Empacotamento da aplicação para portabilidade.        | Melhor abordagem para cumprir o requisito de ser `self-hostable`.                     |
+| **Terminal (Backend)**   | node-pty     | `~1.x`                 | Pseudoterminal para sessões interativas de terminal.  | **[IMPLEMENTADO]** Necessário para terminal funcional em ambiente Linux.              |
+| **Terminal (Frontend)**  | @xterm/xterm | `~5.x`                 | Emulador de terminal web para interface do usuário.   | **[IMPLEMENTADO]** Biblioteca padrão para terminais web interativos.                  |
+| **WebSockets**           | ws           | `~8.x`                 | Biblioteca WebSocket para comunicação real-time.      | **[IMPLEMENTADO]** Para streaming de I/O do terminal e comunicação bidirecional.      |
 
 ---
 
@@ -180,6 +183,23 @@ Este será o **único** modelo no nosso banco de dados SQLite.
     name: string;
     steps: WorkflowStep[];
   }
+  
+  // Terminal Session Models - [IMPLEMENTADO]
+  export interface TerminalSession {
+    id: string;
+    workspaceName: string;
+    workspacePath: string;
+    userId: string;
+    pid?: number;
+    status: 'active' | 'inactive' | 'terminated';
+    createdAt: Date;
+  }
+
+  export interface TerminalMessage {
+    type: 'input' | 'output' | 'error' | 'exit';
+    data: string;
+    sessionId: string;
+  }
   ```
 
 ---
@@ -199,16 +219,27 @@ A "API" do Cortex é definida pelas funções `loaders` (leitura) e `actions` (e
 
 Para funcionalidades interativas como o **Terminal** e o **monitoramento de Tarefas**, usaremos WebSockets para comunicação contínua entre o cliente e o servidor.
 
+#### Terminal WebSocket Implementation
+- **Endpoint:** `/ws/terminal` para comunicação real-time
+- **Protocolo:** WebSocket com mensagens tipadas para input/output/error/exit
+- **Servidor:** WebSocket server rodando na porta 8000 (desenvolvimento)
+- **Backend:** `node-pty` para pseudoterminal adequado em ambiente Linux
+
 ---
 
 ## System Components
 
+### Backend Services
 - **`AuthService` (Backend):** Manages user logic and interacts with Prisma.
 - **`ConfigService` (Backend):** Reads and writes YAML configuration files.
 - **`FileSystemService` (Backend):** Interacts with the server's file system for workspace files.
 - **`CliService` (Backend):** Manages the execution of external command-line tools.
-- **`WebSocketService` (Backend):** Manages real-time communication for the terminal.
+- **`TerminalService` (Backend):** **[IMPLEMENTADO]** Manages interactive terminal sessions using node-pty with workspace path validation and security boundaries.
+- **`WebSocketService` (Backend):** **[IMPLEMENTADO]** Manages real-time communication for terminal I/O streaming.
+
+### Frontend Components
 - **`CortexUI` (Frontend):** The main React application rendered by Remix.
+- **`Terminal` (Frontend):** **[IMPLEMENTADO]** Interactive web terminal component using @xterm/xterm with WebSocket communication for real-time command execution.
 
 ---
 
@@ -277,11 +308,15 @@ cortex/
 ├── apps/
 │   └── web/
 │       ├── app/
-│       │   ├── components/ # Componentes React
-│       │   ├── lib/        # Utilitários, cliente Prisma
-│       │   ├── routes/     # Rotas, Loaders, Actions
-│       │   ├── services/   # Lógica de negócio do Backend
-│       │   └── styles/     # CSS Global, Tailwind
+│       │   ├── components/    # Componentes React
+│       │   │   └── Terminal.tsx # [IMPLEMENTADO] Terminal web interativo
+│       │   ├── lib/           # Utilitários, cliente Prisma  
+│       │   │   └── websocket-server.ts # [IMPLEMENTADO] Servidor WebSocket
+│       │   ├── routes/        # Rotas, Loaders, Actions
+│       │   │   └── api.terminal-port.ts # [IMPLEMENTADO] API endpoint para porta do terminal
+│       │   ├── services/      # Lógica de negócio do Backend
+│       │   │   └── terminal.service.ts # [IMPLEMENTADO] Gerenciamento de sessões de terminal
+│       │   └── styles/        # CSS Global, Tailwind
 │       ├── prisma/
 │       └── ...
 ├── config/
@@ -294,6 +329,62 @@ cortex/
 ├── docker-compose.yml
 └── package.json         # Raiz do Monorepo com workspaces
 ```
+
+---
+
+## Story 3.6 Implementation: Interactive Web Terminal
+
+### Visão Geral da Implementação
+A Story 3.6 implementou com sucesso um terminal web interativo completamente funcional no painel inferior da IDE, com comunicação real-time via WebSockets e sessões de terminal seguras delimitadas por workspace.
+
+### Componentes Críticos Implementados
+
+#### Frontend - Terminal Component
+- **Localização:** `apps/web/app/components/Terminal.tsx`
+- **Tecnologia:** @xterm/xterm com addons (fit, web-links)
+- **Funcionalidades:**
+  - Emulador de terminal com tema escuro consistente com a IDE
+  - Redimensionamento automático no painel
+  - Comunicação WebSocket em tempo real
+  - Tratamento de erro com reconexão inteligente
+  - Imports dinâmicos para compatibilidade SSR
+
+#### Backend - Terminal Service
+- **Localização:** `apps/web/app/services/terminal.service.ts`
+- **Tecnologia:** node-pty para pseudoterminal real
+- **Funcionalidades:**
+  - Criação de sessões de terminal delimitadas por workspace
+  - Validação de segurança de path para prevenir escape do workspace
+  - Gerenciamento de processo com cleanup adequado
+  - Suporte a redimensionamento de terminal
+
+#### WebSocket Server
+- **Localização:** `apps/web/app/lib/websocket-server.ts`
+- **Configuração:** Porta 8000 (desenvolvimento)
+- **Funcionalidades:**
+  - Servidor WebSocket singleton para prevenir conflitos de porta
+  - Streaming de I/O bidirecional
+  - Gerenciamento de múltiplas sessões simultâneas
+  - Implementação de protocolo de mensagens tipadas
+
+### Learnings e Resoluções Críticas
+
+#### Bug Fixes Importantes
+1. **SSR Compatibility:** Implementação de imports dinâmicos para xterm.js evitar problemas de renderização server-side
+2. **Infinite Loop Prevention:** Uso de useRef para sessionId estável e prevenção de loops de re-renderização
+3. **PTY vs Child Process:** Migração de `child_process.spawn` para `node-pty` para terminal interativo adequado
+4. **Port Conflicts:** Configuração de portas fixas (8000 WebSocket, 8080 web) com padrão singleton
+
+#### Segurança e Validação
+- Validação rigorosa de paths de workspace para prevenir directory traversal
+- Isolamento de processos dentro dos limites do workspace
+- Autenticação de sessão via SessionService
+- Cleanup adequado de processos para prevenir zombies
+
+### Integração com Arquitetura Existente
+- **IDELayout:** Terminal integrado no painel inferior com redimensionamento
+- **Workspace System:** Sessões iniciadas no diretório correto do workspace
+- **Security Patterns:** Reutilização dos padrões de segurança estabelecidos no FileSystemService
 
 ---
 

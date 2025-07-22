@@ -17,5 +17,8 @@ Esta tabela representa as decisões tecnológicas definitivas para o projeto Cor
 | **Linting**              | ESLint       | `~8.x`                 | Análise estática de código para qualidade.            | Definido na Estória 1.2.                                                              |
 | **Formatação**           | Prettier     | `~3.x`                 | Formatador de código.                                 | Definido na Estória 1.2.                                                              |
 | **Containerização**      | Docker       | `Mais recente estável` | Empacotamento da aplicação para portabilidade.        | Melhor abordagem para cumprir o requisito de ser `self-hostable`.                     |
+| **Terminal (Backend)**   | node-pty     | `~1.x`                 | Pseudoterminal para sessões interativas de terminal.  | **[IMPLEMENTADO]** Necessário para terminal funcional em ambiente Linux.              |
+| **Terminal (Frontend)**  | @xterm/xterm | `~5.x`                 | Emulador de terminal web para interface do usuário.   | **[IMPLEMENTADO]** Biblioteca padrão para terminais web interativos.                  |
+| **WebSockets**           | ws           | `~8.x`                 | Biblioteca WebSocket para comunicação real-time.      | **[IMPLEMENTADO]** Para streaming de I/O do terminal e comunicação bidirecional.      |
 
 ---
