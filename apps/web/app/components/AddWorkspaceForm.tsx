@@ -26,7 +26,10 @@ export function AddWorkspaceForm({ errors }: AddWorkspaceFormProps) {
     return undefined;
   };
 
-  const validatePath = (path: string, isCreatingNew: boolean): string | undefined => {
+  const validatePath = (
+    path: string,
+    isCreatingNew: boolean
+  ): string | undefined => {
     if (!path.trim()) return "Workspace path is required";
     if (isCreatingNew && path.includes("..")) {
       return "Path cannot contain '..' for security reasons";
@@ -54,7 +57,11 @@ export function AddWorkspaceForm({ errors }: AddWorkspaceFormProps) {
   };
 
   const isFormValid =
-    !clientErrors.name && !clientErrors.path && name.trim() && path.trim() && !isSubmitting;
+    !clientErrors.name &&
+    !clientErrors.path &&
+    name.trim() &&
+    path.trim() &&
+    !isSubmitting;
 
   return (
     <Form method="post" className="space-y-6">
@@ -114,7 +121,9 @@ export function AddWorkspaceForm({ errors }: AddWorkspaceFormProps) {
           htmlFor="path"
           className="block text-sm font-medium text-gray-700 dark:text-gray-300"
         >
-          {createNewFolder ? "Caminho onde criar a nova pasta" : "Caminho da pasta existente"}
+          {createNewFolder
+            ? "Caminho onde criar a nova pasta"
+            : "Caminho da pasta existente"}
         </label>
         <div className="mt-1">
           <input
@@ -125,7 +134,9 @@ export function AddWorkspaceForm({ errors }: AddWorkspaceFormProps) {
             value={path}
             onChange={e => handlePathChange(e.target.value)}
             className="block w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-300 sm:text-sm"
-            placeholder={createNewFolder ? "/home/user/projects" : "/path/to/your/project"}
+            placeholder={
+              createNewFolder ? "/home/user/projects" : "/path/to/your/project"
+            }
           />
           {createNewFolder && (
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -148,11 +159,29 @@ export function AddWorkspaceForm({ errors }: AddWorkspaceFormProps) {
         >
           {isSubmitting ? (
             <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg
+                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
-              {createNewFolder ? "Criando Workspace..." : "Criando Workspace..."}
+              {createNewFolder
+                ? "Criando Workspace..."
+                : "Criando Workspace..."}
             </>
           ) : (
             "Criar Workspace"

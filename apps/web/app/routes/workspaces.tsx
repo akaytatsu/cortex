@@ -16,13 +16,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   // Check for error and success messages in query params
   const url = new URL(request.url);
-  const errorMessage = url.searchParams.get('error');
-  const successMessage = url.searchParams.get('success');
+  const errorMessage = url.searchParams.get("error");
+  const successMessage = url.searchParams.get("success");
 
-  return json({ 
-    workspaces, 
+  return json({
+    workspaces,
     errorMessage: errorMessage ? decodeURIComponent(errorMessage) : null,
-    successMessage: successMessage ? decodeURIComponent(successMessage) : null
+    successMessage: successMessage ? decodeURIComponent(successMessage) : null,
   });
 }
 
@@ -34,7 +34,8 @@ export const meta: MetaFunction = () => {
 };
 
 export default function Workspaces() {
-  const { workspaces, errorMessage, successMessage } = useLoaderData<typeof loader>();
+  const { workspaces, errorMessage, successMessage } =
+    useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -65,7 +66,7 @@ export default function Workspaces() {
             </div>
           </div>
         )}
-        
+
         <div className="px-4 py-6 sm:px-0">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
             {workspaces.length === 0 ? (

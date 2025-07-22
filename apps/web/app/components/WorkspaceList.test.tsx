@@ -10,7 +10,7 @@ global.alert = mockAlert;
 describe("WorkspaceList", () => {
   const mockWorkspaces: Workspace[] = [
     { name: "Test Workspace", path: "/test/path" },
-    { name: "Another Workspace", path: "/another/path" }
+    { name: "Another Workspace", path: "/another/path" },
   ];
 
   it("should render null when workspaces array is empty", () => {
@@ -48,21 +48,25 @@ describe("WorkspaceList", () => {
     const enterButtons = screen.getAllByText("Enter");
     fireEvent.click(enterButtons[0]);
 
-    expect(mockAlert).toHaveBeenCalledWith("Entering workspace: Test Workspace");
+    expect(mockAlert).toHaveBeenCalledWith(
+      "Entering workspace: Test Workspace"
+    );
   });
 
   it("should handle workspace with special characters in name", () => {
     const specialWorkspaces: Workspace[] = [
-      { name: "Test & Special Workspace", path: "/test/path" }
+      { name: "Test & Special Workspace", path: "/test/path" },
     ];
 
     render(<WorkspaceList workspaces={specialWorkspaces} />);
 
     expect(screen.getByText("Test & Special Workspace")).toBeInTheDocument();
-    
+
     const enterButton = screen.getByText("Enter");
     fireEvent.click(enterButton);
-    
-    expect(mockAlert).toHaveBeenCalledWith("Entering workspace: Test & Special Workspace");
+
+    expect(mockAlert).toHaveBeenCalledWith(
+      "Entering workspace: Test & Special Workspace"
+    );
   });
 });

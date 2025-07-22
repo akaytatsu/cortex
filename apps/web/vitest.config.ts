@@ -13,9 +13,7 @@ export default defineConfig({
       },
     },
     // Use jsdom for component tests
-    environmentMatchGlobs: [
-      ["**/*.test.tsx", "jsdom"],
-    ],
+    environmentMatchGlobs: [["**/*.test.tsx", "jsdom"]],
     // Use different setup for DOM tests
     setupFilesAfterEnv: ["./test-setup-dom.ts"],
   },

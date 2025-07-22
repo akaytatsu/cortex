@@ -12,7 +12,7 @@ vi.mock("@remix-run/node", async () => {
   return {
     ...actual,
     redirect: vi.fn(),
-    json: vi.fn((data) => ({ data })),
+    json: vi.fn(data => ({ data })),
   };
 });
 
@@ -33,10 +33,14 @@ describe("workspaces.$workspaceName loader", () => {
   });
 
   it("should require user authentication", async () => {
-    const request = new Request("http://localhost:3000/workspaces/test-workspace");
+    const request = new Request(
+      "http://localhost:3000/workspaces/test-workspace"
+    );
     const params = { workspaceName: "test-workspace" };
 
-    await loader({ request, params, context: {} } as Parameters<typeof loader>[0]);
+    await loader({ request, params, context: {} } as Parameters<
+      typeof loader
+    >[0]);
 
     expect(mockSessionService.requireUserId).toHaveBeenCalledWith(request);
   });
@@ -49,7 +53,9 @@ describe("workspaces.$workspaceName loader", () => {
       throw new Error(`Redirect to ${url}`);
     });
 
-    await expect(loader({ request, params, context: {} } as Parameters<typeof loader>[0])).rejects.toThrow("Redirect to /workspaces");
+    await expect(
+      loader({ request, params, context: {} } as Parameters<typeof loader>[0])
+    ).rejects.toThrow("Redirect to /workspaces");
     expect(mockRedirect).toHaveBeenCalledWith("/workspaces");
   });
 
@@ -61,16 +67,22 @@ describe("workspaces.$workspaceName loader", () => {
       throw new Error(`Redirect to ${url}`);
     });
 
-    await expect(loader({ request, params, context: {} } as Parameters<typeof loader>[0])).rejects.toThrow("Redirect to /workspaces");
+    await expect(
+      loader({ request, params, context: {} } as Parameters<typeof loader>[0])
+    ).rejects.toThrow("Redirect to /workspaces");
     expect(mockWorkspaceService.listWorkspaces).toHaveBeenCalled();
     expect(mockRedirect).toHaveBeenCalledWith("/workspaces");
   });
 
   it("should return workspace data when workspace exists", async () => {
-    const request = new Request("http://localhost:3000/workspaces/test-workspace");
+    const request = new Request(
+      "http://localhost:3000/workspaces/test-workspace"
+    );
     const params = { workspaceName: "test-workspace" };
 
-    const result = await loader({ request, params, context: {} } as Parameters<typeof loader>[0]);
+    const result = await loader({ request, params, context: {} } as Parameters<
+      typeof loader
+    >[0]);
 
     expect(mockWorkspaceService.listWorkspaces).toHaveBeenCalled();
     expect(result).toEqual({
@@ -81,37 +93,51 @@ describe("workspaces.$workspaceName loader", () => {
   });
 
   it("should handle service errors by redirecting to /workspaces", async () => {
-    const request = new Request("http://localhost:3000/workspaces/test-workspace");
+    const request = new Request(
+      "http://localhost:3000/workspaces/test-workspace"
+    );
     const params = { workspaceName: "test-workspace" };
 
-    mockWorkspaceService.listWorkspaces.mockRejectedValue(new Error("Service error"));
+    mockWorkspaceService.listWorkspaces.mockRejectedValue(
+      new Error("Service error")
+    );
     mockRedirect.mockImplementation((url: string) => {
       throw new Error(`Redirect to ${url}`);
     });
 
-    await expect(loader({ request, params, context: {} } as Parameters<typeof loader>[0])).rejects.toThrow("Redirect to /workspaces");
+    await expect(
+      loader({ request, params, context: {} } as Parameters<typeof loader>[0])
+    ).rejects.toThrow("Redirect to /workspaces");
     expect(mockRedirect).toHaveBeenCalledWith("/workspaces");
   });
 
   it("should handle authentication errors by allowing SessionService to throw", async () => {
-    const request = new Request("http://localhost:3000/workspaces/test-workspace");
+    const request = new Request(
+      "http://localhost:3000/workspaces/test-workspace"
+    );
     const params = { workspaceName: "test-workspace" };
 
     mockSessionService.requireUserId.mockRejectedValue(new Error("Auth error"));
 
-    await expect(loader({ request, params, context: {} } as Parameters<typeof loader>[0])).rejects.toThrow("Auth error");
+    await expect(
+      loader({ request, params, context: {} } as Parameters<typeof loader>[0])
+    ).rejects.toThrow("Auth error");
   });
 
   it("should decode workspace names with special characters", async () => {
-    const request = new Request("http://localhost:3000/workspaces/test%20workspace");
+    const request = new Request(
+      "http://localhost:3000/workspaces/test%20workspace"
+    );
     const params = { workspaceName: "test workspace" };
-    
+
     const specialWorkspaces: Workspace[] = [
       { name: "test workspace", path: "/path/to/test" },
     ];
     mockWorkspaceService.listWorkspaces.mockResolvedValue(specialWorkspaces);
 
-    const result = await loader({ request, params, context: {} } as Parameters<typeof loader>[0]);
+    const result = await loader({ request, params, context: {} } as Parameters<
+      typeof loader
+    >[0]);
 
     expect(result).toEqual({
       data: {

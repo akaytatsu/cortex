@@ -37,11 +37,13 @@ describe("SessionService", () => {
       expect(logoutResponse).toBeInstanceOf(Response);
       expect(logoutResponse.status).toBe(302);
       expect(logoutResponse.headers.get("location")).toBe("/login");
-      
+
       // Verify session is destroyed
       const setCookieHeader = logoutResponse.headers.get("Set-Cookie");
       expect(setCookieHeader).toContain("__session=");
-      expect(setCookieHeader).toContain("Expires=Thu, 01 Jan 1970 00:00:00 GMT");
+      expect(setCookieHeader).toContain(
+        "Expires=Thu, 01 Jan 1970 00:00:00 GMT"
+      );
     });
 
     it("should redirect to /login even without existing session", async () => {
@@ -58,8 +60,10 @@ describe("SessionService", () => {
     it("should redirect to /login when no session exists", async () => {
       const request = new Request("http://localhost:3000/test");
 
-      await expect(SessionService.requireUserId(request)).rejects.toBeInstanceOf(Response);
-      
+      await expect(
+        SessionService.requireUserId(request)
+      ).rejects.toBeInstanceOf(Response);
+
       try {
         await SessionService.requireUserId(request);
       } catch (response) {

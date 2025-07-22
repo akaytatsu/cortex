@@ -45,12 +45,18 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   try {
-    await WorkspaceService.addWorkspace({
-      name: name!.trim(),
-      path: path!.trim(),
-    }, createNewFolder);
+    await WorkspaceService.addWorkspace(
+      {
+        name: name!.trim(),
+        path: path!.trim(),
+      },
+      createNewFolder
+    );
 
-    return redirect("/workspaces?success=" + encodeURIComponent("Workspace criado com sucesso!"));
+    return redirect(
+      "/workspaces?success=" +
+        encodeURIComponent("Workspace criado com sucesso!")
+    );
   } catch (error) {
     if (error instanceof Error) {
       // Map service error codes to user-friendly messages
@@ -74,15 +80,22 @@ export async function action({ request }: ActionFunctionArgs) {
 
 function mapServiceErrorToMessage(originalMessage: string): string {
   const errorMappings: Record<string, string> = {
-    'Parent directory does not exist': 'O diretório pai especificado não existe. Verifique o caminho.',
-    'Parent path is not a directory': 'O caminho pai especificado não é um diretório válido.',
-    'Permission denied to create folder': 'Sem permissão para criar a pasta no local especificado.',
-    'Permission denied to access directory': 'Sem permissão para acessar o diretório especificado.',
-    'Folder already exists at this location': 'Já existe uma pasta com este nome no local especificado.',
-    'Directory does not exist': 'O diretório especificado não existe.',
-    'Path is not a directory': 'O caminho especificado não é um diretório.',
-    'A workspace with this name already exists': 'Já existe um workspace com este nome.',
-    'Path cannot contain ".." for security reasons': 'O caminho não pode conter ".." por motivos de segurança.',
+    "Parent directory does not exist":
+      "O diretório pai especificado não existe. Verifique o caminho.",
+    "Parent path is not a directory":
+      "O caminho pai especificado não é um diretório válido.",
+    "Permission denied to create folder":
+      "Sem permissão para criar a pasta no local especificado.",
+    "Permission denied to access directory":
+      "Sem permissão para acessar o diretório especificado.",
+    "Folder already exists at this location":
+      "Já existe uma pasta com este nome no local especificado.",
+    "Directory does not exist": "O diretório especificado não existe.",
+    "Path is not a directory": "O caminho especificado não é um diretório.",
+    "A workspace with this name already exists":
+      "Já existe um workspace com este nome.",
+    'Path cannot contain ".." for security reasons':
+      'O caminho não pode conter ".." por motivos de segurança.',
   };
 
   return errorMappings[originalMessage] || originalMessage;

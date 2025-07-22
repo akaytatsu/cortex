@@ -48,7 +48,9 @@ describe("IDELayout Component", () => {
   it("should render back to workspaces link", () => {
     renderIDELayout();
 
-    const backLink = screen.getByRole("link", { name: /voltar para workspaces/i });
+    const backLink = screen.getByRole("link", {
+      name: /voltar para workspaces/i,
+    });
     expect(backLink).toBeInTheDocument();
     expect(backLink.getAttribute("href")).toBe("/workspaces");
   });
@@ -66,8 +68,12 @@ describe("IDELayout Component", () => {
   it("should render welcome message", () => {
     renderIDELayout();
 
-    expect(screen.getByText(`Bem-vindo ao ${mockWorkspace.name}`)).toBeInTheDocument();
-    expect(screen.getByText("Selecione um arquivo no Explorer para começar a editar")).toBeInTheDocument();
+    expect(
+      screen.getByText(`Bem-vindo ao ${mockWorkspace.name}`)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Selecione um arquivo no Explorer para começar a editar")
+    ).toBeInTheDocument();
   });
 
   it("should render status bar with workspace info", () => {
@@ -75,24 +81,32 @@ describe("IDELayout Component", () => {
 
     expect(screen.getByText("Ready")).toBeInTheDocument();
     expect(screen.getByText("Terminal")).toBeInTheDocument();
-    expect(screen.getByText(`${mockWorkspace.name} - ${mockWorkspace.path}`)).toBeInTheDocument();
+    expect(
+      screen.getByText(`${mockWorkspace.name} - ${mockWorkspace.path}`)
+    ).toBeInTheDocument();
   });
 
   it("should toggle bottom panel when Terminal button is clicked", () => {
     renderIDELayout();
 
     const terminalButton = screen.getByRole("button", { name: "Terminal" });
-    
+
     // Initially, bottom panel should not be visible
-    expect(screen.queryByText("$ Terminal será implementado em stories futuras")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("$ Terminal será implementado em stories futuras")
+    ).not.toBeInTheDocument();
 
     // Click to show terminal
     fireEvent.click(terminalButton);
-    expect(screen.getByText("$ Terminal será implementado em stories futuras")).toBeInTheDocument();
+    expect(
+      screen.getByText("$ Terminal será implementado em stories futuras")
+    ).toBeInTheDocument();
 
     // Click to hide terminal
     fireEvent.click(terminalButton);
-    expect(screen.queryByText("$ Terminal será implementado em stories futuras")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("$ Terminal será implementado em stories futuras")
+    ).not.toBeInTheDocument();
   });
 
   it("should close bottom panel when close button is clicked", () => {
@@ -101,14 +115,18 @@ describe("IDELayout Component", () => {
     // Open terminal panel
     const terminalButton = screen.getByRole("button", { name: "Terminal" });
     fireEvent.click(terminalButton);
-    
-    expect(screen.getByText("$ Terminal será implementado em stories futuras")).toBeInTheDocument();
+
+    expect(
+      screen.getByText("$ Terminal será implementado em stories futuras")
+    ).toBeInTheDocument();
 
     // Close the panel
     const closeButton = screen.getByRole("button", { name: "✕" });
     fireEvent.click(closeButton);
-    
-    expect(screen.queryByText("$ Terminal será implementado em stories futuras")).not.toBeInTheDocument();
+
+    expect(
+      screen.queryByText("$ Terminal será implementado em stories futuras")
+    ).not.toBeInTheDocument();
   });
 
   it("should handle workspace names with special characters", () => {
@@ -121,7 +139,9 @@ describe("IDELayout Component", () => {
 
     expect(screen.getByText("my-project & tests")).toBeInTheDocument();
     expect(screen.getByText("/path with spaces/workspace")).toBeInTheDocument();
-    expect(screen.getByText("Bem-vindo ao my-project & tests")).toBeInTheDocument();
+    expect(
+      screen.getByText("Bem-vindo ao my-project & tests")
+    ).toBeInTheDocument();
   });
 
   it("should render all main layout areas", () => {
@@ -129,13 +149,13 @@ describe("IDELayout Component", () => {
 
     // Header with breadcrumb
     expect(screen.getByRole("banner")).toBeInTheDocument();
-    
+
     // Sidebar (Explorer)
     expect(screen.getByText("Explorer")).toBeInTheDocument();
-    
+
     // Main content area
     expect(screen.getByText("Bem-vindo ao test-workspace")).toBeInTheDocument();
-    
+
     // Status bar (footer)
     expect(screen.getByText("Ready")).toBeInTheDocument();
   });

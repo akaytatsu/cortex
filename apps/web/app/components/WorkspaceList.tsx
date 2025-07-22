@@ -7,7 +7,9 @@ interface WorkspaceListProps {
 }
 
 export function WorkspaceList({ workspaces }: WorkspaceListProps) {
-  const [workspaceToDelete, setWorkspaceToDelete] = useState<string | null>(null);
+  const [workspaceToDelete, setWorkspaceToDelete] = useState<string | null>(
+    null
+  );
 
   if (workspaces.length === 0) {
     return null;
@@ -28,7 +30,7 @@ export function WorkspaceList({ workspaces }: WorkspaceListProps) {
 
   return (
     <div className="space-y-4">
-      {workspaces.map((workspace) => (
+      {workspaces.map(workspace => (
         <div
           key={workspace.name}
           className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
@@ -68,15 +70,17 @@ export function WorkspaceList({ workspaces }: WorkspaceListProps) {
               </h3>
               <div className="mt-2 px-7 py-3">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Tem certeza que deseja remover o workspace &quot;{workspaceToDelete}&quot;?
+                  Tem certeza que deseja remover o workspace &quot;
+                  {workspaceToDelete}&quot;?
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                  Esta ação apenas remove o workspace da lista. Os arquivos não serão deletados.
+                  Esta ação apenas remove o workspace da lista. Os arquivos não
+                  serão deletados.
                 </p>
               </div>
               <div className="flex gap-3 justify-center">
-                <Form 
-                  method="post" 
+                <Form
+                  method="post"
                   action={`/workspaces/${encodeURIComponent(workspaceToDelete)}/delete`}
                   onSubmit={handleConfirmDelete}
                 >

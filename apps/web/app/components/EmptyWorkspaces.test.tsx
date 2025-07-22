@@ -6,7 +6,11 @@ describe("EmptyWorkspaces", () => {
   it("should render empty state message", () => {
     render(<EmptyWorkspaces />);
 
-    expect(screen.getByText("No workspaces found. Create your first workspace to get started.")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "No workspaces found. Create your first workspace to get started."
+      )
+    ).toBeInTheDocument();
   });
 
   it("should render Add Workspace button with correct link", () => {
@@ -20,7 +24,11 @@ describe("EmptyWorkspaces", () => {
   it("should have correct styling classes", () => {
     render(<EmptyWorkspaces />);
 
-    const container = screen.getByText("No workspaces found. Create your first workspace to get started.").closest("div");
+    const container = screen
+      .getByText(
+        "No workspaces found. Create your first workspace to get started."
+      )
+      .closest("div");
     expect(container).toHaveClass("text-center", "py-12");
   });
 });

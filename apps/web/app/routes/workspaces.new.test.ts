@@ -14,20 +14,22 @@ describe("Workspaces New Route", () => {
 
   describe("loader", () => {
     it("should redirect to /login when not authenticated", async () => {
-      vi.spyOn(SessionService, 'requireUserId').mockRejectedValue(
+      vi.spyOn(SessionService, "requireUserId").mockRejectedValue(
         new Response(null, {
           status: 302,
-          headers: { location: "/login" }
+          headers: { location: "/login" },
         })
       );
 
       const request = new Request("http://localhost:3000/workspaces/new");
 
-      await expect(loader({ request, params: {}, context: {} })).rejects.toBeInstanceOf(Response);
+      await expect(
+        loader({ request, params: {}, context: {} })
+      ).rejects.toBeInstanceOf(Response);
     });
 
     it("should return empty response when authenticated", async () => {
-      vi.spyOn(SessionService, 'requireUserId').mockResolvedValue("user-123");
+      vi.spyOn(SessionService, "requireUserId").mockResolvedValue("user-123");
 
       const request = new Request("http://localhost:3000/workspaces/new");
       const response = await loader({ request, params: {}, context: {} });
@@ -40,10 +42,10 @@ describe("Workspaces New Route", () => {
 
   describe("action", () => {
     it("should redirect to /login when not authenticated", async () => {
-      vi.spyOn(SessionService, 'requireUserId').mockRejectedValue(
+      vi.spyOn(SessionService, "requireUserId").mockRejectedValue(
         new Response(null, {
           status: 302,
-          headers: { location: "/login" }
+          headers: { location: "/login" },
         })
       );
 
@@ -53,15 +55,17 @@ describe("Workspaces New Route", () => {
 
       const request = new Request("http://localhost:3000/workspaces/new", {
         method: "POST",
-        body: formData
+        body: formData,
       });
 
-      await expect(action({ request, params: {}, context: {} })).rejects.toBeInstanceOf(Response);
+      await expect(
+        action({ request, params: {}, context: {} })
+      ).rejects.toBeInstanceOf(Response);
     });
 
     it("should create workspace and redirect on success", async () => {
-      vi.spyOn(SessionService, 'requireUserId').mockResolvedValue("user-123");
-      vi.spyOn(WorkspaceService, 'addWorkspace').mockResolvedValue();
+      vi.spyOn(SessionService, "requireUserId").mockResolvedValue("user-123");
+      vi.spyOn(WorkspaceService, "addWorkspace").mockResolvedValue();
 
       const formData = new FormData();
       formData.append("name", "Test Workspace");
@@ -69,29 +73,31 @@ describe("Workspaces New Route", () => {
 
       const request = new Request("http://localhost:3000/workspaces/new", {
         method: "POST",
-        body: formData
+        body: formData,
       });
 
       const response = await action({ request, params: {}, context: {} });
 
       expect(response).toBeInstanceOf(Response);
       expect((response as Response).status).toBe(302);
-      expect((response as Response).headers.get("location")).toBe("/workspaces");
+      expect((response as Response).headers.get("location")).toBe(
+        "/workspaces"
+      );
       expect(WorkspaceService.addWorkspace).toHaveBeenCalledWith({
         name: "Test Workspace",
-        path: "/test/path"
+        path: "/test/path",
       });
     });
 
     it("should return validation errors for missing name", async () => {
-      vi.spyOn(SessionService, 'requireUserId').mockResolvedValue("user-123");
+      vi.spyOn(SessionService, "requireUserId").mockResolvedValue("user-123");
 
       const formData = new FormData();
       formData.append("path", "/test/path");
 
       const request = new Request("http://localhost:3000/workspaces/new", {
         method: "POST",
-        body: formData
+        body: formData,
       });
 
       const response = await action({ request, params: {}, context: {} });
@@ -103,14 +109,14 @@ describe("Workspaces New Route", () => {
     });
 
     it("should return validation errors for missing path", async () => {
-      vi.spyOn(SessionService, 'requireUserId').mockResolvedValue("user-123");
+      vi.spyOn(SessionService, "requireUserId").mockResolvedValue("user-123");
 
       const formData = new FormData();
       formData.append("name", "Test Workspace");
 
       const request = new Request("http://localhost:3000/workspaces/new", {
         method: "POST",
-        body: formData
+        body: formData,
       });
 
       const response = await action({ request, params: {}, context: {} });
@@ -122,7 +128,7 @@ describe("Workspaces New Route", () => {
     });
 
     it("should return validation errors for empty trimmed values", async () => {
-      vi.spyOn(SessionService, 'requireUserId').mockResolvedValue("user-123");
+      vi.spyOn(SessionService, "requireUserId").mockResolvedValue("user-123");
 
       const formData = new FormData();
       formData.append("name", "   ");
@@ -130,7 +136,7 @@ describe("Workspaces New Route", () => {
 
       const request = new Request("http://localhost:3000/workspaces/new", {
         method: "POST",
-        body: formData
+        body: formData,
       });
 
       const response = await action({ request, params: {}, context: {} });
@@ -143,8 +149,8 @@ describe("Workspaces New Route", () => {
     });
 
     it("should handle service errors", async () => {
-      vi.spyOn(SessionService, 'requireUserId').mockResolvedValue("user-123");
-      vi.spyOn(WorkspaceService, 'addWorkspace').mockRejectedValue(
+      vi.spyOn(SessionService, "requireUserId").mockResolvedValue("user-123");
+      vi.spyOn(WorkspaceService, "addWorkspace").mockRejectedValue(
         new Error("A workspace with this name already exists")
       );
 
@@ -154,7 +160,7 @@ describe("Workspaces New Route", () => {
 
       const request = new Request("http://localhost:3000/workspaces/new", {
         method: "POST",
-        body: formData
+        body: formData,
       });
 
       const response = await action({ request, params: {}, context: {} });
@@ -162,12 +168,16 @@ describe("Workspaces New Route", () => {
       expect(response).toBeInstanceOf(Response);
       expect((response as Response).status).toBe(400);
       const data = await (response as Response).json();
-      expect(data.errors.general).toBe("A workspace with this name already exists");
+      expect(data.errors.general).toBe(
+        "A workspace with this name already exists"
+      );
     });
 
     it("should handle unexpected errors", async () => {
-      vi.spyOn(SessionService, 'requireUserId').mockResolvedValue("user-123");
-      vi.spyOn(WorkspaceService, 'addWorkspace').mockRejectedValue("Unexpected error");
+      vi.spyOn(SessionService, "requireUserId").mockResolvedValue("user-123");
+      vi.spyOn(WorkspaceService, "addWorkspace").mockRejectedValue(
+        "Unexpected error"
+      );
 
       const formData = new FormData();
       formData.append("name", "Test Workspace");
@@ -175,7 +185,7 @@ describe("Workspaces New Route", () => {
 
       const request = new Request("http://localhost:3000/workspaces/new", {
         method: "POST",
-        body: formData
+        body: formData,
       });
 
       const response = await action({ request, params: {}, context: {} });
@@ -183,7 +193,9 @@ describe("Workspaces New Route", () => {
       expect(response).toBeInstanceOf(Response);
       expect((response as Response).status).toBe(500);
       const data = await (response as Response).json();
-      expect(data.errors.general).toBe("An unexpected error occurred. Please try again.");
+      expect(data.errors.general).toBe(
+        "An unexpected error occurred. Please try again."
+      );
     });
   });
 });

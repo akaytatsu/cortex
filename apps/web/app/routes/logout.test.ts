@@ -33,11 +33,13 @@ describe("Logout Route", () => {
       expect(response).toBeInstanceOf(Response);
       expect((response as Response).status).toBe(302);
       expect((response as Response).headers.get("location")).toBe("/login");
-      
+
       // Should have Set-Cookie header to destroy the session
       const setCookieHeader = (response as Response).headers.get("Set-Cookie");
       expect(setCookieHeader).toContain("__session=");
-      expect(setCookieHeader).toContain("Expires=Thu, 01 Jan 1970 00:00:00 GMT");
+      expect(setCookieHeader).toContain(
+        "Expires=Thu, 01 Jan 1970 00:00:00 GMT"
+      );
     });
 
     it("should redirect to /login even without existing session", async () => {

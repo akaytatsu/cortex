@@ -17,7 +17,10 @@ export function IDELayout({ workspace }: IDELayoutProps) {
     const startWidth = sidebarWidth;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const newWidth = Math.max(200, Math.min(600, startWidth + e.clientX - startX));
+      const newWidth = Math.max(
+        200,
+        Math.min(600, startWidth + e.clientX - startX)
+      );
       setSidebarWidth(newWidth);
     };
 
@@ -40,7 +43,10 @@ export function IDELayout({ workspace }: IDELayoutProps) {
     const startHeight = bottomPanelHeight;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const newHeight = Math.max(100, Math.min(400, startHeight - (e.clientY - startY)));
+      const newHeight = Math.max(
+        100,
+        Math.min(400, startHeight - (e.clientY - startY))
+      );
       setBottomPanelHeight(newHeight);
     };
 

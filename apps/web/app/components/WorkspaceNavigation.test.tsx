@@ -28,9 +28,7 @@ vi.mock("@remix-run/react", () => ({
     </a>
   ),
   Form: ({ children, ...props }: MockFormProps) => (
-    <form {...props}>
-      {children}
-    </form>
+    <form {...props}>{children}</form>
   ),
 }));
 
@@ -58,7 +56,9 @@ describe("WorkspaceList Navigation", () => {
     // Check that each link points to correct workspace route
     expect(enterLinks[0].getAttribute("href")).toBe("/workspaces/project-1");
     expect(enterLinks[1].getAttribute("href")).toBe("/workspaces/project-2");
-    expect(enterLinks[2].getAttribute("href")).toBe("/workspaces/project%20with%20spaces");
+    expect(enterLinks[2].getAttribute("href")).toBe(
+      "/workspaces/project%20with%20spaces"
+    );
   });
 
   it("should encode workspace names with special characters in URLs", () => {
@@ -71,9 +71,15 @@ describe("WorkspaceList Navigation", () => {
     renderWorkspaceList(specialWorkspaces);
 
     const enterLinks = screen.getAllByRole("link", { name: "Entrar" });
-    expect(enterLinks[0].getAttribute("href")).toBe("/workspaces/project%20%26%20test");
-    expect(enterLinks[1].getAttribute("href")).toBe("/workspaces/project%2Bwith%2Bplus");
-    expect(enterLinks[2].getAttribute("href")).toBe("/workspaces/project%2Fwith%2Fslashes");
+    expect(enterLinks[0].getAttribute("href")).toBe(
+      "/workspaces/project%20%26%20test"
+    );
+    expect(enterLinks[1].getAttribute("href")).toBe(
+      "/workspaces/project%2Bwith%2Bplus"
+    );
+    expect(enterLinks[2].getAttribute("href")).toBe(
+      "/workspaces/project%2Fwith%2Fslashes"
+    );
   });
 
   it("should render Add Workspace link", () => {
@@ -86,8 +92,12 @@ describe("WorkspaceList Navigation", () => {
   it("should not render workspace list when no workspaces exist", () => {
     renderWorkspaceList([]);
 
-    expect(screen.queryByRole("link", { name: "Entrar" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Adicionar Workspace" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Entrar" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Adicionar Workspace" })
+    ).not.toBeInTheDocument();
   });
 
   it("should render workspace names and paths correctly", () => {
@@ -98,7 +108,9 @@ describe("WorkspaceList Navigation", () => {
     expect(screen.getByText("project-2")).toBeInTheDocument();
     expect(screen.getByText("/path/to/project-2")).toBeInTheDocument();
     expect(screen.getByText("project with spaces")).toBeInTheDocument();
-    expect(screen.getByText("/path/to/project with spaces")).toBeInTheDocument();
+    expect(
+      screen.getByText("/path/to/project with spaces")
+    ).toBeInTheDocument();
   });
 
   it("should handle empty workspace names gracefully", () => {
@@ -131,7 +143,9 @@ describe("WorkspaceList Navigation", () => {
 
     const enterLinks = screen.getAllByRole("link", { name: "Entrar" });
     expect(enterLinks).toHaveLength(1);
-    expect(enterLinks[0].getAttribute("href")).toBe("/workspaces/only-workspace");
+    expect(enterLinks[0].getAttribute("href")).toBe(
+      "/workspaces/only-workspace"
+    );
   });
 
   it("should maintain consistent styling classes for navigation links", () => {
