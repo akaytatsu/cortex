@@ -178,6 +178,12 @@ graph TD
 - **Design System Approach:** Adotar **shadcn/ui** com **Tailwind CSS** para acelerar o desenvolvimento, mantendo controle total sobre o código e estilo dos componentes.
 - **Core Components:** Button, Input, Card, Resizable Panel, Icon Button, Menu, Tabs, Toast/Notification.
 
+### 5.1 Diretrizes Técnicas para React/Remix
+
+- **REGRA CRÍTICA - Remix Fetcher:** NUNCA adicionar `fetcher` em dependências do `useEffect`. O objeto fetcher do Remix é estável e incluí-lo causa loops infinitos de re-renderização.
+  - ✅ **Correto:** `useEffect(() => { fetcher.load(url) }, [param1, param2])`
+  - ❌ **Incorreto:** `useEffect(() => { fetcher.load(url) }, [param1, param2, fetcher])`
+
 ## 6\. Branding & Style Guide
 
 - **Visual Identity:** Moderno, limpo, profissional e focado no desenvolvedor.

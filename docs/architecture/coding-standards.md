@@ -15,6 +15,7 @@ These are mandatory rules for AI agent implementation.
 3.  **Environment Variables:** Access environment variables only through a central, typed config module.
 4.  **File System:** All file system interactions must go through the `FileSystemService`.
 5.  **Error Handling:** Use custom error classes when throwing exceptions in services.
+6.  **Remix Fetcher:** NEVER add `fetcher` or `fetcher.load` to useEffect dependencies. The Remix fetcher object is stable and including it causes infinite re-render loops.
 
 ## Naming Conventions
 
