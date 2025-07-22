@@ -6,7 +6,7 @@ import type { FileSaveRequest } from "shared-types";
 // Mock fs module
 vi.mock("fs/promises");
 
-// Mock path module  
+// Mock path module
 vi.mock("path", async () => {
   const actual = await vi.importActual("path");
   return {
@@ -57,7 +57,8 @@ describe("FileSystemService", () => {
         .mockResolvedValueOnce(mockDirents)
         .mockResolvedValueOnce(mockSubDirents);
 
-      const result = await FileSystemService.getDirectoryStructure("/workspace");
+      const result =
+        await FileSystemService.getDirectoryStructure("/workspace");
 
       expect(result).toHaveLength(3);
       expect(result[0]).toEqual({
@@ -91,8 +92,9 @@ describe("FileSystemService", () => {
       ];
 
       mockFs.readdir.mockResolvedValue(mockDirents);
-      
-      const result = await FileSystemService.getDirectoryStructure("/workspace");
+
+      const result =
+        await FileSystemService.getDirectoryStructure("/workspace");
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("src");
@@ -137,7 +139,10 @@ describe("FileSystemService", () => {
         .mockResolvedValueOnce(Buffer.from("console.log('hello');")) // for binary check
         .mockResolvedValueOnce("console.log('hello');"); // for content
 
-      const result = await FileSystemService.getFileContent("/workspace", "src/index.js");
+      const result = await FileSystemService.getFileContent(
+        "/workspace",
+        "src/index.js"
+      );
 
       expect(result).toEqual({
         path: "src/index.js",
@@ -152,8 +157,10 @@ describe("FileSystemService", () => {
         size: 1024,
       };
 
-      const binaryBuffer = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00]); // PNG header with null byte
-      
+      const binaryBuffer = Buffer.from([
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00,
+      ]); // PNG header with null byte
+
       mockFs.stat.mockResolvedValue(mockStats);
       mockFs.readFile.mockResolvedValue(binaryBuffer);
 
@@ -209,7 +216,7 @@ describe("FileSystemService", () => {
     it("should save new file successfully", async () => {
       const saveRequest: FileSaveRequest = {
         path: "newfile.txt",
-        content: "Hello, World!"
+        content: "Hello, World!",
       };
 
       // Mock file doesn't exist initially
@@ -217,27 +224,42 @@ describe("FileSystemService", () => {
       mockFs.writeFile.mockResolvedValue(undefined);
       mockFs.rename.mockResolvedValue(undefined);
 
-      const result = await FileSystemService.saveFileContent("/workspace", saveRequest);
+      const result = await FileSystemService.saveFileContent(
+        "/workspace",
+        saveRequest
+      );
 
       expect(result.success).toBe(true);
       expect(result.message).toContain("criado e salvo");
       expect(result.newLastModified).toBeInstanceOf(Date);
-      expect(mockFs.writeFile).toHaveBeenCalledWith("/resolved/workspace/newfile.txt.tmp", "Hello, World!", "utf-8");
-      expect(mockFs.rename).toHaveBeenCalledWith("/resolved/workspace/newfile.txt.tmp", "/resolved/workspace/newfile.txt");
+      expect(mockFs.writeFile).toHaveBeenCalledWith(
+        "/resolved/workspace/newfile.txt.tmp",
+        "Hello, World!",
+        "utf-8"
+      );
+      expect(mockFs.rename).toHaveBeenCalledWith(
+        "/resolved/workspace/newfile.txt.tmp",
+        "/resolved/workspace/newfile.txt"
+      );
     });
 
     it("should update existing file successfully", async () => {
       const saveRequest: FileSaveRequest = {
         path: "existing.txt",
-        content: "Updated content"
+        content: "Updated content",
       };
 
       // Mock file exists and is writable
-      mockFs.access.mockResolvedValueOnce(undefined).mockResolvedValueOnce(undefined);
+      mockFs.access
+        .mockResolvedValueOnce(undefined)
+        .mockResolvedValueOnce(undefined);
       mockFs.writeFile.mockResolvedValue(undefined);
       mockFs.rename.mockResolvedValue(undefined);
 
-      const result = await FileSystemService.saveFileContent("/workspace", saveRequest);
+      const result = await FileSystemService.saveFileContent(
+        "/workspace",
+        saveRequest
+      );
 
       expect(result.success).toBe(true);
       expect(result.message).toContain("salvo com sucesso");
@@ -247,13 +269,15 @@ describe("FileSystemService", () => {
     it("should throw error for write permission denied", async () => {
       const saveRequest: FileSaveRequest = {
         path: "readonly.txt",
-        content: "Content"
+        content: "Content",
       };
 
       // Mock file exists but not writable
       const accessError = new Error("EACCES") as Error & { code: string };
       accessError.code = "EACCES";
-      mockFs.access.mockResolvedValueOnce(undefined).mockRejectedValueOnce(accessError);
+      mockFs.access
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(accessError);
 
       await expect(
         FileSystemService.saveFileContent("/workspace", saveRequest)
@@ -263,7 +287,7 @@ describe("FileSystemService", () => {
     it("should prevent path traversal attacks", async () => {
       const saveRequest: FileSaveRequest = {
         path: "../../../malicious.txt",
-        content: "Bad content"
+        content: "Bad content",
       };
 
       await expect(
@@ -274,7 +298,7 @@ describe("FileSystemService", () => {
     it("should handle disk full error", async () => {
       const saveRequest: FileSaveRequest = {
         path: "file.txt",
-        content: "Content"
+        content: "Content",
       };
 
       mockFs.access.mockRejectedValueOnce(new Error("ENOENT"));
@@ -290,7 +314,7 @@ describe("FileSystemService", () => {
     it("should handle directory not found error", async () => {
       const saveRequest: FileSaveRequest = {
         path: "nonexistent/directory/file.txt",
-        content: "Content"
+        content: "Content",
       };
 
       mockFs.access.mockRejectedValueOnce(new Error("ENOENT"));
@@ -306,7 +330,7 @@ describe("FileSystemService", () => {
     it("should use atomic writes with temp files", async () => {
       const saveRequest: FileSaveRequest = {
         path: "atomic.txt",
-        content: "Atomic content"
+        content: "Atomic content",
       };
 
       mockFs.access.mockRejectedValueOnce(new Error("ENOENT"));
@@ -329,14 +353,17 @@ describe("FileSystemService", () => {
     it("should handle empty content", async () => {
       const saveRequest: FileSaveRequest = {
         path: "empty.txt",
-        content: ""
+        content: "",
       };
 
       mockFs.access.mockRejectedValueOnce(new Error("ENOENT"));
       mockFs.writeFile.mockResolvedValue(undefined);
       mockFs.rename.mockResolvedValue(undefined);
 
-      const result = await FileSystemService.saveFileContent("/workspace", saveRequest);
+      const result = await FileSystemService.saveFileContent(
+        "/workspace",
+        saveRequest
+      );
 
       expect(result.success).toBe(true);
       expect(mockFs.writeFile).toHaveBeenCalledWith(
@@ -349,14 +376,17 @@ describe("FileSystemService", () => {
     it("should handle Unicode content", async () => {
       const saveRequest: FileSaveRequest = {
         path: "unicode.txt",
-        content: "Hello 🌍! Olá 🇧🇷! こんにちは 🇯🇵!"
+        content: "Hello 🌍! Olá 🇧🇷! こんにちは 🇯🇵!",
       };
 
       mockFs.access.mockRejectedValueOnce(new Error("ENOENT"));
       mockFs.writeFile.mockResolvedValue(undefined);
       mockFs.rename.mockResolvedValue(undefined);
 
-      const result = await FileSystemService.saveFileContent("/workspace", saveRequest);
+      const result = await FileSystemService.saveFileContent(
+        "/workspace",
+        saveRequest
+      );
 
       expect(result.success).toBe(true);
       expect(mockFs.writeFile).toHaveBeenCalledWith(

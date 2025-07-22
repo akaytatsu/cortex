@@ -313,7 +313,9 @@ export class WorkspaceService {
    * @param workspaceName The name of the workspace to find
    * @returns The workspace if found, null otherwise
    */
-  static async getWorkspaceByName(workspaceName: string): Promise<Workspace | null> {
+  static async getWorkspaceByName(
+    workspaceName: string
+  ): Promise<Workspace | null> {
     if (!workspaceName?.trim()) {
       return null;
     }

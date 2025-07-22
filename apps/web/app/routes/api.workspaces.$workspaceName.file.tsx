@@ -29,29 +29,23 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     }
 
     // Get file content
-    const fileContent = await FileSystemService.getFileContent(workspace.path, filePath);
+    const fileContent = await FileSystemService.getFileContent(
+      workspace.path,
+      filePath
+    );
 
     return json({ fileContent });
   } catch (error) {
     console.error("Error loading file content:", error);
-    
+
     if (error instanceof Error && error.message.includes("binary")) {
-      return json(
-        { error: "Cannot display binary file" },
-        { status: 400 }
-      );
+      return json({ error: "Cannot display binary file" }, { status: 400 });
     }
-    
+
     if (error instanceof Error && error.message.includes("too large")) {
-      return json(
-        { error: "File too large to display" },
-        { status: 400 }
-      );
+      return json({ error: "File too large to display" }, { status: 400 });
     }
-    
-    return json(
-      { error: "Failed to load file content" },
-      { status: 500 }
-    );
+
+    return json({ error: "Failed to load file content" }, { status: 500 });
   }
 };

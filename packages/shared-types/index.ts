@@ -22,7 +22,7 @@ export interface Workspace {
 export interface FileSystemItem {
   name: string;
   path: string;
-  type: 'file' | 'directory';
+  type: "file" | "directory";
   children?: FileSystemItem[];
 }
 

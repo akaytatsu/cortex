@@ -28,9 +28,6 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     return json({ files });
   } catch (error) {
     console.error("Error loading files:", error);
-    return json(
-      { error: "Failed to load files" },
-      { status: 500 }
-    );
+    return json({ error: "Failed to load files" }, { status: 500 });
   }
 };

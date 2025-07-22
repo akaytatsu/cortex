@@ -99,8 +99,8 @@ export function IDELayout({ workspace }: IDELayoutProps) {
               Explorer
             </h2>
           </div>
-          <FileBrowser 
-            workspaceName={workspace.name} 
+          <FileBrowser
+            workspaceName={workspace.name}
             onFileSelect={setSelectedFile}
           />
         </div>
@@ -123,7 +123,7 @@ export function IDELayout({ workspace }: IDELayoutProps) {
                 : "100%",
             }}
           >
-<CodeViewer 
+            <CodeViewer
               workspaceName={workspace.name}
               filePath={selectedFile}
             />

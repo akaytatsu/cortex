@@ -9,9 +9,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
   try {
     // Authenticate user
     await SessionService.requireUserId(request);
-    
+
     const { workspaceName } = params;
-    
+
     if (!workspaceName) {
       return json<FileSaveResponse>(
         { success: false, message: "Workspace name is required" },
@@ -48,27 +48,29 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     // Save file
-    const result = await FileSystemService.saveFileContent(workspace.path, saveRequest);
-    
-    return json<FileSaveResponse>(result);
+    const result = await FileSystemService.saveFileContent(
+      workspace.path,
+      saveRequest
+    );
 
+    return json<FileSaveResponse>(result);
   } catch (error) {
     console.error("Error saving file:", error);
-    
+
     if (error instanceof Error) {
       return json<FileSaveResponse>(
-        { 
-          success: false, 
-          message: error.message 
+        {
+          success: false,
+          message: error.message,
         },
         { status: 500 }
       );
     }
 
     return json<FileSaveResponse>(
-      { 
-        success: false, 
-        message: "Internal server error" 
+      {
+        success: false,
+        message: "Internal server error",
       },
       { status: 500 }
     );

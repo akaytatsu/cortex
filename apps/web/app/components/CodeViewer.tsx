@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useFetcher } from "@remix-run/react";
 import { File, AlertCircle, Loader2, FileX, Save, Circle } from "lucide-react";
-import type { FileContent, FileSaveRequest, FileSaveResponse } from "shared-types";
+import type {
+  FileContent,
+  FileSaveRequest,
+  FileSaveResponse,
+} from "shared-types";
 
 // Temporarily removing Prism.js to avoid import issues
 
@@ -93,11 +97,14 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
     }
   }, [fetcher.data]);
 
-  const handleContentChange = useCallback((newContent: string) => {
-    setEditedContent(newContent);
-    editedContentRef.current = newContent;
-    setIsDirty(fileContent ? newContent !== fileContent.content : false);
-  }, [fileContent]);
+  const handleContentChange = useCallback(
+    (newContent: string) => {
+      setEditedContent(newContent);
+      editedContentRef.current = newContent;
+      setIsDirty(fileContent ? newContent !== fileContent.content : false);
+    },
+    [fileContent]
+  );
 
   const handleSave = useCallback(async () => {
     if (!filePath || !fileContent || !isDirty) return;
@@ -112,18 +119,28 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
       action: `/api/workspaces/${workspaceName}/file/save`,
       encType: "application/json",
     });
-  }, [filePath, fileContent, editedContent, isDirty, workspaceName, saveFetcher]);
+  }, [
+    filePath,
+    fileContent,
+    editedContent,
+    isDirty,
+    workspaceName,
+    saveFetcher,
+  ]);
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-      e.preventDefault();
-      handleSave();
-    }
-  }, [handleSave]);
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        handleSave();
+      }
+    },
+    [handleSave]
+  );
 
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
   useEffect(() => {
@@ -134,7 +151,7 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
         if (currentFileContent) {
           return {
             ...currentFileContent,
-            content: editedContentRef.current
+            content: editedContentRef.current,
           };
         }
         return currentFileContent;
@@ -213,7 +230,9 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
           <File className="w-4 h-4 text-gray-500" />
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
             {fileName}
-            {isDirty && <Circle className="w-2 h-2 ml-1 inline-block fill-current text-orange-500" />}
+            {isDirty && (
+              <Circle className="w-2 h-2 ml-1 inline-block fill-current text-orange-500" />
+            )}
           </span>
           <span className="text-xs text-gray-500 dark:text-gray-400">
             {language}
@@ -225,9 +244,10 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
             disabled={!isDirty || saveFetcher.state === "submitting"}
             className={`
               flex items-center space-x-1 px-2 py-1 rounded text-xs
-              ${isDirty
-                ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800"
-                : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+              ${
+                isDirty
+                  ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
               }
               ${saveFetcher.state === "submitting" ? "opacity-50" : ""}
             `}
@@ -250,7 +270,7 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
         <textarea
           ref={textareaRef}
           value={editedContent}
-          onChange={(e) => handleContentChange(e.target.value)}
+          onChange={e => handleContentChange(e.target.value)}
           className="w-full h-full p-4 text-sm font-mono leading-relaxed bg-transparent border-none outline-none resize-none text-gray-800 dark:text-gray-200"
           style={{
             whiteSpace: "pre-wrap",
@@ -262,11 +282,13 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
 
       {/* Save status messages */}
       {saveFetcher.data?.message && (
-        <div className={`px-4 py-2 text-xs border-t border-gray-200 dark:border-gray-700 ${
-          saveFetcher.data.success
-            ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
-            : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300"
-        }`}>
+        <div
+          className={`px-4 py-2 text-xs border-t border-gray-200 dark:border-gray-700 ${
+            saveFetcher.data.success
+              ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
+              : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300"
+          }`}
+        >
           {saveFetcher.data.message}
         </div>
       )}

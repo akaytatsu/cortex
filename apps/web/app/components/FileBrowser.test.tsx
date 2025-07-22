@@ -39,15 +39,15 @@ describe("FileBrowser", () => {
     vi.clearAllMocks();
   });
 
-  function createComponent(files: FileSystemItem[] = mockFiles, error?: string) {
+  function createComponent(
+    files: FileSystemItem[] = mockFiles,
+    error?: string
+  ) {
     const RemixStub = createRemixStub([
       {
         path: "/",
         Component: () => (
-          <FileBrowser
-            workspaceName="test-workspace"
-            onFileSelect={vi.fn()}
-          />
+          <FileBrowser workspaceName="test-workspace" onFileSelect={vi.fn()} />
         ),
       },
       {

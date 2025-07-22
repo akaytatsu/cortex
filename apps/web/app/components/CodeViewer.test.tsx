@@ -13,14 +13,16 @@ describe("CodeViewer", () => {
   const mockFileContent: FileContent = {
     path: "test.js",
     content: "console.log('Hello World');",
-    mimeType: "text/javascript"
+    mimeType: "text/javascript",
   };
 
   const createStub = (loaderData: unknown, actionData?: unknown) => {
     return createRemixStub([
       {
         path: "/workspace/:workspaceName",
-        element: <CodeViewer workspaceName="test-workspace" filePath="test.js" />,
+        element: (
+          <CodeViewer workspaceName="test-workspace" filePath="test.js" />
+        ),
         loader: () => loaderData,
         action: () => actionData,
       },
@@ -44,13 +46,17 @@ describe("CodeViewer", () => {
     render(<RemixStub initialEntries={["/workspace/test"]} />);
 
     expect(screen.getByText("Nenhum arquivo selecionado")).toBeInTheDocument();
-    expect(screen.getByText("Selecione um arquivo no Explorer para visualizar seu conteúdo")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Selecione um arquivo no Explorer para visualizar seu conteúdo"
+      )
+    ).toBeInTheDocument();
   });
 
   it("should render loading state", async () => {
     const RemixStub = createStub({});
     render(<RemixStub initialEntries={["/workspace/test"]} />);
-    
+
     // Simulate loading by not providing file content immediately
     expect(screen.queryByText("Carregando arquivo...")).toBeInTheDocument();
   });
@@ -60,7 +66,9 @@ describe("CodeViewer", () => {
     render(<RemixStub initialEntries={["/workspace/test"]} />);
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue("console.log('Hello World');")).toBeInTheDocument();
+      expect(
+        screen.getByDisplayValue("console.log('Hello World');")
+      ).toBeInTheDocument();
     });
 
     expect(screen.getByText("test.js")).toBeInTheDocument();
@@ -73,29 +81,40 @@ describe("CodeViewer", () => {
     const RemixStub = createStub({ fileContent: mockFileContent });
     render(<RemixStub initialEntries={["/workspace/test"]} />);
 
-    const textarea = await screen.findByDisplayValue("console.log('Hello World');");
-    
+    const textarea = await screen.findByDisplayValue(
+      "console.log('Hello World');"
+    );
+
     // Modify content
-    fireEvent.change(textarea, { target: { value: "console.log('Modified');" } });
+    fireEvent.change(textarea, {
+      target: { value: "console.log('Modified');" },
+    });
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue("console.log('Modified');")).toBeInTheDocument();
+      expect(
+        screen.getByDisplayValue("console.log('Modified');")
+      ).toBeInTheDocument();
     });
 
     // Check that dirty indicator appears (orange circle)
     const saveButton = screen.getByText("Salvar");
-    expect(saveButton.closest('button')).not.toHaveClass('cursor-not-allowed');
+    expect(saveButton.closest("button")).not.toHaveClass("cursor-not-allowed");
   });
 
   it("should update line count when content changes", async () => {
     const RemixStub = createStub({ fileContent: mockFileContent });
     render(<RemixStub initialEntries={["/workspace/test"]} />);
 
-    const textarea = await screen.findByDisplayValue("console.log('Hello World');");
-    
+    const textarea = await screen.findByDisplayValue(
+      "console.log('Hello World');"
+    );
+
     // Add multiple lines
-    fireEvent.change(textarea, { 
-      target: { value: "console.log('Line 1');\nconsole.log('Line 2');\nconsole.log('Line 3');" } 
+    fireEvent.change(textarea, {
+      target: {
+        value:
+          "console.log('Line 1');\nconsole.log('Line 2');\nconsole.log('Line 3');",
+      },
     });
 
     await waitFor(() => {
@@ -107,32 +126,45 @@ describe("CodeViewer", () => {
     const RemixStub = createStub({ fileContent: mockFileContent });
     render(<RemixStub initialEntries={["/workspace/test"]} />);
 
-    const textarea = await screen.findByDisplayValue("console.log('Hello World');");
+    const textarea = await screen.findByDisplayValue(
+      "console.log('Hello World');"
+    );
     const saveButton = screen.getByText("Salvar");
 
     // Initially save should be disabled (not dirty)
-    expect(saveButton.closest('button')).toHaveClass('cursor-not-allowed');
+    expect(saveButton.closest("button")).toHaveClass("cursor-not-allowed");
 
     // Modify content
-    fireEvent.change(textarea, { target: { value: "console.log('Modified');" } });
+    fireEvent.change(textarea, {
+      target: { value: "console.log('Modified');" },
+    });
 
     await waitFor(() => {
-      expect(saveButton.closest('button')).not.toHaveClass('cursor-not-allowed');
+      expect(saveButton.closest("button")).not.toHaveClass(
+        "cursor-not-allowed"
+      );
     });
   });
 
   it("should trigger save on Ctrl+S", async () => {
     const mockAction = vi.fn(() => ({ success: true, message: "Saved!" }));
-    const RemixStub = createStub({ fileContent: mockFileContent }, mockAction());
+    const RemixStub = createStub(
+      { fileContent: mockFileContent },
+      mockAction()
+    );
     render(<RemixStub initialEntries={["/workspace/test"]} />);
 
-    const textarea = await screen.findByDisplayValue("console.log('Hello World');");
-    
+    const textarea = await screen.findByDisplayValue(
+      "console.log('Hello World');"
+    );
+
     // Modify content first to make it dirty
-    fireEvent.change(textarea, { target: { value: "console.log('Modified');" } });
+    fireEvent.change(textarea, {
+      target: { value: "console.log('Modified');" },
+    });
 
     // Trigger Ctrl+S
-    fireEvent.keyDown(document, { key: 's', ctrlKey: true });
+    fireEvent.keyDown(document, { key: "s", ctrlKey: true });
 
     await waitFor(() => {
       expect(textarea).toHaveValue("console.log('Modified');");
@@ -143,22 +175,28 @@ describe("CodeViewer", () => {
     const RemixStub = createStub({ fileContent: mockFileContent });
     render(<RemixStub initialEntries={["/workspace/test"]} />);
 
-    const textarea = await screen.findByDisplayValue("console.log('Hello World');");
-    
+    const textarea = await screen.findByDisplayValue(
+      "console.log('Hello World');"
+    );
+
     // Modify content to make it dirty
-    fireEvent.change(textarea, { target: { value: "console.log('Modified');" } });
+    fireEvent.change(textarea, {
+      target: { value: "console.log('Modified');" },
+    });
 
     const saveButton = await screen.findByText("Salvar");
-    
+
     await waitFor(() => {
-      expect(saveButton.closest('button')).not.toHaveClass('cursor-not-allowed');
+      expect(saveButton.closest("button")).not.toHaveClass(
+        "cursor-not-allowed"
+      );
     });
 
     fireEvent.click(saveButton);
 
     // Verify save action is triggered
     await waitFor(() => {
-      expect(saveButton.closest('button')).toHaveClass('cursor-not-allowed');
+      expect(saveButton.closest("button")).toHaveClass("cursor-not-allowed");
     });
   });
 
@@ -175,33 +213,45 @@ describe("CodeViewer", () => {
   it("should show save success message", async () => {
     const saveResponse: FileSaveResponse = {
       success: true,
-      message: "Arquivo salvo com sucesso!"
+      message: "Arquivo salvo com sucesso!",
     };
 
-    const RemixStub = createStub({ fileContent: mockFileContent }, saveResponse);
+    const RemixStub = createStub(
+      { fileContent: mockFileContent },
+      saveResponse
+    );
     render(<RemixStub initialEntries={["/workspace/test"]} />);
 
-    const textarea = await screen.findByDisplayValue("console.log('Hello World');");
+    const textarea = await screen.findByDisplayValue(
+      "console.log('Hello World');"
+    );
     fireEvent.change(textarea, { target: { value: "Modified content" } });
 
     const saveButton = screen.getByText("Salvar");
     fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(screen.getByText("Arquivo salvo com sucesso!")).toBeInTheDocument();
+      expect(
+        screen.getByText("Arquivo salvo com sucesso!")
+      ).toBeInTheDocument();
     });
   });
 
   it("should show save error message", async () => {
     const saveResponse: FileSaveResponse = {
       success: false,
-      message: "Permission denied"
+      message: "Permission denied",
     };
 
-    const RemixStub = createStub({ fileContent: mockFileContent }, saveResponse);
+    const RemixStub = createStub(
+      { fileContent: mockFileContent },
+      saveResponse
+    );
     render(<RemixStub initialEntries={["/workspace/test"]} />);
 
-    const textarea = await screen.findByDisplayValue("console.log('Hello World');");
+    const textarea = await screen.findByDisplayValue(
+      "console.log('Hello World');"
+    );
     fireEvent.change(textarea, { target: { value: "Modified content" } });
 
     const saveButton = screen.getByText("Salvar");
@@ -213,7 +263,7 @@ describe("CodeViewer", () => {
 
     // Error message should have red styling
     const errorMessage = screen.getByText("Permission denied");
-    expect(errorMessage.closest('div')).toHaveClass('text-red-700');
+    expect(errorMessage.closest("div")).toHaveClass("text-red-700");
   });
 
   it("should prevent save when content is not dirty", async () => {
@@ -221,19 +271,19 @@ describe("CodeViewer", () => {
     render(<RemixStub initialEntries={["/workspace/test"]} />);
 
     await screen.findByDisplayValue("console.log('Hello World');");
-    
+
     const saveButton = screen.getByText("Salvar");
-    
+
     // Save button should be disabled when not dirty
-    expect(saveButton.closest('button')).toHaveClass('cursor-not-allowed');
-    expect(saveButton.closest('button')).toBeDisabled();
+    expect(saveButton.closest("button")).toHaveClass("cursor-not-allowed");
+    expect(saveButton.closest("button")).toBeDisabled();
   });
 
   it("should handle different file types correctly", async () => {
     const jsonFileContent: FileContent = {
       path: "config.json",
       content: '{"name": "test"}',
-      mimeType: "application/json"
+      mimeType: "application/json",
     };
 
     const RemixStub = createStub({ fileContent: jsonFileContent });
@@ -250,7 +300,7 @@ describe("CodeViewer", () => {
     const multiLineContent: FileContent = {
       path: "multi.js",
       content: "function test() {\n  console.log('hello');\n  return true;\n}",
-      mimeType: "text/javascript"
+      mimeType: "text/javascript",
     };
 
     const RemixStub = createStub({ fileContent: multiLineContent });
@@ -258,7 +308,11 @@ describe("CodeViewer", () => {
 
     await waitFor(() => {
       expect(screen.getByText("4 linhas")).toBeInTheDocument();
-      expect(screen.getByDisplayValue("function test() {\n  console.log('hello');\n  return true;\n}")).toBeInTheDocument();
+      expect(
+        screen.getByDisplayValue(
+          "function test() {\n  console.log('hello');\n  return true;\n}"
+        )
+      ).toBeInTheDocument();
     });
   });
 });
