@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from "child_process";
 import * as os from "os";
 import * as path from "path";
 import type { TerminalSession } from "shared-types";
-import { sessionService } from "./session.service";
+import { SessionService } from "./session.service";
 
 export class TerminalServiceError extends Error {
   constructor(message: string, public code: string) {
@@ -209,7 +209,7 @@ class TerminalService {
   }
 
   async requireUserId(request: Request): Promise<string> {
-    return sessionService.requireUserId(request);
+    return SessionService.requireUserId(request);
   }
 
   cleanup(): void {

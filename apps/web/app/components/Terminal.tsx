@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Terminal as XTerm } from "@xterm/xterm";
-import { FitAddon } from "@xterm/addon-fit";
-import { WebLinksAddon } from "@xterm/addon-web-links";
 import type { TerminalMessage } from "shared-types";
+
+// Dynamic imports for xterm to avoid SSR issues
+let XTerm: any = null;
+let FitAddon: any = null;
+let WebLinksAddon: any = null;
 
 interface TerminalProps {
   workspaceName: string;
@@ -19,139 +21,161 @@ export function Terminal({ workspaceName, workspacePath, onClose }: TerminalProp
   const [sessionId] = useState(() => `terminal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
 
   useEffect(() => {
-    if (!terminalRef.current) return;
+    if (!terminalRef.current || typeof window === 'undefined') return;
 
-    const terminal = new XTerm({
-      theme: {
-        background: '#1a1a1a',
-        foreground: '#ffffff',
-        cursor: '#ffffff',
-        cursorAccent: '#1a1a1a',
-        selection: '#3a3a3a',
-        black: '#000000',
-        red: '#ff5555',
-        green: '#50fa7b',
-        yellow: '#f1fa8c',
-        blue: '#bd93f9',
-        magenta: '#ff79c6',
-        cyan: '#8be9fd',
-        white: '#bfbfbf',
-        brightBlack: '#4d4d4d',
-        brightRed: '#ff6e67',
-        brightGreen: '#5af78e',
-        brightYellow: '#f4f99d',
-        brightBlue: '#caa9fa',
-        brightMagenta: '#ff92d0',
-        brightCyan: '#9aedfe',
-        brightWhite: '#e6e6e6',
-      },
-      fontFamily: '"JetBrains Mono", "Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", monospace',
-      fontSize: 13,
-      lineHeight: 1.2,
-      cursorBlink: true,
-      allowProposedApi: true,
-    });
-
-    const fitAddon = new FitAddon();
-    const webLinksAddon = new WebLinksAddon();
-    
-    terminal.loadAddon(fitAddon);
-    terminal.loadAddon(webLinksAddon);
-    
-    terminal.open(terminalRef.current);
-    fitAddon.fit();
-
-    xtermRef.current = terminal;
-    fitAddonRef.current = fitAddon;
-
-    const ws = new WebSocket(`ws://${window.location.host}/ws/terminal`);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      setIsConnected(true);
-      const initMessage: TerminalMessage = {
-        type: 'input',
-        data: JSON.stringify({ 
-          action: 'init', 
-          sessionId, 
-          workspaceName, 
-          workspacePath 
-        }),
-        sessionId
-      };
-      ws.send(JSON.stringify(initMessage));
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const message: TerminalMessage = JSON.parse(event.data);
-        if (message.sessionId === sessionId) {
-          if (message.type === 'output' || message.type === 'error') {
-            terminal.write(message.data);
-          } else if (message.type === 'exit') {
-            terminal.write('\r\n\x1b[31mTerminal session ended\x1b[0m\r\n');
-            setIsConnected(false);
-          }
-        }
-      } catch (error) {
-        console.error('Error parsing terminal message:', error);
+    const initializeTerminal = async () => {
+      // Dynamic imports to avoid SSR issues
+      if (!XTerm) {
+        const xtermModule = await import("@xterm/xterm");
+        XTerm = xtermModule.Terminal;
       }
-    };
+      if (!FitAddon) {
+        const fitModule = await import("@xterm/addon-fit");
+        FitAddon = fitModule.FitAddon;
+      }
+      if (!WebLinksAddon) {
+        const webLinksModule = await import("@xterm/addon-web-links");
+        WebLinksAddon = webLinksModule.WebLinksAddon;
+      }
 
-    ws.onclose = () => {
-      setIsConnected(false);
-      terminal.write('\r\n\x1b[33mConnection closed\x1b[0m\r\n');
-    };
+      const terminal = new XTerm({
+        theme: {
+          background: '#1a1a1a',
+          foreground: '#ffffff',
+          cursor: '#ffffff',
+          cursorAccent: '#1a1a1a',
+          selection: '#3a3a3a',
+          black: '#000000',
+          red: '#ff5555',
+          green: '#50fa7b',
+          yellow: '#f1fa8c',
+          blue: '#bd93f9',
+          magenta: '#ff79c6',
+          cyan: '#8be9fd',
+          white: '#bfbfbf',
+          brightBlack: '#4d4d4d',
+          brightRed: '#ff6e67',
+          brightGreen: '#5af78e',
+          brightYellow: '#f4f99d',
+          brightBlue: '#caa9fa',
+          brightMagenta: '#ff92d0',
+          brightCyan: '#9aedfe',
+          brightWhite: '#e6e6e6',
+        },
+        fontFamily: '"JetBrains Mono", "Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", monospace',
+        fontSize: 13,
+        lineHeight: 1.2,
+        cursorBlink: true,
+        allowProposedApi: true,
+      });
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      terminal.write('\r\n\x1b[31mConnection error\x1b[0m\r\n');
-      setIsConnected(false);
-    };
+      const fitAddon = new FitAddon();
+      const webLinksAddon = new WebLinksAddon();
+    
+      terminal.loadAddon(fitAddon);
+      terminal.loadAddon(webLinksAddon);
+      
+      if (!terminalRef.current) return;
+      
+      terminal.open(terminalRef.current);
+      fitAddon.fit();
 
-    terminal.onData((data) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        const message: TerminalMessage = {
+      xtermRef.current = terminal;
+      fitAddonRef.current = fitAddon;
+
+      const ws = new WebSocket(`ws://${window.location.host}/ws/terminal`);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        setIsConnected(true);
+        const initMessage: TerminalMessage = {
           type: 'input',
-          data,
+          data: JSON.stringify({ 
+            action: 'init', 
+            sessionId, 
+            workspaceName, 
+            workspacePath 
+          }),
           sessionId
         };
-        ws.send(JSON.stringify(message));
-      }
-    });
+        ws.send(JSON.stringify(initMessage));
+      };
 
-    const handleResize = () => {
-      if (fitAddon) {
-        fitAddon.fit();
+      ws.onmessage = (event) => {
+        try {
+          const message: TerminalMessage = JSON.parse(event.data);
+          if (message.sessionId === sessionId) {
+            if (message.type === 'output' || message.type === 'error') {
+              terminal.write(message.data);
+            } else if (message.type === 'exit') {
+              terminal.write('\r\n\x1b[31mTerminal session ended\x1b[0m\r\n');
+              setIsConnected(false);
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing terminal message:', error);
+        }
+      };
+
+      ws.onclose = () => {
+        setIsConnected(false);
+        terminal.write('\r\n\x1b[33mConnection closed\x1b[0m\r\n');
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        terminal.write('\r\n\x1b[31mConnection error\x1b[0m\r\n');
+        setIsConnected(false);
+      };
+
+      terminal.onData((data) => {
         if (ws.readyState === WebSocket.OPEN) {
           const message: TerminalMessage = {
             type: 'input',
-            data: JSON.stringify({
-              action: 'resize',
-              cols: terminal.cols,
-              rows: terminal.rows
-            }),
+            data,
             sessionId
           };
           ws.send(JSON.stringify(message));
         }
-      }
+      });
+
+      const handleResize = () => {
+        if (fitAddon) {
+          fitAddon.fit();
+          if (ws.readyState === WebSocket.OPEN) {
+            const message: TerminalMessage = {
+              type: 'input',
+              data: JSON.stringify({
+                action: 'resize',
+                cols: terminal.cols,
+                rows: terminal.rows
+              }),
+              sessionId
+            };
+            ws.send(JSON.stringify(message));
+          }
+        }
+      };
+
+      window.addEventListener('resize', handleResize);
+
     };
 
-    window.addEventListener('resize', handleResize);
+    initializeTerminal().catch(console.error);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
-      if (ws.readyState === WebSocket.OPEN) {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
         const message: TerminalMessage = {
           type: 'input',
           data: JSON.stringify({ action: 'close' }),
           sessionId
         };
-        ws.send(JSON.stringify(message));
-        ws.close();
+        wsRef.current.send(JSON.stringify(message));
+        wsRef.current.close();
       }
-      terminal.dispose();
+      if (xtermRef.current) {
+        xtermRef.current.dispose();
+      }
     };
   }, [workspaceName, workspacePath, sessionId]);
 
