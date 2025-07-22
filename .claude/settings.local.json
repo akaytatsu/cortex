@@ -21,7 +21,9 @@
       "Bash(timeout 10s npm run dev)",
       "Bash(find:*)",
       "Bash(ls:*)",
-      "Bash(npm:*)"
+      "Bash(npm:*)",
+      "Bash(pkill:*)",
+      "Bash(true)"
     ],
     "deny": []
   }
