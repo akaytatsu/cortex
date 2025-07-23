@@ -15,11 +15,27 @@ import { renderToPipeableStream } from "react-dom/server";
 // Initialize configuration validation
 import { validateConfig } from "./lib/config";
 import { logger } from "./lib/logger";
+import { serviceContainer } from "./lib/service-container";
 
 // Validate configuration on server startup
 try {
   validateConfig();
   logger.info("Server startup configuration validation successful");
+  
+  // Initialize session timeout service
+  const sessionTimeoutService = serviceContainer.getSessionTimeoutService();
+  sessionTimeoutService.startPeriodicCleanup();
+  logger.info("Session timeout service initialized successfully");
+
+  // Setup graceful shutdown
+  const gracefulShutdown = () => {
+    logger.info("Graceful shutdown initiated");
+    sessionTimeoutService.stopPeriodicCleanup();
+    logger.info("Session timeout service stopped");
+  };
+
+  process.on("SIGINT", gracefulShutdown);
+  process.on("SIGTERM", gracefulShutdown);
 } catch (error) {
   logger.error(
     "Server startup configuration validation failed",

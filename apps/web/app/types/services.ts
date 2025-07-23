@@ -108,3 +108,9 @@ export interface ISessionPersistenceService {
   loadSessions(): Promise<PersistedSession[]>;
   updateSession(sessionId: string, updates: Partial<PersistedSession>): Promise<void>;
 }
+
+export interface ISessionTimeoutService {
+  checkAndCleanupTimedOutSessions(): Promise<void>;
+  startPeriodicCleanup(intervalMs?: number): NodeJS.Timeout;
+  stopPeriodicCleanup(): void;
+}

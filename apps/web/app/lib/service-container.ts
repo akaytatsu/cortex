@@ -6,6 +6,8 @@ import type {
   IWorkspaceService,
   IAgentService,
   ILogger,
+  ISessionTimeoutService,
+  ISessionPersistenceService,
 } from "../types/services";
 import { YamlAuthService } from "../services/auth.service.yaml";
 import { YamlUserService } from "../services/user.service.yaml";
@@ -14,6 +16,8 @@ import { terminalService } from "../services/terminal.service";
 import { FileSystemService } from "../services/filesystem.service";
 import { WorkspaceService } from "../services/workspace.service";
 import { AgentService } from "../services/agent.service";
+import { SessionPersistenceService } from "../services/session-persistence.service";
+import { SessionTimeoutService } from "../services/session-timeout.service";
 import { createServiceLogger } from "./logger";
 
 type ServiceType =
@@ -23,7 +27,9 @@ type ServiceType =
   | "filesystem"
   | "workspace"
   | "agent"
-  | "logger";
+  | "logger"
+  | "sessionPersistence"
+  | "sessionTimeout";
 
 type ServiceInstance =
   | IAuthService
@@ -32,7 +38,9 @@ type ServiceInstance =
   | IFileSystemService
   | IWorkspaceService
   | IAgentService
-  | ILogger;
+  | ILogger
+  | ISessionPersistenceService
+  | ISessionTimeoutService;
 
 /**
  * Simple service container for dependency injection
@@ -57,6 +65,11 @@ class ServiceContainer {
     this.factories.set("workspace", () => new WorkspaceService());
     this.factories.set("agent", () => new AgentService(new FileSystemService()));
     this.factories.set("logger", () => createServiceLogger("ServiceContainer"));
+    this.factories.set("sessionPersistence", () => new SessionPersistenceService());
+    this.factories.set("sessionTimeout", () => {
+      const sessionPersistence = this.get<ISessionPersistenceService>("sessionPersistence");
+      return new SessionTimeoutService(sessionPersistence);
+    });
   }
 
   /**
@@ -158,6 +171,20 @@ class ServiceContainer {
    */
   getLogger(): ILogger {
     return this.get<ILogger>("logger");
+  }
+
+  /**
+   * Get session persistence service
+   */
+  getSessionPersistenceService(): ISessionPersistenceService {
+    return this.get<ISessionPersistenceService>("sessionPersistence");
+  }
+
+  /**
+   * Get session timeout service
+   */
+  getSessionTimeoutService(): ISessionTimeoutService {
+    return this.get<ISessionTimeoutService>("sessionTimeout");
   }
 }
 
