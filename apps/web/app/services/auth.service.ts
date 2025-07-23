@@ -15,18 +15,32 @@ export class AuthService implements IAuthService {
 
   constructor(logger?: ILogger) {
     this.logger = logger || createServiceLogger("AuthService");
-    throw new Error("AuthService obsoleto - use YamlAuthService através do service container");
+    throw new Error(
+      "AuthService obsoleto - use YamlAuthService através do service container"
+    );
   }
 
   async hasUsers(): Promise<boolean> {
-    throw new Error("AuthService obsoleto - use YamlAuthService através do service container");
+    throw new Error(
+      "AuthService obsoleto - use YamlAuthService através do service container"
+    );
   }
 
-  async createFirstUser(data: { email: string; password: string }): Promise<User> {
-    throw new Error("AuthService obsoleto - use YamlAuthService através do service container");
+  async createFirstUser(data: {
+    email: string;
+    password: string;
+  }): Promise<User> {
+    throw new Error(
+      "AuthService obsoleto - use YamlAuthService através do service container"
+    );
   }
 
-  async validateLogin(data: { email: string; password: string }): Promise<UserPublic> {
-    throw new Error("AuthService obsoleto - use YamlAuthService através do service container");
+  async validateLogin(data: {
+    email: string;
+    password: string;
+  }): Promise<UserPublic> {
+    throw new Error(
+      "AuthService obsoleto - use YamlAuthService através do service container"
+    );
   }
 }

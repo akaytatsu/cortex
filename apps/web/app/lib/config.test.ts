@@ -27,7 +27,6 @@ describe("Config Module", () => {
     vi.resetModules();
   });
 
-
   describe("NODE_ENV configuration", () => {
     it("should use NODE_ENV from environment when set", async () => {
       process.env.NODE_ENV = "production";

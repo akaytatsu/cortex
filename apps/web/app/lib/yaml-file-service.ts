@@ -33,11 +33,11 @@ export class YamlFileService implements IYamlFileService {
 
   constructor(filePath?: string, logger?: ILogger) {
     this.logger = logger || createServiceLogger("YamlFileService");
-    
+
     if (!filePath) {
       // Detect the correct config path based on current working directory
       const cwd = process.cwd();
-      if (cwd.endsWith('apps/web')) {
+      if (cwd.endsWith("apps/web")) {
         // Running from within apps/web directory
         this.filePath = path.join(cwd, "config", "users.yaml");
       } else {
@@ -114,8 +114,11 @@ export class YamlFileService implements IYamlFileService {
         await fs.access(this.filePath);
       } catch {
         // File doesn't exist, create empty YAML structure
-        const emptyYaml = YAML.stringify({ users: [], config: {} }, { indent: 2 });
-        await fs.writeFile(this.filePath, emptyYaml, 'utf8');
+        const emptyYaml = YAML.stringify(
+          { users: [], config: {} },
+          { indent: 2 }
+        );
+        await fs.writeFile(this.filePath, emptyYaml, "utf8");
       }
 
       // Write the file (temporarily removing lock for debugging)
@@ -354,7 +357,7 @@ export class YamlFileService implements IYamlFileService {
     try {
       const dir = path.dirname(this.filePath);
       const baseName = path.basename(this.filePath);
-      
+
       // Check if directory exists before trying to read it
       try {
         await fs.access(dir);
@@ -362,7 +365,7 @@ export class YamlFileService implements IYamlFileService {
         // Directory doesn't exist, no backups to clean up
         return;
       }
-      
+
       const files = await fs.readdir(dir);
 
       const backupFiles = files
@@ -382,7 +385,9 @@ export class YamlFileService implements IYamlFileService {
           backupsWithStats.push({ ...backup, stat });
         } catch (error) {
           // File might have been deleted, skip it
-          this.logger.debug("Backup file no longer exists, skipping", { path: backup.path });
+          this.logger.debug("Backup file no longer exists, skipping", {
+            path: backup.path,
+          });
         }
       }
 

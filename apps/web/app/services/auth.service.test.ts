@@ -22,11 +22,11 @@ describe("AuthService", () => {
     it.skip("should return true when users exist", async () => {
       // Create a user directly in the database
       // await prisma.user.create({
-        data: {
-          email: "test@example.com",
-          password: "hashedpassword",
-        },
-      });
+      //   data: {
+      //     email: "test@example.com",
+      //     password: "hashedpassword",
+      //   },
+      // });
 
       const result = await AuthService.hasUsers();
       expect(result).toBe(true);
@@ -36,8 +36,8 @@ describe("AuthService", () => {
       // Mock prisma to throw an error
       // const originalCount = prisma.user.count;
       // prisma.user.count = vi
-        .fn()
-        .mockRejectedValue(new Error("Database connection error"));
+      //   .fn()
+      //   .mockRejectedValue(new Error("Database connection error"));
 
       await expect(AuthService.hasUsers()).rejects.toThrow(
         "Failed to check user count: Database connection error"
@@ -65,8 +65,8 @@ describe("AuthService", () => {
 
       // Verify password is hashed
       // const savedUser = await prisma.user.findUnique({
-        where: { id: user.id },
-      });
+      //   where: { id: user.id },
+      // });
       expect(savedUser).toBeDefined();
       expect(savedUser!.password).not.toBe(userData.password);
 
@@ -81,11 +81,11 @@ describe("AuthService", () => {
     it.skip("should throw error when users already exist", async () => {
       // Create a user first
       // await prisma.user.create({
-        data: {
-          email: "existing@example.com",
-          password: "hashedpassword",
-        },
-      });
+      //   data: {
+      //     email: "existing@example.com",
+      //     password: "hashedpassword",
+      //   },
+      // });
 
       const userData = {
         email: "admin@example.com",
@@ -109,11 +109,11 @@ describe("AuthService", () => {
       // Clean up all users to simulate fresh state, then create one manually to test unique constraint
       // await prisma.user.deleteMany({});
       // await prisma.user.create({
-        data: {
-          email: userData.email,
-          password: "someotherpassword",
-        },
-      });
+      //   data: {
+      //     email: userData.email,
+      //     password: "someotherpassword",
+      //   },
+      // });
 
       // Try to create the same user again (should fail due to unique constraint)
       await expect(AuthService.createFirstUser(userData)).rejects.toThrow(
@@ -152,11 +152,11 @@ describe("AuthService", () => {
       const hashedPassword = await bcrypt.hash(plainPassword, 12);
 
       // const createdUser = await prisma.user.create({
-        data: {
-          email: "test@example.com",
-          password: hashedPassword,
-        },
-      });
+      //   data: {
+      //     email: "test@example.com",
+      //     password: hashedPassword,
+      //   },
+      // });
 
       const result = await AuthService.validateLogin({
         email: "test@example.com",
@@ -187,11 +187,11 @@ describe("AuthService", () => {
       const hashedPassword = await bcrypt.hash(plainPassword, 12);
 
       // await prisma.user.create({
-        data: {
-          email: "test@example.com",
-          password: hashedPassword,
-        },
-      });
+      //   data: {
+      //     email: "test@example.com",
+      //     password: hashedPassword,
+      //   },
+      // });
 
       await expect(
         AuthService.validateLogin({
@@ -226,11 +226,11 @@ describe("AuthService", () => {
       const hashedPassword = await bcrypt.hash(plainPassword, 12);
 
       // await prisma.user.create({
-        data: {
-          email: "test@example.com",
-          password: hashedPassword,
-        },
-      });
+      //   data: {
+      //     email: "test@example.com",
+      //     password: hashedPassword,
+      //   },
+      // });
 
       // Mock bcrypt.compare to throw an error
       const originalCompare = bcrypt.compare;
@@ -253,11 +253,11 @@ describe("AuthService", () => {
       const hashedPassword = await bcrypt.hash(plainPassword, 12);
 
       // await prisma.user.create({
-        data: {
-          email: "test@example.com",
-          password: hashedPassword,
-        },
-      });
+      //   data: {
+      //     email: "test@example.com",
+      //     password: hashedPassword,
+      //   },
+      // });
 
       // Try to login with uppercase email
       await expect(

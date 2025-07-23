@@ -3,7 +3,6 @@ import { config as dotenvConfig } from "dotenv";
 // Load environment variables from .env file
 dotenvConfig();
 
-
 /**
  * Gets an optional environment variable with type safety
  * @param name - Environment variable name
@@ -73,7 +72,6 @@ function getOptionalNumericEnvVar(
 const isValidNodeEnv = (value: string): boolean => {
   return ["development", "production", "test"].includes(value);
 };
-
 
 const isValidLogLevel = (value: string): boolean => {
   return ["error", "warn", "info", "debug"].includes(value);

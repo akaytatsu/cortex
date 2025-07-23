@@ -7,11 +7,11 @@ describe("SessionService", () => {
     it.skip("should destroy session and redirect to /login", async () => {
       // Create a user first
       // const user = await prisma.user.create({
-        data: {
-          email: "test@example.com",
-          password: "hashedpassword",
-        },
-      });
+      //   data: {
+      //     email: "test@example.com",
+      //     password: "hashedpassword",
+      //   },
+      // });
 
       // Create session
       const sessionResponse = await SessionService.createUserSession(
@@ -75,11 +75,11 @@ describe("SessionService", () => {
     it.skip("should return userId when valid session exists", async () => {
       // Create a user first
       // const user = await prisma.user.create({
-        data: {
-          email: "test@example.com",
-          password: "hashedpassword",
-        },
-      });
+      //   data: {
+      //     email: "test@example.com",
+      //     password: "hashedpassword",
+      //   },
+      // });
 
       // Create session
       const sessionResponse = await SessionService.createUserSession(
@@ -109,11 +109,11 @@ describe("SessionService", () => {
     it.skip("should return userId when valid session exists", async () => {
       // Create a user first
       // const user = await prisma.user.create({
-        data: {
-          email: "test@example.com",
-          password: "hashedpassword",
-        },
-      });
+      //   data: {
+      //     email: "test@example.com",
+      //     password: "hashedpassword",
+      //   },
+      // });
 
       // Create session
       const sessionResponse = await SessionService.createUserSession(
