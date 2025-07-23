@@ -117,10 +117,10 @@ describe("Login Route", () => {
 
     it("should return validation errors for missing email", async () => {
       // Create a user so we pass the hasUsers check
-      await YamlUserService.createUser({
+      const yamlUserService = new YamlUserService();
+      await yamlUserService.createUser({
         email: "existing@example.com",
         password: "hashedpassword",
-        role: "admin",
       });
 
       const formData = new FormData();
@@ -142,10 +142,10 @@ describe("Login Route", () => {
 
     it("should return validation errors for missing password", async () => {
       // Create a user so we pass the hasUsers check
-      await YamlUserService.createUser({
+      const yamlUserService = new YamlUserService();
+      await yamlUserService.createUser({
         email: "existing@example.com",
         password: "hashedpassword",
-        role: "admin",
       });
 
       const formData = new FormData();
@@ -167,10 +167,10 @@ describe("Login Route", () => {
 
     it("should return validation errors for invalid email format", async () => {
       // Create a user so we pass the hasUsers check
-      await YamlUserService.createUser({
+      const yamlUserService = new YamlUserService();
+      await yamlUserService.createUser({
         email: "existing@example.com",
         password: "hashedpassword",
-        role: "admin",
       });
 
       const formData = new FormData();
@@ -196,10 +196,10 @@ describe("Login Route", () => {
       const plainPassword = "password123";
       const hashedPassword = await bcrypt.hash(plainPassword, 12);
 
-      await YamlUserService.createUser({
+      const yamlUserService = new YamlUserService();
+      await yamlUserService.createUser({
         email: "test@example.com",
         password: hashedPassword,
-        role: "admin",
       });
 
       const formData = new FormData();
@@ -228,10 +228,10 @@ describe("Login Route", () => {
       const plainPassword = "password123";
       const hashedPassword = await bcrypt.hash(plainPassword, 12);
 
-      await YamlUserService.createUser({
+      const yamlUserService = new YamlUserService();
+      await yamlUserService.createUser({
         email: "test@example.com",
         password: hashedPassword,
-        role: "admin",
       });
 
       const formData = new FormData();
@@ -254,10 +254,10 @@ describe("Login Route", () => {
 
     it("should return error for non-existent user", async () => {
       // Create a user so we pass the hasUsers check (but different email)
-      await YamlUserService.createUser({
+      const yamlUserService = new YamlUserService();
+      await yamlUserService.createUser({
         email: "existing@example.com",
         password: "hashedpassword",
-        role: "admin",
       });
 
       const formData = new FormData();

@@ -7,10 +7,10 @@ describe("Logout Route", () => {
   describe("action", () => {
     it("should destroy session and redirect to /login", async () => {
       // Create a user first
-      const user = await YamlUserService.createUser({
+      const yamlUserService = new YamlUserService();
+      const user = await yamlUserService.createUser({
         email: "test@example.com",
         password: "hashedpassword",
-        role: "admin",
       });
 
       // Create session
