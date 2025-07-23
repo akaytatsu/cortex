@@ -86,10 +86,6 @@ function getLanguageFromMimeType(mimeType: string, fileName: string): string {
 }
 
 export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
-  console.log("CodeViewer: Component rendered with props", {
-    workspaceName,
-    filePath,
-  });
   const fetcher = useFetcher<{ fileContent: FileContent; error?: string }>();
   const saveFetcher = useFetcher<FileSaveResponse>();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -144,29 +140,12 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
     },
   });
 
-  console.log("CodeViewer: WebSocket states", {
-    isConnected,
-    connectionStatus,
-    connectionError,
-    filePath,
-  });
-
   // Prism disabled temporarily
 
   // Handle WebSocket file content response
   const handleFileContent = useCallback(
     (message: FileContentMessage) => {
-      console.log("CodeViewer: Received file content message", {
-        receivedPath: message.payload.path,
-        currentFilePath: filePath,
-        contentLength: message.payload.content?.length,
-      });
-
       if (message.payload.path === filePath) {
-        console.log(
-          "CodeViewer: Setting file content for:",
-          message.payload.path
-        );
         const content: FileContent = {
           path: message.payload.path,
           content: message.payload.content,
@@ -226,12 +205,6 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
 
   // Handle text change acknowledgment
   const handleTextChangeAck = useCallback((message: any) => {
-    console.log("CodeViewer: Text change acknowledged", {
-      success: message.payload.success,
-      version: message.payload.version,
-      message: message.payload.message,
-    });
-
     setIsTextChangePending(false);
 
     if (message.payload.success) {
@@ -250,16 +223,8 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
   // Handle external file changes
   const handleExternalChange = useCallback(
     (message: any) => {
-      console.log("CodeViewer: External change received", {
-        path: message.payload.path,
-        changeType: message.payload.changeType,
-        lastModified: message.payload.lastModified,
-      });
-
       // Only update if the external change is for the currently viewed file
       if (message.payload.path === filePath) {
-        console.log("CodeViewer: Updating content from external change");
-
         // Update file content with the new content from external change
         setFileContent(prevContent => {
           if (prevContent) {
@@ -311,20 +276,12 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
 
   // Load file content via WebSocket when filePath changes
   useEffect(() => {
-    console.log("CodeViewer: useEffect triggered", {
-      filePath,
-      isConnected,
-      connectionStatus,
-    });
-
     if (filePath && isConnected && connectionStatus === "connected") {
-      console.log("CodeViewer: Loading file via WebSocket", { filePath });
       setIsLoading(true);
       setWsError(null);
 
       // Add a small delay to ensure connection is fully established
       const timeoutId = setTimeout(() => {
-        console.log("CodeViewer: Calling requestFileContent for:", filePath);
         requestFileContent(filePath).catch(error => {
           console.error("Error requesting file content:", error);
           setWsError(
@@ -340,11 +297,6 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
       (!isConnected || connectionStatus === "disconnected")
     ) {
       // Fallback to HTTP if WebSocket is not connected
-      console.log("CodeViewer: Loading file via HTTP fallback", {
-        filePath,
-        isConnected,
-        connectionStatus,
-      });
       setIsLoading(true);
       setWsError(null);
       fetcher.load(
@@ -383,12 +335,6 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
   // Debounced content change for sending real-time text changes
   const debouncedContentChange = useDebounceCallback(
     (newContent: string, oldContent: string) => {
-      console.debug("Debounced content change - sending text deltas", {
-        filePath,
-        newContentLength: newContent.length,
-        oldContentLength: oldContent.length,
-      });
-
       if (filePath && isConnected && oldContent !== newContent) {
         try {
           // Generate text deltas

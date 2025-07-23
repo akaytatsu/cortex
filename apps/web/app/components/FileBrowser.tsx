@@ -96,17 +96,9 @@ function FileItem({ item, level, onFileSelect }: FileItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleClick = () => {
-    console.log("FileBrowser: File clicked", {
-      path: item.path,
-      type: item.type,
-      name: item.name,
-      onFileSelect: !!onFileSelect,
-    });
-
     if (item.type === "directory") {
       setIsExpanded(!isExpanded);
     } else {
-      console.log("FileBrowser: Calling onFileSelect with path:", item.path);
       onFileSelect?.(item.path);
     }
   };

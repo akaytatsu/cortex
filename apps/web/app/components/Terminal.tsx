@@ -70,7 +70,6 @@ export function Terminal({
         const portResponse = await fetch("/api/terminal-port");
         const portData = await portResponse.json();
         terminalPort = portData.port;
-        console.log(`[Terminal] Got WebSocket port: ${terminalPort}`);
       } catch (error) {
         console.warn(
           "[Terminal] Failed to get dynamic port, using default 8000:",
@@ -125,13 +124,11 @@ export function Terminal({
       fitAddonRef.current = fitAddon;
 
       const wsUrl = `ws://localhost:${terminalPort}`;
-      console.log(`[Terminal] Attempting WebSocket connection to: ${wsUrl}`);
 
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log("[Terminal] WebSocket connection opened");
         setIsConnected(true);
         setConnectionError(null);
         reconnectAttemptsRef.current = 0;
@@ -168,11 +165,6 @@ export function Terminal({
       };
 
       ws.onclose = event => {
-        console.log(
-          "[Terminal] WebSocket connection closed:",
-          event.code,
-          event.reason
-        );
         setIsConnected(false);
 
         // Don't reconnect if:
