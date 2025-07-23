@@ -5,6 +5,8 @@ import { ConversationHistory } from "./ConversationHistory";
 import { MessageInput } from "./MessageInput";
 import { StatusIndicator } from "./StatusIndicator";
 import { useClaudeCodeService } from "./ClaudeCodeService";
+import { ClaudeCodeCliService } from "../services/claude-code-cli.service";
+import { ClaudeCodeCommandProcessor } from "../services/command-processor.service";
 import { AgentService } from "../services/agent.service";
 
 interface ClaudeCodePanelProps {
@@ -35,8 +37,32 @@ export function ClaudeCodePanel({
     onConversationUpdate: setConversation,
   });
 
-  const agentService = AgentService.getInstance();
+  const [cliService] = useState(() => ClaudeCodeCliService.getInstance());
+  const [commandProcessor] = useState(() => new ClaudeCodeCommandProcessor());
+  const [agentService] = useState(() => AgentService.getInstance());
+  const [isCliInitialized, setIsCliInitialized] = useState(false);
   const [activeAgent, setActiveAgent] = useState(agentService.getActiveAgent());
+
+  // Initialize CLI service when workspace changes
+  useEffect(() => {
+    const initializeCli = async () => {
+      try {
+        await cliService.startSession(workspacePath);
+        setIsCliInitialized(true);
+      } catch (error) {
+        console.warn("Failed to initialize Claude Code CLI:", error);
+        setIsCliInitialized(false);
+      }
+    };
+
+    if (workspacePath && isCliAvailable) {
+      initializeCli();
+    }
+
+    return () => {
+      cliService.cleanup();
+    };
+  }, [workspacePath, isCliAvailable, cliService]);
 
   // Update active agent state when it changes
   useEffect(() => {
@@ -67,10 +93,9 @@ export function ClaudeCodePanel({
     // Add user message to conversation
     addMessageToConversation(message, "user");
 
-    // Check if it's an agent command
-    if (agentService.isAgentCommand(message)) {
-      const response = agentService.processAgentCommand(message);
-      addMessageToConversation(response, "assistant");
+    // Check if it's a slash command
+    if (message.trim().startsWith("/")) {
+      await handleSlashCommand(message);
       return;
     }
 
@@ -78,17 +103,61 @@ export function ClaudeCodePanel({
     await sendMessage(message);
   };
 
-  const handleSlashCommand = async (command: string, args: string[]) => {
-    // Add command to conversation
-    addMessageToConversation(`/${command} ${args.join(" ")}`, "user");
+  const handleSlashCommand = async (commandInput: string) => {
+    try {
+      // Check if it's an agent activation command 
+      const commandWithoutSlash = commandInput.slice(1); // Remove leading /
+      
+      if (agentService.isAgentCommand(commandWithoutSlash)) {
+        // This is an agent activation command - use AgentService
+        const result = await agentService.activateAgent(commandWithoutSlash, []);
+        
+        if (result.success && result.greeting) {
+          addMessageToConversation(result.greeting, "assistant");
+        } else if (result.error) {
+          addMessageToConversation(`❌ ${result.error}`, "assistant");
+        }
+        return;
+      }
 
-    // Activate agent
-    const result = await agentService.activateAgent(command, args);
-    
-    if (result.success && result.greeting) {
-      addMessageToConversation(result.greeting, "assistant");
-    } else if (result.error) {
-      addMessageToConversation(`❌ ${result.error}`, "assistant");
+      // Check if it's an agent command (starts with *)
+      if (commandWithoutSlash.startsWith("*")) {
+        // This is an agent command - use AgentService
+        const response = agentService.processAgentCommand(commandWithoutSlash);
+        addMessageToConversation(response, "assistant");
+        return;
+      }
+
+      if (!isCliInitialized) {
+        addMessageToConversation("❌ Claude Code CLI não está inicializado", "assistant");
+        return;
+      }
+
+      // Process as regular CLI command
+      const result = await commandProcessor.processSlashCommand(commandInput);
+      
+      if (result.success) {
+        // Format output based on type
+        let formattedOutput = result.output;
+        
+        if (result.type === "help") {
+          formattedOutput = `## Ajuda\n\n${result.output}`;
+        } else if (result.type === "json" && result.metadata) {
+          formattedOutput = `\`\`\`json\n${JSON.stringify(result.metadata, null, 2)}\n\`\`\``;
+        }
+        
+        addMessageToConversation(formattedOutput, "assistant");
+      } else {
+        let errorMessage = `❌ ${result.output}`;
+        
+        if (result.metadata?.suggestions && Array.isArray(result.metadata.suggestions) && result.metadata.suggestions.length > 0) {
+          errorMessage += `\n\n**Sugestões:**\n${result.metadata.suggestions.map((s: string) => `• ${s}`).join("\n")}`;
+        }
+        
+        addMessageToConversation(errorMessage, "assistant");
+      }
+    } catch (error) {
+      addMessageToConversation(`❌ Erro ao processar comando: ${error instanceof Error ? error.message : "Erro desconhecido"}`, "assistant");
     }
   };
 
@@ -142,13 +211,18 @@ export function ClaudeCodePanel({
               isCliAvailable === false 
                 ? "Claude Code CLI não disponível" 
                 : isCliAvailable === true && cliVersion
-                ? `Claude Code v${cliVersion} conectado`
+                ? `Claude Code v${cliVersion} ${isCliInitialized ? "✓ Inicializado" : "⚠ Não inicializado"}`
                 : undefined
             }
           />
           {isCliAvailable === null && (
             <div className="text-xs text-gray-500 dark:text-gray-400">
               Verificando CLI...
+            </div>
+          )}
+          {isCliAvailable && !isCliInitialized && (
+            <div className="text-xs text-yellow-600 dark:text-yellow-400">
+              Inicializando sessão CLI...
             </div>
           )}
         </div>
@@ -166,17 +240,17 @@ export function ClaudeCodePanel({
             </h3>
             <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 leading-relaxed">
               Sou seu assistente de desenvolvimento com Claude Code.<br />
-              Faça perguntas sobre código, peça ajuda com debugging, ou solicite refatorações.
+              Use comandos com <code>/</code> para funcionalidades especiais ou faça perguntas sobre código.
             </p>
             <div className="bg-white dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
               <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 font-medium">
-                Exemplos do que posso fazer:
+                Comandos disponíveis:
               </p>
               <ul className="text-xs text-gray-500 dark:text-gray-400 space-y-1 text-left">
-                <li>• Explicar código complexo</li>
-                <li>• Sugerir melhorias e refatorações</li>
-                <li>• Ajudar com debugging</li>
-                <li>• Revisar e otimizar performance</li>
+                <li>• <code>/help</code> - Mostrar ajuda</li>
+                <li>• <code>/clear</code> - Limpar conversa</li>
+                <li>• <code>/review [arquivo]</code> - Revisar código</li>
+                <li>• <code>/status</code> - Status da sessão</li>
               </ul>
             </div>
           </div>
@@ -190,11 +264,11 @@ export function ClaudeCodePanel({
         {/* Input Area */}
         <MessageInput
           onSendMessage={handleSendMessage}
-          onSlashCommand={handleSlashCommand}
+          onSlashCommand={(command, args) => handleSlashCommand(`/${command} ${args.join(" ")}`)}
           placeholder={
             activeAgent 
               ? `Fale com ${activeAgent.name} ${activeAgent.icon}...` 
-              : "Ask Claude Code anything..."
+              : "Digite / para comandos ou faça uma pergunta..."
           }
           isDisabled={conversation.status === "thinking"}
         />

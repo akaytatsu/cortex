@@ -17,7 +17,7 @@ describe("ClaudeCodePanel", () => {
     render(<ClaudeCodePanel {...defaultProps} />);
     
     expect(screen.getByText("Claude Code Assistant")).toBeDefined();
-    expect(screen.getByPlaceholderText("Ask Claude Code anything...")).toBeDefined();
+    expect(screen.getByPlaceholderText("Digite / para comandos ou faça uma pergunta...")).toBeDefined();
   });
 
   it("does not render when not visible", () => {
@@ -30,13 +30,14 @@ describe("ClaudeCodePanel", () => {
     render(<ClaudeCodePanel {...defaultProps} />);
     
     expect(screen.getByText("Olá! Como posso ajudar?")).toBeDefined();
-    expect(screen.getByText(/Sou seu assistente de desenvolvimento/)).toBeDefined();
+    expect(screen.getByText(/Use comandos com/)).toBeDefined();
   });
 
-  it("shows keyboard shortcuts hint", () => {
+  it("shows available commands", () => {
     render(<ClaudeCodePanel {...defaultProps} />);
     
-    expect(screen.getByText(/para enviar/)).toBeDefined();
-    expect(screen.getByText(/para nova linha/)).toBeDefined();
+    expect(screen.getByText(/Comandos disponíveis/)).toBeDefined();
+    expect(screen.getByText("/help")).toBeDefined();
+    expect(screen.getByText("/clear")).toBeDefined();
   });
 });
