@@ -122,6 +122,7 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
     registerSaveConfirmationHandler,
     registerErrorHandler,
     registerTextChangeAckHandler,
+    registerExternalChangeHandler,
   } = useFileWebSocketContext();
 
   // Text delta utility
@@ -246,21 +247,63 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
     }, 2000);
   }, []);
 
+  // Handle external file changes
+  const handleExternalChange = useCallback((message: any) => {
+    console.log("CodeViewer: External change received", {
+      path: message.payload.path,
+      changeType: message.payload.changeType,
+      lastModified: message.payload.lastModified,
+    });
+
+    // Only update if the external change is for the currently viewed file
+    if (message.payload.path === filePath) {
+      console.log("CodeViewer: Updating content from external change");
+      
+      // Update file content with the new content from external change
+      setFileContent(prevContent => {
+        if (prevContent) {
+          return {
+            ...prevContent,
+            content: message.payload.newContent,
+            lastModified: new Date(message.payload.lastModified),
+          };
+        }
+        return prevContent;
+      });
+
+      // Update the editor content reference AND the state
+      editedContentRef.current = message.payload.newContent;
+      setEditedContent(message.payload.newContent);
+      
+      // Reset dirty state since the file is now synced with disk
+      setIsDirty(false);
+      
+      // Show a notification about the external change
+      setLastSaveMessage("File updated externally");
+      setTimeout(() => {
+        setLastSaveMessage(null);
+      }, 3000);
+    }
+  }, [filePath]);
+
   // Register WebSocket handlers
   useEffect(() => {
     registerFileContentHandler(handleFileContent);
     registerSaveConfirmationHandler(handleSaveConfirmation);
     registerErrorHandler(handleWebSocketError);
     registerTextChangeAckHandler(handleTextChangeAck);
+    registerExternalChangeHandler(handleExternalChange);
   }, [
     registerFileContentHandler,
     registerSaveConfirmationHandler,
     registerErrorHandler,
     registerTextChangeAckHandler,
+    registerExternalChangeHandler,
     handleFileContent,
     handleSaveConfirmation,
     handleWebSocketError,
     handleTextChangeAck,
+    handleExternalChange,
   ]);
 
   // Load file content via WebSocket when filePath changes
