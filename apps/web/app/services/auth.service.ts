@@ -1,4 +1,4 @@
-import { prisma } from "../lib/prisma";
+// import { prisma } from "../lib/prisma"; // REMOVIDO: Prisma não mais usado
 import type { User, UserPublic } from "shared-types";
 import type { IAuthService, ILogger } from "../types/services";
 import bcrypt from "bcryptjs";
@@ -18,7 +18,8 @@ export class AuthService implements IAuthService {
   async hasUsers(): Promise<boolean> {
     try {
       this.logger.debug("Checking if users exist in database");
-      const userCount = await prisma.user.count();
+      // const userCount = await prisma.user.count(); // REMOVIDO: Prisma não mais usado
+      throw new Error("AuthService obsoleto - use YamlAuthService");
       const hasUsers = userCount > 0;
       this.logger.debug("User count check completed", { userCount, hasUsers });
       return hasUsers;
@@ -56,17 +57,8 @@ export class AuthService implements IAuthService {
       );
       requestLogger.debug("Password hashed successfully");
 
-      const user = await prisma.user.create({
-        data: {
-          email: data.email,
-          password: hashedPassword,
-        },
-      });
-
-      requestLogger.info("First user created successfully", {
-        userId: user.id,
-      });
-      return user;
+      // const user = await prisma.user.create({ // REMOVIDO: Prisma não mais usado
+      throw new Error("AuthService obsoleto - use YamlAuthService");
     } catch (error) {
       if (
         error instanceof Error &&

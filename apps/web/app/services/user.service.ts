@@ -1,4 +1,4 @@
-import { prisma } from "../lib/prisma";
+// import { prisma } from "../lib/prisma"; // REMOVIDO: Prisma não mais usado
 import type { User } from "shared-types";
 import type { IUserService, ILogger } from "../types/services";
 import { createServiceLogger } from "../lib/logger";
@@ -8,6 +8,7 @@ export class UserService implements IUserService {
 
   constructor(logger?: ILogger) {
     this.logger = logger || createServiceLogger("UserService");
+    throw new Error("UserService obsoleto - use YamlUserService");
   }
   async createUser(data: { email: string; password: string }): Promise<User> {
     const requestLogger = this.logger.withContext({ email: data.email });
