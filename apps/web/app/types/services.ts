@@ -7,6 +7,8 @@ import type {
   FileSaveRequest,
   FileSaveResponse,
   TerminalSession,
+  ClaudeAgent,
+  AgentListResponse,
 } from "shared-types";
 import type * as pty from "node-pty";
 
@@ -89,4 +91,12 @@ export interface ILogger {
   error(message: string, error?: Error, context?: LogContext): void;
   debug(message: string, context?: LogContext): void;
   withContext(context: LogContext): ILogger;
+}
+
+export interface IAgentService {
+  loadAgentsFromWorkspace(workspacePath: string): Promise<ClaudeAgent[]>;
+  getAgentByName(workspacePath: string, agentName: string): Promise<ClaudeAgent | null>;
+  validateAgentCommand(command: string): boolean;
+  invalidateCache(workspacePath: string): void;
+  getAgentsWithMetadata(workspacePath: string): Promise<AgentListResponse>;
 }

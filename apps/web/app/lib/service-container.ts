@@ -1,10 +1,10 @@
-import path from "path";
 import type {
   IAuthService,
   IUserService,
   ITerminalService,
   IFileSystemService,
   IWorkspaceService,
+  IAgentService,
   ILogger,
 } from "../types/services";
 import { YamlAuthService } from "../services/auth.service.yaml";
@@ -13,6 +13,7 @@ import { YamlFileService } from "./yaml-file-service";
 import { terminalService } from "../services/terminal.service";
 import { FileSystemService } from "../services/filesystem.service";
 import { WorkspaceService } from "../services/workspace.service";
+import { AgentService } from "../services/agent.service";
 import { createServiceLogger } from "./logger";
 
 type ServiceType =
@@ -21,6 +22,7 @@ type ServiceType =
   | "terminal"
   | "filesystem"
   | "workspace"
+  | "agent"
   | "logger";
 
 type ServiceInstance =
@@ -29,6 +31,7 @@ type ServiceInstance =
   | ITerminalService
   | IFileSystemService
   | IWorkspaceService
+  | IAgentService
   | ILogger;
 
 /**
@@ -52,6 +55,7 @@ class ServiceContainer {
     this.factories.set("terminal", () => terminalService);
     this.factories.set("filesystem", () => new FileSystemService());
     this.factories.set("workspace", () => new WorkspaceService());
+    this.factories.set("agent", () => new AgentService(new FileSystemService()));
     this.factories.set("logger", () => createServiceLogger("ServiceContainer"));
   }
 
@@ -140,6 +144,13 @@ class ServiceContainer {
    */
   getWorkspaceService(): IWorkspaceService {
     return this.get<IWorkspaceService>("workspace");
+  }
+
+  /**
+   * Get agent service
+   */
+  getAgentService(): IAgentService {
+    return this.get<IAgentService>("agent");
   }
 
   /**

@@ -227,3 +227,27 @@ export interface SessionMapping {
   startTime: Date;
   workspacePath: string;
 }
+
+// Agent-related interfaces
+export interface ClaudeAgent {
+  name: string;
+  description: string;
+  command: string;
+}
+
+export interface AgentCacheEntry {
+  agents: ClaudeAgent[];
+  lastModified: Date;
+  filePath: string;
+  ttl: number;
+}
+
+export interface AgentListResponse {
+  agents: ClaudeAgent[];
+  metadata: {
+    cacheTimestamp: string;
+    fileLastModified: string;
+    version: string;
+    fromCache: boolean;
+  };
+}
