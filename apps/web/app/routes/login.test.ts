@@ -1,11 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { loader, action } from "./login";
-import { prisma } from "../lib/prisma";
+import { YamlUserService } from "../services/user.service.yaml";
 import { SessionService } from "../services/session.service";
 import bcrypt from "bcryptjs";
 
 describe("Login Route", () => {
-  // Database cleanup is handled by test-setup.ts globally
+  // YAML file cleanup is handled by test-setup.ts globally
 
   describe("loader", () => {
     it("should redirect to setup when no users exist", async () => {
@@ -19,11 +19,10 @@ describe("Login Route", () => {
 
     it("should redirect to workspaces when already authenticated", async () => {
       // Create a user first
-      const user = await prisma.user.create({
-        data: {
-          email: "test@example.com",
-          password: "hashedpassword",
-        },
+      const yamlUserService = new YamlUserService();
+      const user = await yamlUserService.createUser({
+        email: "test@example.com",
+        password: "hashedpassword",
       });
 
       // Create session
@@ -47,11 +46,10 @@ describe("Login Route", () => {
 
     it("should return empty json when users exist but not authenticated", async () => {
       // Create a user
-      await prisma.user.create({
-        data: {
-          email: "test@example.com",
-          password: "hashedpassword",
-        },
+      const yamlUserService = new YamlUserService();
+      await yamlUserService.createUser({
+        email: "test@example.com",
+        password: "hashedpassword",
       });
 
       const request = new Request("http://localhost:3000/login");
@@ -83,11 +81,10 @@ describe("Login Route", () => {
 
     it("should redirect to workspaces when already authenticated", async () => {
       // Create a user first
-      const user = await prisma.user.create({
-        data: {
-          email: "test@example.com",
-          password: "hashedpassword",
-        },
+      const yamlUserService = new YamlUserService();
+      const user = await yamlUserService.createUser({
+        email: "test@example.com",
+        password: "hashedpassword",
       });
 
       // Create session
@@ -120,11 +117,10 @@ describe("Login Route", () => {
 
     it("should return validation errors for missing email", async () => {
       // Create a user so we pass the hasUsers check
-      await prisma.user.create({
-        data: {
-          email: "existing@example.com",
-          password: "hashedpassword",
-        },
+      const yamlUserService = new YamlUserService();
+      await yamlUserService.createUser({
+        email: "existing@example.com",
+        password: "hashedpassword",
       });
 
       const formData = new FormData();
@@ -146,11 +142,10 @@ describe("Login Route", () => {
 
     it("should return validation errors for missing password", async () => {
       // Create a user so we pass the hasUsers check
-      await prisma.user.create({
-        data: {
-          email: "existing@example.com",
-          password: "hashedpassword",
-        },
+      const yamlUserService = new YamlUserService();
+      await yamlUserService.createUser({
+        email: "existing@example.com",
+        password: "hashedpassword",
       });
 
       const formData = new FormData();
@@ -172,11 +167,10 @@ describe("Login Route", () => {
 
     it("should return validation errors for invalid email format", async () => {
       // Create a user so we pass the hasUsers check
-      await prisma.user.create({
-        data: {
-          email: "existing@example.com",
-          password: "hashedpassword",
-        },
+      const yamlUserService = new YamlUserService();
+      await yamlUserService.createUser({
+        email: "existing@example.com",
+        password: "hashedpassword",
       });
 
       const formData = new FormData();
@@ -202,11 +196,10 @@ describe("Login Route", () => {
       const plainPassword = "password123";
       const hashedPassword = await bcrypt.hash(plainPassword, 12);
 
-      await prisma.user.create({
-        data: {
-          email: "test@example.com",
-          password: hashedPassword,
-        },
+      const yamlUserService = new YamlUserService();
+      await yamlUserService.createUser({
+        email: "test@example.com",
+        password: hashedPassword,
       });
 
       const formData = new FormData();
@@ -235,11 +228,10 @@ describe("Login Route", () => {
       const plainPassword = "password123";
       const hashedPassword = await bcrypt.hash(plainPassword, 12);
 
-      await prisma.user.create({
-        data: {
-          email: "test@example.com",
-          password: hashedPassword,
-        },
+      const yamlUserService = new YamlUserService();
+      await yamlUserService.createUser({
+        email: "test@example.com",
+        password: hashedPassword,
       });
 
       const formData = new FormData();
@@ -262,11 +254,10 @@ describe("Login Route", () => {
 
     it("should return error for non-existent user", async () => {
       // Create a user so we pass the hasUsers check (but different email)
-      await prisma.user.create({
-        data: {
-          email: "existing@example.com",
-          password: "hashedpassword",
-        },
+      const yamlUserService = new YamlUserService();
+      await yamlUserService.createUser({
+        email: "existing@example.com",
+        password: "hashedpassword",
       });
 
       const formData = new FormData();

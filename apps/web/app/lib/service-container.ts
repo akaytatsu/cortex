@@ -1,3 +1,4 @@
+import path from "path";
 import type {
   IAuthService,
   IUserService,
@@ -6,8 +7,9 @@ import type {
   IWorkspaceService,
   ILogger,
 } from "../types/services";
-import { AuthService } from "../services/auth.service";
-import { UserService } from "../services/user.service";
+import { YamlAuthService } from "../services/auth.service.yaml";
+import { YamlUserService } from "../services/user.service.yaml";
+import { YamlFileService } from "./yaml-file-service";
 import { terminalService } from "../services/terminal.service";
 import { FileSystemService } from "../services/filesystem.service";
 import { WorkspaceService } from "../services/workspace.service";
@@ -41,9 +43,12 @@ class ServiceContainer {
   }
 
   private registerDefaultServices(): void {
-    // Register service factories - creating proper instances
-    this.factories.set("auth", () => new AuthService());
-    this.factories.set("user", () => new UserService());
+    // Usar implementações YAML (sistema único)
+    const yamlService = new YamlFileService();
+    this.factories.set("auth", () => new YamlAuthService(yamlService));
+    this.factories.set("user", () => new YamlUserService(yamlService));
+
+    // Outros serviços permanecem inalterados
     this.factories.set("terminal", () => terminalService);
     this.factories.set("filesystem", () => new FileSystemService());
     this.factories.set("workspace", () => new WorkspaceService());

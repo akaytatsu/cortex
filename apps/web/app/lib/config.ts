@@ -4,30 +4,6 @@ import { config as dotenvConfig } from "dotenv";
 dotenvConfig();
 
 /**
- * Gets a required environment variable with validation
- * @param name - Environment variable name
- * @param validate - Optional validation function
- * @throws Error if variable is missing or validation fails
- */
-function getRequiredEnvVar(
-  name: string,
-  validate?: (value: string) => boolean
-): string {
-  const value = process.env[name];
-  if (!value || value.trim() === "") {
-    throw new Error(
-      `Required environment variable ${name} is not set or is empty`
-    );
-  }
-
-  if (validate && !validate(value)) {
-    throw new Error(`Environment variable ${name} has invalid value: ${value}`);
-  }
-
-  return value;
-}
-
-/**
  * Gets an optional environment variable with type safety
  * @param name - Environment variable name
  * @param defaultValue - Default value if not set
@@ -97,23 +73,12 @@ const isValidNodeEnv = (value: string): boolean => {
   return ["development", "production", "test"].includes(value);
 };
 
-const isValidDatabaseUrl = (value: string): boolean => {
-  return (
-    value.startsWith("file:") ||
-    value.startsWith("postgresql:") ||
-    value.startsWith("mysql:")
-  );
-};
-
 const isValidLogLevel = (value: string): boolean => {
   return ["error", "warn", "info", "debug"].includes(value);
 };
 
 // Type-safe configuration object with validation
 export const config = {
-  database: {
-    url: getRequiredEnvVar("DATABASE_URL", isValidDatabaseUrl),
-  },
   node: {
     env: getOptionalEnvVar("NODE_ENV", "development", isValidNodeEnv) as
       | "development"
@@ -188,11 +153,6 @@ export const config = {
  */
 export function validateConfig(): void {
   try {
-    // Test database URL accessibility (basic validation)
-    if (!config.database.url) {
-      throw new Error("DATABASE_URL is required");
-    }
-
     // Validate server ports
     if (config.server.port === config.server.websocketPort) {
       throw new Error("PORT and WS_PORT cannot be the same");

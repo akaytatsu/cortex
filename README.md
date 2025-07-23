@@ -1,6 +1,6 @@
 # Cortex - Fullstack Application
 
-Cortex é uma aplicação fullstack construída com Remix, TypeScript e SQLite.
+Cortex é uma aplicação fullstack construída com Remix, TypeScript e sistema de armazenamento YAML.
 
 ## Estrutura do Projeto
 
@@ -24,10 +24,6 @@ cortex/
 
 2. **Configure as variáveis no arquivo `.env`:**
 
-   - **`DATABASE_URL`**: Caminho para o banco de dados SQLite
-     - Para desenvolvimento local: `file:./dev.db`
-     - Para produção: caminho absoluto para o arquivo de banco
-
    - **`NODE_ENV`**: Ambiente de execução
      - `development`: Para desenvolvimento local
      - `production`: Para produção
@@ -36,9 +32,6 @@ cortex/
 ### Exemplo de configuração `.env`:
 
 ```bash
-# Database Configuration
-DATABASE_URL="file:./dev.db"
-
 # Node.js Environment
 NODE_ENV="development"
 ```
@@ -56,12 +49,7 @@ NODE_ENV="development"
    # Edite o arquivo .env conforme necessário
    ```
 
-3. **Execute as migrações do banco:**
-   ```bash
-   cd apps/web && npx prisma migrate dev
-   ```
-
-4. **Inicie o servidor de desenvolvimento:**
+3. **Inicie o servidor de desenvolvimento:**
    ```bash
    npm run dev
    ```
@@ -80,7 +68,7 @@ NODE_ENV="development"
 - **Framework**: Remix 2.16.8
 - **Linguagem**: TypeScript 5.8
 - **Runtime**: Node.js 22.x
-- **Banco de Dados**: SQLite com Prisma ORM
+- **Armazenamento**: Sistema de arquivos YAML
 - **Estilização**: Tailwind CSS
 - **Testes**: Vitest
 - **Linting**: ESLint + Prettier

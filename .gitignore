@@ -12,3 +12,6 @@ node_modules/
 .env.production.local
 
 **/config/workspaces.yaml
+**/config/users.yaml
+
+**/users.yaml.*
