@@ -46,11 +46,11 @@ export class WebSocketFileService {
     };
 
     this.connections.set(connectionId, connection);
-    this.logger.info("WebSocket connection registered", {
-      connectionId,
-      userId,
-      workspaceName,
-    });
+    // this.logger.info("WebSocket connection registered", {
+    //   connectionId,
+    //   userId,
+    //   workspaceName,
+    // });
 
     return connection;
   }

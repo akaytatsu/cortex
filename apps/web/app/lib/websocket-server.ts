@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { terminalService } from "../services/terminal.service";
-import type { TerminalMessage } from "shared-types";
+import type { TerminalMessage, CliStatusMessage } from "shared-types";
 import { createServiceLogger } from "./logger";
 
 interface TerminalWebSocket extends WebSocket {
@@ -241,6 +241,9 @@ class TerminalWebSocketServer {
         });
         this.clients.delete(sessionId);
       });
+
+      // Send CLI status after successful session initialization
+      this.sendCliStatus(ws, activeSession);
     } catch (error) {
       this.sendMessage(ws, {
         type: "error",
@@ -290,6 +293,36 @@ class TerminalWebSocketServer {
   private sendMessage(ws: TerminalWebSocket, message: TerminalMessage) {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message));
+    }
+  }
+
+  private sendCliStatus(ws: TerminalWebSocket, session: any) {
+    if (!ws.sessionId || ws.readyState !== WebSocket.OPEN) return;
+
+    try {
+      const cliStatusData = {
+        status: session.claudeCodeCliStatus || 'not-available',
+        version: session.claudeCodeCliVersion,
+        error: session.claudeCodeCliStatus === 'error' ? 'Detection failed' : undefined
+      };
+
+      const cliStatusMessage: TerminalMessage = {
+        type: "cli-status",
+        data: JSON.stringify(cliStatusData),
+        sessionId: ws.sessionId,
+      };
+
+      this.sendMessage(ws, cliStatusMessage);
+      
+      logger.info("Sent CLI status to client", {
+        sessionId: ws.sessionId,
+        status: cliStatusData.status,
+        version: cliStatusData.version || 'N/A'
+      });
+    } catch (error) {
+      logger.error("Failed to send CLI status", error as Error, {
+        sessionId: ws.sessionId
+      });
     }
   }
 

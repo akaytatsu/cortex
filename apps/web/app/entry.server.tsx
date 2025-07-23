@@ -19,7 +19,7 @@ import { logger } from "./lib/logger";
 // Validate configuration on server startup
 try {
   validateConfig();
-  logger.info("Server startup configuration validation successful");
+  // logger.info("Server startup configuration validation successful");
 } catch (error) {
   logger.error(
     "Server startup configuration validation failed",

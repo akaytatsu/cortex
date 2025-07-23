@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import type { TerminalMessage } from "shared-types";
+import type { TerminalMessage, TerminalSession, CliStatusMessage } from "shared-types";
+import { CliStatusIndicator } from "./CliStatusIndicator";
+import { ClaudeCodeInstallationInstructions } from "./ClaudeCodeInstallationInstructions";
 
 // Dynamic imports for xterm to avoid SSR issues
 let XTerm: typeof import("@xterm/xterm").Terminal | null = null;
@@ -31,6 +33,8 @@ export function Terminal({
     `terminal_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
   );
   const [isInitialized, setIsInitialized] = useState(false);
+  const [terminalSession, setTerminalSession] = useState<TerminalSession | null>(null);
+  const [showInstallInstructions, setShowInstallInstructions] = useState(false);
   const isInitializingRef = useRef(false);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
@@ -157,6 +161,27 @@ export function Terminal({
             } else if (message.type === "exit") {
               terminal.write("\r\n\x1b[31mTerminal session ended\x1b[0m\r\n");
               setIsConnected(false);
+            } else if (message.type === "cli-status") {
+              // Handle CLI status updates
+              try {
+                const cliData = JSON.parse(message.data);
+                setTerminalSession(prevSession => ({
+                  ...prevSession,
+                  id: sessionIdRef.current,
+                  workspaceName,
+                  workspacePath,
+                  userId: 'current-user', // This should come from session context
+                  status: 'active' as const,
+                  createdAt: new Date(),
+                  claudeCodeCliStatus: cliData.status,
+                  claudeCodeCliVersion: cliData.version,
+                }));
+                
+                // Show install instructions if CLI is not available
+                setShowInstallInstructions(cliData.status === 'not-available');
+              } catch (cliError) {
+                console.error("Error parsing CLI status data:", cliError);
+              }
             }
           }
         } catch (error) {
@@ -288,6 +313,7 @@ export function Terminal({
           <span className="text-xs text-gray-400">
             {workspaceName} ({workspacePath})
           </span>
+          <CliStatusIndicator session={terminalSession} />
           {connectionError && (
             <span className="text-xs text-red-400" title={connectionError}>
               ⚠ {connectionError}
@@ -313,6 +339,15 @@ export function Terminal({
           )}
         </div>
       </div>
+      
+      {/* Claude Code CLI Installation Instructions */}
+      {showInstallInstructions && (
+        <ClaudeCodeInstallationInstructions 
+          onDismiss={() => setShowInstallInstructions(false)}
+          className="mx-2 mt-2"
+        />
+      )}
+      
       <div className="flex-1 overflow-hidden">
         <div ref={terminalRef} className="w-full h-full p-2" />
       </div>

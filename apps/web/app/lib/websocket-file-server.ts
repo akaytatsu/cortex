@@ -54,19 +54,19 @@ export class FileWebSocketServer {
 
   async start() {
     if (this.wss) {
-      logger.debug("File WebSocket server already running on port", {
-        port: this.port,
-      });
+      // logger.debug("File WebSocket server already running on port", {
+      //   port: this.port,
+      // });
       return;
     }
 
     if (globalStarting) {
-      logger.warn("File WebSocket server is already starting, skipping");
+      // logger.warn("File WebSocket server is already starting, skipping");
       return;
     }
 
     globalStarting = true;
-    logger.info("Starting File WebSocket server...");
+    // logger.info("Starting File WebSocket server...");
 
     // Find available port
     let port = this.port;
@@ -77,7 +77,7 @@ export class FileWebSocketServer {
       try {
         this.wss = new WebSocketServer({ port });
         this.port = port; // Save the successful port
-        logger.info("File WebSocket server bound to port", { port });
+        // logger.info("File WebSocket server bound to port", { port });
         break;
       } catch (error: unknown) {
         if (
@@ -104,7 +104,7 @@ export class FileWebSocketServer {
       // Generate unique connection ID
       const connectionId = `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      logger.info("Accepted file WebSocket connection", { connectionId });
+      // logger.info("Accepted file WebSocket connection", { connectionId });
 
       ws.connectionId = connectionId;
       ws.isAlive = true;
@@ -121,17 +121,17 @@ export class FileWebSocketServer {
 
       ws.on("message", async data => {
         try {
-          logger.info("Received WebSocket message", {
-            connectionId: ws.connectionId,
-            dataLength: data.toString().length,
-            rawData: data.toString(),
-          });
+          //   logger.info("Received WebSocket message", {
+          //     connectionId: ws.connectionId,
+          //     dataLength: data.toString().length,
+          //     rawData: data.toString(),
+          //   });
           const message: WSFileMessage = JSON.parse(data.toString());
-          logger.info("Parsed WebSocket message", {
-            connectionId: ws.connectionId,
-            messageType: message.type,
-            messageId: message.messageId,
-          });
+          // logger.info("Parsed WebSocket message", {
+          //   connectionId: ws.connectionId,
+          //   messageType: message.type,
+          //   messageId: message.messageId,
+          // });
           await this.handleMessage(ws, message);
         } catch (error) {
           logger.error("Error processing WebSocket message", error as Error, {
@@ -212,7 +212,7 @@ export class FileWebSocketServer {
     });
 
     globalStarting = false;
-    logger.info("File WebSocket server started", { port: this.port });
+    // logger.info("File WebSocket server started", { port: this.port });
   }
 
   private async handleMessage(ws: FileWebSocket, message: WSFileMessage) {
@@ -323,7 +323,7 @@ export class FileWebSocketServer {
     }
     this.clients.clear();
     globalStarting = false;
-    logger.info("File WebSocket server stopped");
+    // logger.info("File WebSocket server stopped");
   }
 
   /**
@@ -362,7 +362,7 @@ export class FileWebSocketServer {
             this.broadcastToWorkspace(workspaceName, message);
           }
         );
-        logger.info("Started file watching for workspace", { workspaceName });
+        // logger.info("Started file watching for workspace", { workspaceName });
       } else {
         logger.debug("Added connection to existing workspace watcher", {
           workspaceName,

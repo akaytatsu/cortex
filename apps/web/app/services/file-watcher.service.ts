@@ -33,10 +33,10 @@ export class FileWatcherService {
     workspacePath: string,
     callback: FileWatcherCallback
   ): Promise<void> {
-    logger.info("Starting to watch workspace", {
-      workspaceName,
-      workspacePath,
-    });
+    // logger.info("Starting to watch workspace", {
+    //   workspaceName,
+    //   workspacePath,
+    // });
 
     let watchedWorkspace = this.watchedWorkspaces.get(workspaceName);
 
@@ -108,10 +108,10 @@ export class FileWatcherService {
       // Setup event handlers
       this.setupWatcherEvents(watchedWorkspace);
 
-      logger.info("Successfully started watching workspace", {
-        workspaceName,
-        workspacePath,
-      });
+      // logger.info("Successfully started watching workspace", {
+      //   workspaceName,
+      //   workspacePath,
+      // });
     } catch (error) {
       logger.error("Failed to start watching workspace", error as Error, {
         workspaceName,
@@ -268,15 +268,15 @@ export class FileWatcherService {
 
     // Watcher errors
     watcher.on("error", (error: Error) => {
-      logger.error("File watcher error", error, { workspaceName });
+      // logger.error("File watcher error", error, { workspaceName });
     });
 
     // Watcher ready
     watcher.on("ready", () => {
-      logger.info("File watcher ready", {
-        workspaceName,
-        watchedPaths: watcher.getWatched(),
-      });
+      // logger.info("File watcher ready", {
+      //   workspaceName,
+      //   watchedPaths: watcher.getWatched(),
+      // });
     });
   }
 

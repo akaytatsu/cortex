@@ -6,6 +6,10 @@ import type { ITerminalService } from "../types/services";
 import { SessionService } from "./session.service";
 import { config } from "../lib/config";
 import { createServiceLogger } from "../lib/logger";
+import {
+  cliDetectionService,
+  type CliDetectionResult,
+} from "./cli-detection.service";
 
 export class TerminalServiceError extends Error {
   constructor(
@@ -35,7 +39,7 @@ class TerminalService implements ITerminalService {
 
   private startCleanupTimer() {
     const intervalMs = config.terminal.cleanupIntervalMs;
-    logger.info("Starting terminal cleanup timer", { intervalMs });
+    // logger.info("Starting terminal cleanup timer", { intervalMs });
     this.cleanupInterval = setInterval(() => {
       this.cleanupInactiveSessions();
     }, intervalMs);
@@ -83,6 +87,26 @@ class TerminalService implements ITerminalService {
     return normalizedPath;
   }
 
+  private async detectClaudeCli(workspacePath: string): Promise<{
+    status: "available" | "not-available" | "error" | "checking";
+    version?: string;
+  }> {
+    try {
+      const detection =
+        await cliDetectionService.checkClaudeCodeAvailability(workspacePath);
+      return {
+        status: detection.status,
+        version: detection.version,
+      };
+    } catch (error) {
+      const detectionLogger = logger.withContext({ workspacePath });
+      detectionLogger.error("Claude CLI detection failed", error as Error);
+      return {
+        status: "error",
+      };
+    }
+  }
+
   async createSession(
     workspaceName: string,
     workspacePath: string,
@@ -104,6 +128,10 @@ class TerminalService implements ITerminalService {
         customSessionId ||
         `terminal_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
+      // Detect Claude CLI availability in the workspace context
+      sessionLogger.info("Detecting Claude Code CLI availability");
+      const cliDetection = await this.detectClaudeCli(validatedPath);
+
       const session: TerminalSession = {
         id: sessionId,
         workspaceName,
@@ -111,10 +139,14 @@ class TerminalService implements ITerminalService {
         userId,
         status: "active",
         createdAt: new Date(),
+        claudeCodeCliStatus: cliDetection.status,
+        claudeCodeCliVersion: cliDetection.version,
       };
 
       sessionLogger.info("Terminal session created successfully", {
         sessionId,
+        claudeCodeCliStatus: cliDetection.status,
+        claudeCodeCliVersion: cliDetection.version || "N/A",
       });
       return session;
     } catch (error) {
