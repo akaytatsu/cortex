@@ -74,3 +74,35 @@ export function createUserData(input: {
     active: true,
   });
 }
+
+// Schema para sessão persistida
+export const PersistedSessionSchema = z.object({
+  id: z.string().min(1, "Session ID is required"),
+  workspaceName: z.string().min(1, "Workspace name is required"),
+  workspacePath: z.string().min(1, "Workspace path is required"),
+  pid: z.number().int().positive("PID must be a positive integer"),
+  startedAt: z.string().datetime("Invalid datetime format"),
+  agentName: z.string().optional(),
+  command: z.string().optional(),
+  userId: z.string().min(1, "User ID is required"),
+  recovered: z.boolean().optional(),
+});
+
+// Schema para o arquivo de sessões YAML
+export const SessionsYamlSchema = z.object({
+  sessions: z.array(PersistedSessionSchema).default([]),
+});
+
+// Tipos TypeScript derivados dos schemas de sessão
+export type PersistedSessionData = z.infer<typeof PersistedSessionSchema>;
+export type SessionsYamlData = z.infer<typeof SessionsYamlSchema>;
+
+// Função para validar e parsear dados de sessões YAML
+export function validateSessionsYaml(data: unknown): SessionsYamlData {
+  return SessionsYamlSchema.parse(data);
+}
+
+// Função para validar uma sessão individual
+export function validatePersistedSession(data: unknown): PersistedSessionData {
+  return PersistedSessionSchema.parse(data);
+}

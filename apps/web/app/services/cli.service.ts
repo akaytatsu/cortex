@@ -1,6 +1,9 @@
 import { spawn, ChildProcess } from "child_process";
 import * as path from "path";
 import { createServiceLogger } from "../lib/logger";
+import { SessionPersistenceService } from "./session-persistence.service";
+import type { ISessionPersistenceService } from "../types/services";
+import type { PersistedSession } from "shared-types";
 
 export class CliServiceError extends Error {
   constructor(
@@ -16,6 +19,9 @@ interface ClaudeProcess {
   pid: number;
   process: ChildProcess;
   workspacePath: string;
+  workspaceName: string;
+  userId: string;
+  agentName?: string;
   command?: string;
   startTime: Date;
   forceKillTimeout?: NodeJS.Timeout;
@@ -23,11 +29,16 @@ interface ClaudeProcess {
 
 const logger = createServiceLogger("CliService");
 
-class CliService {
+export class CliService {
   private activeProcesses = new Map<string, ClaudeProcess>();
+  private sessionPersistence: ISessionPersistenceService;
   private readonly ALLOWED_COMMANDS = ["claude"];
   private readonly DANGEROUS_CHARS_REGEX = /[;&|$`\\<>]/;
   private readonly COMMAND_TIMEOUT = 30000; // 30 seconds
+
+  constructor(sessionPersistence?: ISessionPersistenceService) {
+    this.sessionPersistence = sessionPersistence || new SessionPersistenceService();
+  }
 
   private validateWorkspacePath(workspacePath: string): string {
     const normalizedPath = path.resolve(workspacePath);
@@ -77,8 +88,11 @@ class CliService {
 
   async startProcess(
     workspacePath: string,
+    workspaceName: string,
     sessionId: string,
-    command?: string
+    userId: string,
+    command?: string,
+    agentName?: string
   ): Promise<{ pid: number; sessionId: string }> {
     const sessionLogger = logger.withContext({ sessionId, workspacePath, command });
 
@@ -116,11 +130,37 @@ class CliService {
         pid: childProcess.pid,
         process: childProcess,
         workspacePath: validatedPath,
+        workspaceName,
+        userId,
+        agentName,
         command,
         startTime: new Date(),
       };
 
       this.activeProcesses.set(sessionId, claudeProcess);
+
+      // Save session to persistence with error handling
+      try {
+        const persistedSession: PersistedSession = {
+          id: sessionId,
+          workspaceName,
+          workspacePath: validatedPath,
+          pid: childProcess.pid,
+          startedAt: claudeProcess.startTime.toISOString(),
+          agentName,
+          command,
+          userId,
+        };
+
+        await this.sessionPersistence.saveSession(persistedSession);
+        sessionLogger.debug("Session saved to persistence", { sessionId });
+      } catch (persistenceError) {
+        // Log error but don't fail the main operation
+        sessionLogger.warn("Failed to save session to persistence", {
+          error: persistenceError instanceof Error ? persistenceError.message : String(persistenceError),
+          sessionId,
+        });
+      }
 
       childProcess.on('exit', (code, signal) => {
         sessionLogger.info("Claude Code process exited", { exitCode: code, signal });
@@ -129,6 +169,9 @@ class CliService {
           clearTimeout(process.forceKillTimeout);
         }
         this.activeProcesses.delete(sessionId);
+
+        // Remove session from persistence with error handling
+        this.removeSessionFromPersistence(sessionId, sessionLogger);
       });
 
       childProcess.on('error', (error) => {
@@ -138,6 +181,9 @@ class CliService {
           clearTimeout(process.forceKillTimeout);
         }
         this.activeProcesses.delete(sessionId);
+
+        // Remove session from persistence with error handling
+        this.removeSessionFromPersistence(sessionId, sessionLogger);
       });
 
       sessionLogger.info("Claude Code process started successfully", { pid: childProcess.pid });
@@ -176,6 +222,10 @@ class CliService {
       // Store the timeout so it can be cleared later if process exits gracefully
       claudeProcess.forceKillTimeout = forceKillTimeout;
       this.activeProcesses.set(sessionId, claudeProcess);
+
+      // Remove session from persistence with error handling
+      this.removeSessionFromPersistence(sessionId, sessionLogger);
+      
       sessionLogger.info("Claude Code process stopped successfully");
       
       return true;
@@ -185,12 +235,33 @@ class CliService {
     }
   }
 
+  private async removeSessionFromPersistence(sessionId: string, sessionLogger: ILogger): Promise<void> {
+    try {
+      await this.sessionPersistence.removeSession(sessionId);
+      sessionLogger.debug("Session removed from persistence", { sessionId });
+    } catch (persistenceError) {
+      // Log error but don't fail the main operation
+      sessionLogger.warn("Failed to remove session from persistence", {
+        error: persistenceError instanceof Error ? persistenceError.message : String(persistenceError),
+        sessionId,
+      });
+    }
+  }
+
   getProcess(sessionId: string): ChildProcess | null {
     const claudeProcess = this.activeProcesses.get(sessionId);
     return claudeProcess?.process || null;
   }
 
-  getProcessInfo(sessionId: string): { pid: number; workspacePath: string; startTime: Date } | null {
+  getProcessInfo(sessionId: string): { 
+    pid: number; 
+    workspacePath: string; 
+    workspaceName: string;
+    userId: string;
+    agentName?: string;
+    command?: string;
+    startTime: Date;
+  } | null {
     const claudeProcess = this.activeProcesses.get(sessionId);
     if (!claudeProcess) {
       return null;
@@ -199,17 +270,122 @@ class CliService {
     return {
       pid: claudeProcess.pid,
       workspacePath: claudeProcess.workspacePath,
+      workspaceName: claudeProcess.workspaceName,
+      userId: claudeProcess.userId,
+      agentName: claudeProcess.agentName,
+      command: claudeProcess.command,
       startTime: claudeProcess.startTime,
     };
   }
 
-  getAllActiveProcesses(): Array<{ sessionId: string; pid: number; workspacePath: string; startTime: Date }> {
+  getAllActiveProcesses(): Array<{ 
+    sessionId: string; 
+    pid: number; 
+    workspacePath: string; 
+    workspaceName: string;
+    userId: string;
+    agentName?: string;
+    command?: string;
+    startTime: Date;
+  }> {
     return Array.from(this.activeProcesses.entries()).map(([sessionId, process]) => ({
       sessionId,
       pid: process.pid,
       workspacePath: process.workspacePath,
+      workspaceName: process.workspaceName,
+      userId: process.userId,
+      agentName: process.agentName,
+      command: process.command,
       startTime: process.startTime,
     }));
+  }
+
+  async recoverSessions(): Promise<void> {
+    const recoveryLogger = logger.withContext({ operation: "session-recovery" });
+
+    try {
+      recoveryLogger.info("Starting session recovery process");
+
+      const persistedSessions = await this.sessionPersistence.loadSessions();
+      recoveryLogger.info("Loaded persisted sessions", { count: persistedSessions.length });
+
+      let recoveredCount = 0;
+      let orphanedCount = 0;
+
+      for (const session of persistedSessions) {
+        const sessionLogger = recoveryLogger.withContext({ 
+          sessionId: session.id, 
+          pid: session.pid,
+          workspaceName: session.workspaceName,
+        });
+
+        try {
+          // Check if process is still active using process.kill(pid, 0)
+          const isProcessActive = this.isProcessActive(session.pid);
+          
+          if (isProcessActive) {
+            // Process is active, re-associate it
+            const claudeProcess: ClaudeProcess = {
+              pid: session.pid,
+              process: null as unknown as ChildProcess, // We can't recover the actual ChildProcess object
+              workspacePath: session.workspacePath,
+              workspaceName: session.workspaceName,
+              userId: session.userId,
+              agentName: session.agentName,
+              command: session.command,
+              startTime: new Date(session.startedAt),
+            };
+
+            this.activeProcesses.set(session.id, claudeProcess);
+
+            // Mark session as recovered in persistence
+            await this.sessionPersistence.updateSession(session.id, { recovered: true });
+            
+            recoveredCount++;
+            sessionLogger.info("Session recovered successfully", {
+              recoveredAt: new Date().toISOString(),
+            });
+          } else {
+            // Process is orphaned, remove from persistence
+            await this.sessionPersistence.removeSession(session.id);
+            orphanedCount++;
+            sessionLogger.info("Orphaned session removed", {
+              reason: "Process no longer exists",
+            });
+          }
+        } catch (error) {
+          sessionLogger.error("Error during session recovery", error as Error);
+          // Try to remove the problematic session from persistence
+          try {
+            await this.sessionPersistence.removeSession(session.id);
+            orphanedCount++;
+          } catch (removeError) {
+            sessionLogger.error("Failed to remove problematic session", removeError as Error);
+          }
+        }
+      }
+
+      recoveryLogger.info("Session recovery completed", {
+        totalSessions: persistedSessions.length,
+        recovered: recoveredCount,
+        orphaned: orphanedCount,
+      });
+
+    } catch (error) {
+      recoveryLogger.error("Failed to recover sessions", error as Error);
+      throw error;
+    }
+  }
+
+  private isProcessActive(pid: number): boolean {
+    try {
+      // process.kill(pid, 0) doesn't kill the process, just checks if it exists
+      process.kill(pid, 0);
+      return true;
+    } catch (error) {
+      // If process doesn't exist, process.kill throws ESRCH error
+      return false;
+    }
   }
 
   cleanup(): void {

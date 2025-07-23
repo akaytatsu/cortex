@@ -9,6 +9,7 @@ import type {
   TerminalSession,
   ClaudeAgent,
   AgentListResponse,
+  PersistedSession,
 } from "shared-types";
 import type * as pty from "node-pty";
 
@@ -99,4 +100,11 @@ export interface IAgentService {
   validateAgentCommand(command: string): boolean;
   invalidateCache(workspacePath: string): void;
   getAgentsWithMetadata(workspacePath: string): Promise<AgentListResponse>;
+}
+
+export interface ISessionPersistenceService {
+  saveSession(session: PersistedSession): Promise<void>;
+  removeSession(sessionId: string): Promise<void>;
+  loadSessions(): Promise<PersistedSession[]>;
+  updateSession(sessionId: string, updates: Partial<PersistedSession>): Promise<void>;
 }

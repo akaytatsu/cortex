@@ -251,3 +251,16 @@ export interface AgentListResponse {
     fromCache: boolean;
   };
 }
+
+// Session persistence interface
+export interface PersistedSession {
+  id: string;
+  workspaceName: string;
+  workspacePath: string;
+  pid: number;
+  startedAt: string; // ISO date string
+  agentName?: string;
+  command?: string;
+  userId: string;
+  recovered?: boolean;
+}
