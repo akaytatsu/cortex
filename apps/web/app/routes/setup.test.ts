@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { loader, action } from "./setup";
-import { prisma } from "../lib/prisma";
+import { YamlUserService } from "../services/user.service.yaml";
 
 describe("Setup Route", () => {
   // Database cleanup is handled by test-setup.ts globally
@@ -15,11 +15,10 @@ describe("Setup Route", () => {
 
     it("should redirect to login when users exist", async () => {
       // Create a user
-      await prisma.user.create({
-        data: {
-          email: "existing@example.com",
-          password: "hashedpassword",
-        },
+      const yamlUserService = new YamlUserService();
+      await yamlUserService.createUser({
+        email: "existing@example.com",
+        password: "hashedpassword",
       });
 
       const request = new Request("http://localhost:3000/setup");
@@ -34,11 +33,10 @@ describe("Setup Route", () => {
   describe("action", () => {
     it("should redirect to login when users already exist", async () => {
       // Create a user first
-      await prisma.user.create({
-        data: {
-          email: "existing@example.com",
-          password: "hashedpassword",
-        },
+      const yamlUserService = new YamlUserService();
+      await yamlUserService.createUser({
+        email: "existing@example.com",
+        password: "hashedpassword",
       });
 
       const formData = new FormData();
@@ -116,9 +114,8 @@ describe("Setup Route", () => {
       );
 
       // Verify user was created
-      const user = await prisma.user.findUnique({
-        where: { email: "admin@example.com" },
-      });
+      const yamlUserService = new YamlUserService();
+      const user = await yamlUserService.getUserByEmail("admin@example.com");
       expect(user).toBeDefined();
       expect(user!.email).toBe("admin@example.com");
 

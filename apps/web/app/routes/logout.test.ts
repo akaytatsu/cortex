@@ -1,17 +1,16 @@
 import { describe, it, expect } from "vitest";
 import { action, loader } from "./logout";
-import { prisma } from "../lib/prisma";
+import { YamlUserService } from "../services/user.service.yaml";
 import { SessionService } from "../services/session.service";
 
 describe("Logout Route", () => {
   describe("action", () => {
     it("should destroy session and redirect to /login", async () => {
       // Create a user first
-      const user = await prisma.user.create({
-        data: {
-          email: "test@example.com",
-          password: "hashedpassword",
-        },
+      const user = await YamlUserService.createUser({
+        email: "test@example.com",
+        password: "hashedpassword",
+        role: "admin",
       });
 
       // Create session
