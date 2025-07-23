@@ -207,3 +207,10 @@ export interface ExternalChangeMessage extends WSFileMessage {
     changeType: "modified" | "created" | "deleted";
   };
 }
+
+// WebSocket messages for Claude Code communication
+export interface ClaudeCodeMessage {
+  type: 'input' | 'output' | 'error' | 'exit';
+  data: string;
+  sessionId: string;
+}
