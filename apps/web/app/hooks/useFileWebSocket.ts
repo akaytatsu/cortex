@@ -375,7 +375,9 @@ export function useFileWebSocket(
             "Failed to reconnect after maximum attempts. Falling back to HTTP mode."
           );
           setConnectionStatus("disconnected");
-          console.warn("WebSocket connection failed persistently, using HTTP fallback");
+          console.warn(
+            "WebSocket connection failed persistently, using HTTP fallback"
+          );
         }
       };
 

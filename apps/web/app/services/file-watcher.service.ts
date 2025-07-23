@@ -33,7 +33,10 @@ export class FileWatcherService {
     workspacePath: string,
     callback: FileWatcherCallback
   ): Promise<void> {
-    logger.info("Starting to watch workspace", { workspaceName, workspacePath });
+    logger.info("Starting to watch workspace", {
+      workspaceName,
+      workspacePath,
+    });
 
     let watchedWorkspace = this.watchedWorkspaces.get(workspaceName);
 
@@ -133,7 +136,7 @@ export class FileWatcherService {
     if (callback) {
       // Remove specific callback
       watchedWorkspace.callbacks.delete(callback);
-      
+
       // If no more callbacks, close the watcher
       if (watchedWorkspace.callbacks.size === 0) {
         await watchedWorkspace.watcher.close();
@@ -159,7 +162,8 @@ export class FileWatcherService {
    * Setup event handlers for a file watcher
    */
   private setupWatcherEvents(watchedWorkspace: WatchedWorkspace): void {
-    const { watcher, workspaceName, workspacePath, callbacks } = watchedWorkspace;
+    const { watcher, workspaceName, workspacePath, callbacks } =
+      watchedWorkspace;
 
     // File added
     watcher.on("add", async (filePath: string) => {
@@ -243,7 +247,10 @@ export class FileWatcherService {
     // Directory added
     watcher.on("addDir", (dirPath: string) => {
       const relativePath = path.relative(workspacePath, dirPath);
-      logger.debug("Directory created", { workspaceName, dirPath: relativePath });
+      logger.debug("Directory created", {
+        workspaceName,
+        dirPath: relativePath,
+      });
       // For now, we don't send notifications for directory creation
       // This could be added in the future if needed
     });
@@ -251,7 +258,10 @@ export class FileWatcherService {
     // Directory deleted
     watcher.on("unlinkDir", (dirPath: string) => {
       const relativePath = path.relative(workspacePath, dirPath);
-      logger.debug("Directory deleted", { workspaceName, dirPath: relativePath });
+      logger.debug("Directory deleted", {
+        workspaceName,
+        dirPath: relativePath,
+      });
       // For now, we don't send notifications for directory deletion
       // This could be added in the future if needed
     });

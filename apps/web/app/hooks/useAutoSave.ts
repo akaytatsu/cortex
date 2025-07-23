@@ -45,9 +45,9 @@ export function useAutoSave(options: UseAutoSaveOptions): UseAutoSaveReturn {
     try {
       isAutoSavingRef.current = true;
       console.debug("Auto-save triggered");
-      
+
       await onSave();
-      
+
       lastAutoSaveRef.current = new Date();
       console.debug("Auto-save completed successfully");
     } catch (error) {
@@ -61,7 +61,7 @@ export function useAutoSave(options: UseAutoSaveOptions): UseAutoSaveReturn {
   // Schedule auto-save
   const scheduleAutoSave = useCallback(() => {
     cancelAutoSave();
-    
+
     if (!enabled || !isDirty || isManualSaving) {
       return;
     }
@@ -74,7 +74,14 @@ export function useAutoSave(options: UseAutoSaveOptions): UseAutoSaveReturn {
         console.error("Scheduled auto-save failed:", error);
       }
     }, interval);
-  }, [enabled, isDirty, isManualSaving, interval, triggerAutoSave, cancelAutoSave]);
+  }, [
+    enabled,
+    isDirty,
+    isManualSaving,
+    interval,
+    triggerAutoSave,
+    cancelAutoSave,
+  ]);
 
   // Effect to handle auto-save scheduling
   useEffect(() => {

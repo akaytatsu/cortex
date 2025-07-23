@@ -154,10 +154,13 @@ export class FileWebSocketServer {
         if (ws.connectionId) {
           this.fileService.unregisterConnection(ws.connectionId);
           this.clients.delete(ws.connectionId);
-          
+
           // Remove from workspace watchers
           if (ws.workspaceName) {
-            this.removeConnectionFromWorkspaceWatching(ws.workspaceName, ws.connectionId);
+            this.removeConnectionFromWorkspaceWatching(
+              ws.workspaceName,
+              ws.connectionId
+            );
           }
         }
       });
@@ -169,10 +172,13 @@ export class FileWebSocketServer {
         if (ws.connectionId) {
           this.fileService.unregisterConnection(ws.connectionId);
           this.clients.delete(ws.connectionId);
-          
+
           // Remove from workspace watchers
           if (ws.workspaceName) {
-            this.removeConnectionFromWorkspaceWatching(ws.workspaceName, ws.connectionId);
+            this.removeConnectionFromWorkspaceWatching(
+              ws.workspaceName,
+              ws.connectionId
+            );
           }
         }
       });
@@ -222,7 +228,7 @@ export class FileWebSocketServer {
         return;
       }
 
-      // Handle workspace registration  
+      // Handle workspace registration
       if ((message.payload as any)?.workspaceName && !ws.workspaceName) {
         ws.workspaceName = (message.payload as any).workspaceName;
         this.fileService.registerConnection(
@@ -230,7 +236,7 @@ export class FileWebSocketServer {
           ws.userId,
           ws.workspaceName
         );
-        
+
         // Start watching workspace if not already watching
         await this.setupWorkspaceWatching(ws.workspaceName, ws.connectionId);
       }
@@ -323,13 +329,19 @@ export class FileWebSocketServer {
   /**
    * Setup file watching for a workspace
    */
-  private async setupWorkspaceWatching(workspaceName: string, connectionId: string): Promise<void> {
+  private async setupWorkspaceWatching(
+    workspaceName: string,
+    connectionId: string
+  ): Promise<void> {
     try {
       // Get workspace path
       const workspaceService = serviceContainer.getWorkspaceService();
-      const workspace = await workspaceService.getWorkspaceByName(workspaceName);
+      const workspace =
+        await workspaceService.getWorkspaceByName(workspaceName);
       if (!workspace) {
-        logger.warn("Cannot setup file watching - workspace not found", { workspaceName });
+        logger.warn("Cannot setup file watching - workspace not found", {
+          workspaceName,
+        });
         return;
       }
 
@@ -368,7 +380,10 @@ export class FileWebSocketServer {
   /**
    * Remove connection from workspace watching
    */
-  private async removeConnectionFromWorkspaceWatching(workspaceName: string, connectionId: string): Promise<void> {
+  private async removeConnectionFromWorkspaceWatching(
+    workspaceName: string,
+    connectionId: string
+  ): Promise<void> {
     try {
       const connections = this.workspaceWatchers.get(workspaceName);
       if (!connections) {
@@ -389,17 +404,24 @@ export class FileWebSocketServer {
         });
       }
     } catch (error) {
-      logger.error("Failed to remove connection from workspace watching", error as Error, {
-        workspaceName,
-        connectionId,
-      });
+      logger.error(
+        "Failed to remove connection from workspace watching",
+        error as Error,
+        {
+          workspaceName,
+          connectionId,
+        }
+      );
     }
   }
 
   /**
    * Broadcast message to all connections watching a workspace
    */
-  private broadcastToWorkspace(workspaceName: string, message: ExternalChangeMessage): void {
+  private broadcastToWorkspace(
+    workspaceName: string,
+    message: ExternalChangeMessage
+  ): void {
     const connections = this.workspaceWatchers.get(workspaceName);
     if (!connections) {
       return;
