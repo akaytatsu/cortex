@@ -10,7 +10,6 @@ import type {
   WSConnection,
   FileSession,
   FileSaveRequest,
-  TextDelta,
 } from "shared-types";
 import type { ILogger } from "../types/services";
 import { createServiceLogger } from "../lib/logger";
@@ -157,7 +156,7 @@ export class WebSocketFileService {
     workspacePath: string
   ): Promise<FileContentMessage | ErrorMessage> {
     try {
-      const filePath = message.payload?.path;
+      const filePath = (message.payload as any)?.path;
       if (!filePath) {
         return this.createErrorMessage(
           "File path is required",
@@ -195,7 +194,7 @@ export class WebSocketFileService {
     } catch (error) {
       this.logger.error("Error getting file content", error as Error, {
         connectionId,
-        filePath: message.payload?.path,
+        filePath: (message.payload as any)?.path,
       });
 
       return this.createErrorMessage(
@@ -259,7 +258,7 @@ export class WebSocketFileService {
     } catch (error) {
       this.logger.error("Error saving file", error as Error, {
         connectionId,
-        filePath: message.payload?.path,
+        filePath: (message.payload as any)?.path,
       });
 
       return this.createErrorMessage(
@@ -388,7 +387,7 @@ export class WebSocketFileService {
     } catch (error) {
       this.logger.error("Error processing text changes", error as Error, {
         connectionId,
-        filePath: message.payload?.path,
+        filePath: (message.payload as any)?.path,
       });
 
       return this.createErrorMessage(

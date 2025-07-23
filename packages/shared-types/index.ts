@@ -72,7 +72,9 @@ export interface WSFileMessage {
     | "error"
     | "connection_status"
     | "text_change"
-    | "text_change_ack";
+    | "text_change_ack"
+    | "file_conflict"
+    | "external_change";
   payload: unknown;
   messageId?: string; // for request/response correlation
 }
@@ -102,6 +104,7 @@ export interface SaveRequestMessage extends WSFileMessage {
     path: string;
     content: string;
     lastKnownModified?: Date;
+    workspaceName: string;
   };
   messageId: string;
 }
@@ -179,4 +182,28 @@ export interface TextDelta {
   length?: number;
   timestamp: Date;
   connectionId: string;
+}
+
+// Messages for conflict detection and external changes
+export interface FileConflictMessage extends WSFileMessage {
+  type: "file_conflict";
+  payload: {
+    path: string;
+    serverContent: string;
+    clientContent: string;
+    serverLastModified: Date;
+    clientLastModified?: Date;
+    message: string;
+  };
+  messageId: string;
+}
+
+export interface ExternalChangeMessage extends WSFileMessage {
+  type: "external_change";
+  payload: {
+    path: string;
+    newContent: string;
+    lastModified: Date;
+    changeType: "modified" | "created" | "deleted";
+  };
 }

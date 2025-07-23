@@ -10,6 +10,7 @@ import {
   Wifi,
   WifiOff,
   Clock,
+  Settings,
 } from "lucide-react";
 import type {
   FileContent,
@@ -23,6 +24,8 @@ import { useFileWebSocketContext } from "../contexts/FileWebSocketContext";
 import { ConnectionStatus } from "./ConnectionStatus";
 import { useDebounceCallback } from "../hooks/useDebounce";
 import { useTextDelta } from "../hooks/useTextDelta";
+import { useAutoSave } from "../hooks/useAutoSave";
+import { useEditorSettings } from "../hooks/useEditorSettings";
 
 // Temporarily removing Prism.js to avoid import issues
 
@@ -123,6 +126,22 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
 
   // Text delta utility
   const { generateTextDeltas } = useTextDelta();
+
+  // Editor settings
+  const { settings, toggleAutoSave } = useEditorSettings();
+
+  // Auto-save functionality
+  const { isAutoSaving, lastAutoSave, cancelAutoSave } = useAutoSave({
+    enabled: settings.autoSave.enabled,
+    interval: settings.autoSave.interval,
+    isDirty,
+    isManualSaving: isSaving,
+    onSave: async () => {
+      if (filePath && fileContent && isDirty) {
+        await handleSave();
+      }
+    },
+  });
 
   console.log("CodeViewer: WebSocket states", {
     isConnected,
@@ -538,6 +557,34 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
           </span>
         </div>
         <div className="flex items-center space-x-3">
+          {/* Auto-save status indicator */}
+          {settings.autoSave.enabled && settings.autoSave.showIndicator && (
+            <div className="flex items-center space-x-1 text-xs">
+              {isAutoSaving ? (
+                <>
+                  <Clock className="w-3 h-3 animate-pulse text-blue-500" />
+                  <span className="text-blue-600 dark:text-blue-400">
+                    Auto-salvando...
+                  </span>
+                </>
+              ) : lastAutoSave ? (
+                <>
+                  <Save className="w-3 h-3 text-green-500" />
+                  <span className="text-green-600 dark:text-green-400">
+                    Auto-salvo {new Date(lastAutoSave).toLocaleTimeString()}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-3 h-3 text-gray-400" />
+                  <span className="text-gray-500 dark:text-gray-400">
+                    Auto-save ativo
+                  </span>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Real-time sync status indicator */}
           {isConnected && (lastTextChangeStatus || isTextChangePending) && (
             <div className="flex items-center space-x-1 text-xs">
@@ -572,6 +619,27 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
             error={connectionError}
             onReconnect={reconnect}
           />
+
+          {/* Auto-save settings toggle */}
+          <button
+            onClick={toggleAutoSave}
+            title={
+              settings.autoSave.enabled
+                ? "Auto-save está ativado. Clique para desabilitar."
+                : "Auto-save está desabilitado. Clique para habilitar."
+            }
+            className={`
+              flex items-center space-x-1 px-2 py-1 rounded text-xs
+              ${
+                settings.autoSave.enabled
+                  ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+              }
+            `}
+          >
+            <Settings className="w-3 h-3" />
+            <span>{settings.autoSave.enabled ? "Auto-save ON" : "Auto-save OFF"}</span>
+          </button>
 
           <button
             onClick={handleSave}

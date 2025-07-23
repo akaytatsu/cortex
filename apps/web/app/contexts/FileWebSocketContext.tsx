@@ -11,6 +11,7 @@ import type {
   SaveConfirmationMessage,
   ErrorMessage,
   TextChangeAckMessage,
+  ExternalChangeMessage,
   TextDelta,
 } from "shared-types";
 
@@ -40,6 +41,9 @@ interface FileWebSocketContextValue {
   registerErrorHandler: (handler: (message: ErrorMessage) => void) => void;
   registerTextChangeAckHandler: (
     handler: (message: TextChangeAckMessage) => void
+  ) => void;
+  registerExternalChangeHandler: (
+    handler: (message: ExternalChangeMessage) => void
   ) => void;
 }
 
@@ -72,6 +76,9 @@ export function FileWebSocketProvider({
   const textChangeAckHandlerRef = useRef<
     ((message: TextChangeAckMessage) => void) | null
   >(null);
+  const externalChangeHandlerRef = useRef<
+    ((message: ExternalChangeMessage) => void) | null
+  >(null);
 
   const handleFileContent = useCallback((message: FileContentMessage) => {
     if (fileContentHandlerRef.current) {
@@ -100,12 +107,19 @@ export function FileWebSocketProvider({
     }
   }, []);
 
+  const handleExternalChange = useCallback((message: ExternalChangeMessage) => {
+    if (externalChangeHandlerRef.current) {
+      externalChangeHandlerRef.current(message);
+    }
+  }, []);
+
   const websocket = useFileWebSocket({
     workspaceName,
     onFileContent: handleFileContent,
     onSaveConfirmation: handleSaveConfirmation,
     onError: handleError,
     onTextChangeAck: handleTextChangeAck,
+    onExternalChange: handleExternalChange,
     onConnectionChange: status => {
       console.log("FileWebSocketContext: Connection status changed", {
         status,
@@ -143,12 +157,20 @@ export function FileWebSocketProvider({
     []
   );
 
+  const registerExternalChangeHandler = useCallback(
+    (handler: (message: ExternalChangeMessage) => void) => {
+      externalChangeHandlerRef.current = handler;
+    },
+    []
+  );
+
   const contextValue: FileWebSocketContextValue = {
     ...websocket,
     registerFileContentHandler,
     registerSaveConfirmationHandler,
     registerErrorHandler,
     registerTextChangeAckHandler,
+    registerExternalChangeHandler,
   };
 
   return (

@@ -8,6 +8,7 @@ import type {
   ConnectionStatusMessage,
   TextChangeMessage,
   TextChangeAckMessage,
+  ExternalChangeMessage,
   TextDelta,
 } from "shared-types";
 import { useThrottleCallback } from "./useDebounce";
@@ -21,6 +22,7 @@ interface UseFileWebSocketOptions {
     status: "connected" | "disconnected" | "reconnecting"
   ) => void;
   onTextChangeAck?: (message: TextChangeAckMessage) => void;
+  onExternalChange?: (message: ExternalChangeMessage) => void;
 }
 
 interface UseFileWebSocketReturn {
@@ -52,6 +54,7 @@ export function useFileWebSocket(
     onError,
     onConnectionChange,
     onTextChangeAck,
+    onExternalChange,
   } = options;
 
   const [isConnected, setIsConnected] = useState(false);
@@ -318,6 +321,10 @@ export function useFileWebSocket(
               console.log("useFileWebSocket: Handling text_change_ack message");
               onTextChangeAck?.(message as TextChangeAckMessage);
               break;
+            case "external_change":
+              console.log("useFileWebSocket: Handling external_change message");
+              onExternalChange?.(message as ExternalChangeMessage);
+              break;
             default:
               console.log(
                 "useFileWebSocket: Unknown message type:",
@@ -365,8 +372,10 @@ export function useFileWebSocket(
           }, delay);
         } else {
           setError(
-            "Failed to reconnect after maximum attempts. Please check your connection."
+            "Failed to reconnect after maximum attempts. Falling back to HTTP mode."
           );
+          setConnectionStatus("disconnected");
+          console.warn("WebSocket connection failed persistently, using HTTP fallback");
         }
       };
 
