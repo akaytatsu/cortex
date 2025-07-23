@@ -46,7 +46,7 @@ class ServiceContainer {
   private registerDefaultServices(): void {
     // Determinar qual implementação usar baseado em variável de ambiente
     const useYaml = process.env.USE_YAML_AUTH === "true";
-    
+
     if (useYaml) {
       // Usar implementações YAML
       const yamlService = new YamlFileService();
@@ -57,7 +57,7 @@ class ServiceContainer {
       this.factories.set("auth", () => new AuthService());
       this.factories.set("user", () => new UserService());
     }
-    
+
     // Outros serviços permanecem inalterados
     this.factories.set("terminal", () => terminalService);
     this.factories.set("filesystem", () => new FileSystemService());

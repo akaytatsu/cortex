@@ -18,7 +18,7 @@ export class YamlUserService implements IUserService {
   constructor(yamlService?: YamlFileService, logger?: ILogger) {
     this.logger = logger || createServiceLogger("YamlUserService");
     this.yamlService = yamlService || new YamlFileService();
-    
+
     // Initialize password validator
     this.passwordValidator = new PasswordValidator({
       minLength: 8,
@@ -38,10 +38,12 @@ export class YamlUserService implements IUserService {
       // Validate password strength
       const passwordValidation = this.passwordValidator.validate(data.password);
       if (!passwordValidation.isValid) {
-        requestLogger.warn("Password validation failed", { 
-          errors: passwordValidation.errors 
+        requestLogger.warn("Password validation failed", {
+          errors: passwordValidation.errors,
         });
-        throw new Error(`Password validation failed: ${passwordValidation.errors.join(', ')}`);
+        throw new Error(
+          `Password validation failed: ${passwordValidation.errors.join(", ")}`
+        );
       }
 
       // Hash da senha
@@ -69,10 +71,7 @@ export class YamlUserService implements IUserService {
       return this.yamlUserToUser(yamlUser);
     } catch (error) {
       // Handle unique constraint violation for email
-      if (
-        error instanceof Error &&
-        error.message.includes("already exists")
-      ) {
+      if (error instanceof Error && error.message.includes("already exists")) {
         requestLogger.error(
           "User creation failed: email already exists",
           error
@@ -88,9 +87,9 @@ export class YamlUserService implements IUserService {
     const requestLogger = this.logger.withContext({ email });
     try {
       requestLogger.debug("Searching for user by email");
-      
+
       const yamlUser = await this.yamlService.getUserByEmail(email);
-      
+
       requestLogger.debug("User search completed", {
         found: !!yamlUser,
         userId: yamlUser?.id,
@@ -107,9 +106,9 @@ export class YamlUserService implements IUserService {
     const requestLogger = this.logger.withContext({ userId: id });
     try {
       requestLogger.debug("Searching for user by ID");
-      
+
       const yamlUser = await this.yamlService.getUserById(id);
-      
+
       requestLogger.debug("User search by ID completed", { found: !!yamlUser });
 
       return yamlUser ? this.yamlUserToUser(yamlUser) : null;
@@ -139,12 +138,16 @@ export class YamlUserService implements IUserService {
 
       if (data.password) {
         // Validate password strength
-        const passwordValidation = this.passwordValidator.validate(data.password);
+        const passwordValidation = this.passwordValidator.validate(
+          data.password
+        );
         if (!passwordValidation.isValid) {
-          requestLogger.warn("Password validation failed", { 
-            errors: passwordValidation.errors 
+          requestLogger.warn("Password validation failed", {
+            errors: passwordValidation.errors,
           });
-          throw new Error(`Password validation failed: ${passwordValidation.errors.join(', ')}`);
+          throw new Error(
+            `Password validation failed: ${passwordValidation.errors.join(", ")}`
+          );
         }
 
         // Hash da nova senha
@@ -166,17 +169,11 @@ export class YamlUserService implements IUserService {
       requestLogger.info("User updated successfully");
       return this.yamlUserToUser(updatedYamlUser);
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes("not found")
-      ) {
+      if (error instanceof Error && error.message.includes("not found")) {
         requestLogger.error("User update failed: user not found", error);
         throw new Error(`User with id ${id} not found`);
       }
-      if (
-        error instanceof Error &&
-        error.message.includes("already in use")
-      ) {
+      if (error instanceof Error && error.message.includes("already in use")) {
         requestLogger.error("User update failed: email already exists", error);
         throw new Error(`Email ${data.email} is already in use`);
       }
@@ -202,10 +199,7 @@ export class YamlUserService implements IUserService {
       requestLogger.info("User deleted successfully");
       return this.yamlUserToUser(yamlUser);
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes("not found")
-      ) {
+      if (error instanceof Error && error.message.includes("not found")) {
         requestLogger.error("User deletion failed: user not found", error);
         throw new Error(`User with id ${id} not found`);
       }
@@ -217,13 +211,13 @@ export class YamlUserService implements IUserService {
   async getAllUsers(): Promise<User[]> {
     try {
       this.logger.debug("Retrieving all users");
-      
+
       const data = await this.yamlService.readUsers();
       const users = data.users.map(yamlUser => this.yamlUserToUser(yamlUser));
-      
+
       // Ordenar por data de criação (mais recentes primeiro)
       users.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-      
+
       this.logger.debug("All users retrieved", { count: users.length });
       return users;
     } catch (error) {

@@ -8,7 +8,11 @@ export const UserSchema = z.object({
   role: z.enum(["admin", "user"]).default("user"),
   created_at: z.string().datetime("Invalid datetime format"),
   updated_at: z.string().datetime("Invalid datetime format"),
-  last_login: z.string().datetime("Invalid datetime format").nullable().optional(),
+  last_login: z
+    .string()
+    .datetime("Invalid datetime format")
+    .nullable()
+    .optional(),
   active: z.boolean().default(true),
 });
 
@@ -31,7 +35,7 @@ export const UsersYamlSchema = z.object({
     require_special_chars: true,
     session_timeout: 3600,
     max_login_attempts: 5,
-    lockout_duration: 900
+    lockout_duration: 900,
   }),
 });
 
@@ -56,14 +60,12 @@ export function validateAuthConfig(data: unknown): YamlAuthConfig {
 }
 
 // Helper para criar um novo usuário com valores padrão
-export function createUserData(
-  input: {
-    id: string;
-    email: string;
-    password_hash: string;
-    role?: "admin" | "user";
-  }
-): YamlUser {
+export function createUserData(input: {
+  id: string;
+  email: string;
+  password_hash: string;
+  role?: "admin" | "user";
+}): YamlUser {
   const now = new Date().toISOString();
   return UserSchema.parse({
     ...input,

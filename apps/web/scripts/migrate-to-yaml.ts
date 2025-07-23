@@ -2,10 +2,10 @@
 
 /**
  * Script de migração dos dados do Prisma/SQLite para YAML
- * 
+ *
  * NOTA: Este script foi desabilitado após a remoção completa do Prisma.
  * A migração já foi concluída e o sistema agora opera exclusivamente com YAML.
- * 
+ *
  * Para referência histórica, este script anteriormente:
  * 1. Lia todos os usuários do banco SQLite via Prisma
  * 2. Criava backup do banco atual

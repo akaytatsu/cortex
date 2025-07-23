@@ -21,14 +21,17 @@ export class YamlAuthService implements IAuthService {
   constructor(yamlService?: YamlFileService, logger?: ILogger) {
     this.logger = logger || createServiceLogger("YamlAuthService");
     this.yamlService = yamlService || new YamlFileService();
-    
+
     // Initialize rate limiter with configuration
-    this.rateLimiter = new RateLimiter({
-      maxAttempts: 5,
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      lockoutDuration: 15 * 60 * 1000, // 15 minutes lockout
-    }, this.logger);
-    
+    this.rateLimiter = new RateLimiter(
+      {
+        maxAttempts: 5,
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        lockoutDuration: 15 * 60 * 1000, // 15 minutes lockout
+      },
+      this.logger
+    );
+
     // Initialize password validator
     this.passwordValidator = new PasswordValidator({
       minLength: 8,
@@ -38,7 +41,7 @@ export class YamlAuthService implements IAuthService {
       requireSpecialChars: true,
       prohibitCommonPasswords: true,
     });
-    
+
     // Start watching the file for changes
     this.yamlService.startWatching();
   }
@@ -82,10 +85,12 @@ export class YamlAuthService implements IAuthService {
       // Validate password strength
       const passwordValidation = this.passwordValidator.validate(data.password);
       if (!passwordValidation.isValid) {
-        requestLogger.warn("Password validation failed", { 
-          errors: passwordValidation.errors 
+        requestLogger.warn("Password validation failed", {
+          errors: passwordValidation.errors,
         });
-        throw new Error(`Password validation failed: ${passwordValidation.errors.join(', ')}`);
+        throw new Error(
+          `Password validation failed: ${passwordValidation.errors.join(", ")}`
+        );
       }
 
       // Hash da senha usando configuração centralizada
@@ -116,10 +121,7 @@ export class YamlAuthService implements IAuthService {
       // Converter para formato User para compatibilidade
       return this.yamlUserToUser(yamlUser);
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes("already exists")
-      ) {
+      if (error instanceof Error && error.message.includes("already exists")) {
         requestLogger.error(
           "User creation failed: email already exists",
           error
@@ -146,10 +148,12 @@ export class YamlAuthService implements IAuthService {
       if (this.rateLimiter.isRateLimited(data.email)) {
         const remainingMs = this.rateLimiter.getRemainingLockout(data.email);
         const remainingMinutes = Math.ceil(remainingMs / (60 * 1000));
-        requestLogger.warn("Login attempt blocked by rate limiting", { 
-          remainingMinutes 
+        requestLogger.warn("Login attempt blocked by rate limiting", {
+          remainingMinutes,
         });
-        throw new Error(`Too many failed attempts. Try again in ${remainingMinutes} minutes.`);
+        throw new Error(
+          `Too many failed attempts. Try again in ${remainingMinutes} minutes.`
+        );
       }
 
       // Busca o usuário pelo email

@@ -20,10 +20,31 @@ export interface PasswordValidationOptions {
 
 // Common weak passwords to check against
 const COMMON_PASSWORDS = new Set([
-  'password', '123456', '123456789', 'qwerty', 'abc123', 'password123',
-  'admin', 'letmein', 'welcome', 'monkey', '1234567890', 'password1',
-  'qwerty123', 'admin123', 'root', 'toor', 'pass', 'test', 'user',
-  'guest', 'demo', 'sample', 'temp', 'changeme', 'default'
+  "password",
+  "123456",
+  "123456789",
+  "qwerty",
+  "abc123",
+  "password123",
+  "admin",
+  "letmein",
+  "welcome",
+  "monkey",
+  "1234567890",
+  "password1",
+  "qwerty123",
+  "admin123",
+  "root",
+  "toor",
+  "pass",
+  "test",
+  "user",
+  "guest",
+  "demo",
+  "sample",
+  "temp",
+  "changeme",
+  "default",
 ]);
 
 export class PasswordValidator {
@@ -37,7 +58,7 @@ export class PasswordValidator {
       requireNumbers: true,
       requireSpecialChars: true,
       prohibitCommonPasswords: true,
-      ...options
+      ...options,
     };
   }
 
@@ -51,7 +72,9 @@ export class PasswordValidator {
 
     // Check length
     if (password.length < this.options.minLength) {
-      errors.push(`Password must be at least ${this.options.minLength} characters long`);
+      errors.push(
+        `Password must be at least ${this.options.minLength} characters long`
+      );
     } else {
       score += 1;
       if (password.length >= 12) score += 1; // Bonus for longer passwords
@@ -61,28 +84,32 @@ export class PasswordValidator {
     const hasLowercase = /[a-z]/.test(password);
     const hasUppercase = /[A-Z]/.test(password);
     const hasNumbers = /[0-9]/.test(password);
-    const hasSpecialChars = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password);
+    const hasSpecialChars = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(
+      password
+    );
 
     if (this.options.requireLowercase && !hasLowercase) {
-      errors.push('Password must contain at least one lowercase letter');
+      errors.push("Password must contain at least one lowercase letter");
     } else if (hasLowercase) {
       score += 0.5;
     }
 
     if (this.options.requireUppercase && !hasUppercase) {
-      errors.push('Password must contain at least one uppercase letter');
+      errors.push("Password must contain at least one uppercase letter");
     } else if (hasUppercase) {
       score += 0.5;
     }
 
     if (this.options.requireNumbers && !hasNumbers) {
-      errors.push('Password must contain at least one number');
+      errors.push("Password must contain at least one number");
     } else if (hasNumbers) {
       score += 0.5;
     }
 
     if (this.options.requireSpecialChars && !hasSpecialChars) {
-      errors.push('Password must contain at least one special character (!@#$%^&*...)');
+      errors.push(
+        "Password must contain at least one special character (!@#$%^&*...)"
+      );
     } else if (hasSpecialChars) {
       score += 0.5;
     }
@@ -91,7 +118,9 @@ export class PasswordValidator {
     if (this.options.prohibitCommonPasswords) {
       const lowercasePassword = password.toLowerCase();
       if (COMMON_PASSWORDS.has(lowercasePassword)) {
-        errors.push('Password is too common. Please choose a more unique password');
+        errors.push(
+          "Password is too common. Please choose a more unique password"
+        );
         score = Math.max(0, score - 2);
       }
     }
@@ -111,10 +140,12 @@ export class PasswordValidator {
     // Provide suggestions for improvement
     if (errors.length === 0) {
       if (score < 3) {
-        suggestions.push('Consider making your password longer or more complex');
+        suggestions.push(
+          "Consider making your password longer or more complex"
+        );
       }
       if (!hasSpecialChars && this.options.requireSpecialChars) {
-        suggestions.push('Adding special characters can improve security');
+        suggestions.push("Adding special characters can improve security");
       }
     }
 
@@ -125,7 +156,7 @@ export class PasswordValidator {
       isValid: errors.length === 0,
       score,
       errors,
-      suggestions
+      suggestions,
     };
   }
 
@@ -143,15 +174,15 @@ export class PasswordValidator {
     switch (score) {
       case 0:
       case 1:
-        return 'Very Weak';
+        return "Very Weak";
       case 2:
-        return 'Weak';
+        return "Weak";
       case 3:
-        return 'Good';
+        return "Good";
       case 4:
-        return 'Strong';
+        return "Strong";
       default:
-        return 'Unknown';
+        return "Unknown";
     }
   }
 
@@ -160,17 +191,29 @@ export class PasswordValidator {
    */
   private hasSimplePatterns(password: string): boolean {
     // Check for sequential numbers
-    if (/123456|234567|345678|456789|567890|098765|987654|876543|765432|654321/.test(password)) {
+    if (
+      /123456|234567|345678|456789|567890|098765|987654|876543|765432|654321/.test(
+        password
+      )
+    ) {
       return true;
     }
 
     // Check for sequential letters
-    if (/abcdef|bcdefg|cdefgh|defghi|efghij|fedcba|edcbba|dcbabb|cbbaaf/.test(password.toLowerCase())) {
+    if (
+      /abcdef|bcdefg|cdefgh|defghi|efghij|fedcba|edcbba|dcbabb|cbbaaf/.test(
+        password.toLowerCase()
+      )
+    ) {
       return true;
     }
 
     // Check for keyboard patterns
-    if (/qwerty|asdfgh|zxcvbn|qwertyuiop|asdfghjkl|zxcvbnm/.test(password.toLowerCase())) {
+    if (
+      /qwerty|asdfgh|zxcvbn|qwertyuiop|asdfghjkl|zxcvbnm/.test(
+        password.toLowerCase()
+      )
+    ) {
       return true;
     }
 

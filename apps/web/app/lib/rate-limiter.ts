@@ -25,11 +25,14 @@ export class RateLimiter {
   constructor(config: RateLimitConfig, logger?: ILogger) {
     this.config = config;
     this.logger = logger || createServiceLogger("RateLimiter");
-    
+
     // Cleanup old entries every 5 minutes
-    this.cleanupInterval = setInterval(() => {
-      this.cleanup();
-    }, 5 * 60 * 1000);
+    this.cleanupInterval = setInterval(
+      () => {
+        this.cleanup();
+      },
+      5 * 60 * 1000
+    );
   }
 
   /**
@@ -45,10 +48,10 @@ export class RateLimiter {
 
     // Check if currently locked out
     if (record.lockedUntil && now < record.lockedUntil) {
-      this.logger.warn("Rate limit active", { 
-        identifier, 
+      this.logger.warn("Rate limit active", {
+        identifier,
         lockedUntil: new Date(record.lockedUntil),
-        remainingMs: record.lockedUntil - now
+        remainingMs: record.lockedUntil - now,
       });
       return true;
     }
@@ -95,12 +98,12 @@ export class RateLimiter {
     // Check if should be locked out
     if (record.attempts >= this.config.maxAttempts) {
       record.lockedUntil = now + this.config.lockoutDuration;
-      
+
       this.logger.warn("Rate limit triggered", {
         identifier,
         attempts: record.attempts,
         lockoutDuration: this.config.lockoutDuration,
-        lockedUntil: new Date(record.lockedUntil)
+        lockedUntil: new Date(record.lockedUntil),
       });
     }
 
@@ -112,7 +115,9 @@ export class RateLimiter {
    */
   recordSuccessfulAttempt(identifier: string): void {
     this.attempts.delete(identifier);
-    this.logger.debug("Rate limit reset after successful attempt", { identifier });
+    this.logger.debug("Rate limit reset after successful attempt", {
+      identifier,
+    });
   }
 
   /**
@@ -172,9 +177,9 @@ export class RateLimiter {
     }
 
     if (cleaned > 0) {
-      this.logger.debug("Rate limiter cleanup completed", { 
-        cleaned, 
-        remaining: this.attempts.size 
+      this.logger.debug("Rate limiter cleanup completed", {
+        cleaned,
+        remaining: this.attempts.size,
       });
     }
   }
@@ -194,7 +199,7 @@ export class RateLimiter {
 
     return {
       totalRecords: this.attempts.size,
-      lockedCount
+      lockedCount,
     };
   }
 
