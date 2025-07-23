@@ -13,7 +13,6 @@ describe("Config Module", () => {
     // Save original environment
     originalEnv = { ...process.env };
     // Clear any existing env vars that might interfere
-    delete process.env.DATABASE_URL;
     delete process.env.NODE_ENV;
     // Clear module cache to ensure fresh imports
     vi.resetModules();
@@ -28,45 +27,9 @@ describe("Config Module", () => {
     vi.resetModules();
   });
 
-  describe("DATABASE_URL configuration", () => {
-    it("should load DATABASE_URL from environment variables", async () => {
-      // Set environment variable
-      process.env.DATABASE_URL = "file:./test.db";
-
-      // Import config after setting env vars
-      const { config } = await import("./config.js");
-
-      expect(config.database.url).toBe("file:./test.db");
-    });
-
-    it("should throw error when DATABASE_URL is missing", async () => {
-      // Remove DATABASE_URL from environment
-      delete process.env.DATABASE_URL;
-
-      // Import should throw error due to missing required env var
-      await expect(async () => {
-        await import("./config.js");
-      }).rejects.toThrow(
-        "Required environment variable DATABASE_URL is not set or is empty"
-      );
-    });
-
-    it("should throw error when DATABASE_URL is empty string", async () => {
-      // Set empty string
-      process.env.DATABASE_URL = "";
-
-      // Import should throw error due to empty required env var
-      await expect(async () => {
-        await import("./config.js");
-      }).rejects.toThrow(
-        "Required environment variable DATABASE_URL is not set or is empty"
-      );
-    });
-  });
 
   describe("NODE_ENV configuration", () => {
     it("should use NODE_ENV from environment when set", async () => {
-      process.env.DATABASE_URL = "file:./test.db";
       process.env.NODE_ENV = "production";
 
       const { config } = await import("./config.js");
@@ -75,7 +38,6 @@ describe("Config Module", () => {
     });
 
     it("should default to development when NODE_ENV is not set", async () => {
-      process.env.DATABASE_URL = "file:./test.db";
       delete process.env.NODE_ENV;
 
       const { config } = await import("./config.js");
@@ -84,7 +46,6 @@ describe("Config Module", () => {
     });
 
     it("should default to development when NODE_ENV is empty", async () => {
-      process.env.DATABASE_URL = "file:./test.db";
       process.env.NODE_ENV = "";
 
       const { config } = await import("./config.js");
@@ -93,7 +54,6 @@ describe("Config Module", () => {
     });
 
     it("should handle test environment", async () => {
-      process.env.DATABASE_URL = "file:./test.db";
       process.env.NODE_ENV = "test";
 
       const { config } = await import("./config.js");
@@ -104,66 +64,29 @@ describe("Config Module", () => {
 
   describe("Type safety", () => {
     it("should export proper types", async () => {
-      process.env.DATABASE_URL = "file:./test.db";
       process.env.NODE_ENV = "development";
 
       const configModule = await import("./config.js");
 
       // Test that types are exported
       expect(typeof configModule.config).toBe("object");
-      expect(configModule.config.database).toBeDefined();
       expect(configModule.config.node).toBeDefined();
     });
 
     it("should have proper structure", async () => {
-      process.env.DATABASE_URL = "file:./test.db";
       process.env.NODE_ENV = "production";
 
       const { config } = await import("./config.js");
 
       // Test config structure
-      expect(config).toHaveProperty("database");
       expect(config).toHaveProperty("node");
-      expect(config.database).toHaveProperty("url");
       expect(config.node).toHaveProperty("env");
       expect(["development", "production", "test"]).toContain(config.node.env);
     });
   });
 
   describe("Environment variable validation", () => {
-    it("should throw error for invalid DATABASE_URL format", async () => {
-      process.env.DATABASE_URL = "invalid-url";
-
-      await expect(async () => {
-        await import("./config.js");
-      }).rejects.toThrow(
-        "Environment variable DATABASE_URL has invalid value: invalid-url"
-      );
-    });
-
-    it("should accept valid postgresql DATABASE_URL", async () => {
-      process.env.DATABASE_URL = "postgresql://user:pass@localhost:5432/db";
-      process.env.NODE_ENV = "test";
-
-      const { config } = await import("./config.js");
-
-      expect(config.database.url).toBe(
-        "postgresql://user:pass@localhost:5432/db"
-      );
-    });
-
-    it("should handle whitespace-only environment variables", async () => {
-      process.env.DATABASE_URL = "   ";
-
-      await expect(async () => {
-        await import("./config.js");
-      }).rejects.toThrow(
-        "Required environment variable DATABASE_URL is not set or is empty"
-      );
-    });
-
     it("should handle invalid NODE_ENV gracefully", async () => {
-      process.env.DATABASE_URL = "file:./test.db";
       process.env.NODE_ENV = "invalid-env";
 
       // Should not throw but use default value
@@ -175,8 +98,6 @@ describe("Config Module", () => {
 
   describe("dotenv integration", () => {
     it("should call dotenv config on module load", async () => {
-      process.env.DATABASE_URL = "file:./test.db";
-
       // Import config module
       await import("./config.js");
 

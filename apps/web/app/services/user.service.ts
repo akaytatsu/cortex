@@ -1,4 +1,3 @@
-// import { prisma } from "../lib/prisma"; // REMOVIDO: Prisma não mais usado
 import type { User } from "shared-types";
 import type { IUserService, ILogger } from "../types/services";
 import { createServiceLogger } from "../lib/logger";
@@ -14,11 +13,9 @@ export class UserService implements IUserService {
     const requestLogger = this.logger.withContext({ email: data.email });
     try {
       requestLogger.info("Attempting to create user");
-      const user = await prisma.user.create({
-        data,
-      });
-      requestLogger.info("User created successfully", { userId: user.id });
-      return user;
+      // REMOVIDO: Operação que dependia do Prisma
+      throw new Error("UserService obsoleto - use YamlUserService");
+      // Implementação removida - serviço obsoleto
     } catch (error) {
       // Handle unique constraint violation for email
       if (
@@ -40,14 +37,9 @@ export class UserService implements IUserService {
     const requestLogger = this.logger.withContext({ email });
     try {
       requestLogger.debug("Searching for user by email");
-      const user = await prisma.user.findUnique({
-        where: { email },
-      });
-      requestLogger.debug("User search completed", {
-        found: !!user,
-        userId: user?.id,
-      });
-      return user;
+      // REMOVIDO: Operação que dependia do Prisma
+      throw new Error("UserService obsoleto - use YamlUserService");
+      // Implementação removida - serviço obsoleto
     } catch (error) {
       requestLogger.error("Failed to find user by email", error as Error);
       throw error;
@@ -58,11 +50,9 @@ export class UserService implements IUserService {
     const requestLogger = this.logger.withContext({ userId: id });
     try {
       requestLogger.debug("Searching for user by ID");
-      const user = await prisma.user.findUnique({
-        where: { id },
-      });
-      requestLogger.debug("User search by ID completed", { found: !!user });
-      return user;
+      // REMOVIDO: Operação que dependia do Prisma
+      throw new Error("UserService obsoleto - use YamlUserService");
+      // Implementação removida - serviço obsoleto
     } catch (error) {
       requestLogger.error("Failed to find user by ID", error as Error);
       throw error;
@@ -79,12 +69,9 @@ export class UserService implements IUserService {
     });
     try {
       requestLogger.info("Attempting to update user");
-      const user = await prisma.user.update({
-        where: { id },
-        data,
-      });
-      requestLogger.info("User updated successfully");
-      return user;
+      // REMOVIDO: Operação que dependia do Prisma
+      throw new Error("UserService obsoleto - use YamlUserService");
+      // Implementação removida - serviço obsoleto
     } catch (error) {
       if (
         error instanceof Error &&
@@ -109,11 +96,9 @@ export class UserService implements IUserService {
     const requestLogger = this.logger.withContext({ userId: id });
     try {
       requestLogger.info("Attempting to delete user");
-      const user = await prisma.user.delete({
-        where: { id },
-      });
-      requestLogger.info("User deleted successfully");
-      return user;
+      // REMOVIDO: Operação que dependia do Prisma
+      throw new Error("UserService obsoleto - use YamlUserService");
+      // Implementação removida - serviço obsoleto
     } catch (error) {
       if (
         error instanceof Error &&
@@ -130,11 +115,9 @@ export class UserService implements IUserService {
   async getAllUsers(): Promise<User[]> {
     try {
       this.logger.debug("Retrieving all users");
-      const users = await prisma.user.findMany({
-        orderBy: { createdAt: "desc" },
-      });
-      this.logger.debug("All users retrieved", { count: users.length });
-      return users;
+      // REMOVIDO: Operação que dependia do Prisma
+      throw new Error("UserService obsoleto - use YamlUserService");
+      // Implementação removida - serviço obsoleto
     } catch (error) {
       this.logger.error("Failed to retrieve all users", error as Error);
       throw error;

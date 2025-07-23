@@ -243,7 +243,7 @@ export class YamlUserService implements IUserService {
    * Gera um ID único para usuário
    */
   private generateUserId(): string {
-    // Usar formato similar ao cuid do Prisma
+    // Usar formato similar ao cuid para compatibilidade
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substr(2, 9);
     return `user_${timestamp}${random}`;

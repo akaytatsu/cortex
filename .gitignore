@@ -13,3 +13,5 @@ node_modules/
 
 **/config/workspaces.yaml
 **/config/users.yaml
+
+**/users.yaml.*

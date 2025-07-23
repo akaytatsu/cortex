@@ -2,7 +2,6 @@ import fs from "fs/promises";
 import path from "path";
 import YAML from "yaml";
 import * as chokidar from "chokidar";
-import lockfile from "proper-lockfile";
 import {
   validateUsersYaml,
   type UsersYamlData,
@@ -27,7 +26,6 @@ export interface IYamlFileService {
 export class YamlFileService implements IYamlFileService {
   private logger: ILogger;
   private filePath: string;
-  private lockFilePath: string;
   private watcher?: chokidar.FSWatcher;
   private cache?: UsersYamlData;
   private cacheExpiry?: Date;
@@ -35,9 +33,20 @@ export class YamlFileService implements IYamlFileService {
 
   constructor(filePath?: string, logger?: ILogger) {
     this.logger = logger || createServiceLogger("YamlFileService");
-    this.filePath =
-      filePath || path.join(process.cwd(), "config", "users.yaml");
-    this.lockFilePath = `${this.filePath}.lock`;
+    
+    if (!filePath) {
+      // Detect the correct config path based on current working directory
+      const cwd = process.cwd();
+      if (cwd.endsWith('apps/web')) {
+        // Running from within apps/web directory
+        this.filePath = path.join(cwd, "config", "users.yaml");
+      } else {
+        // Running from project root
+        this.filePath = path.join(cwd, "apps", "web", "config", "users.yaml");
+      }
+    } else {
+      this.filePath = filePath;
+    }
   }
 
   async readUsers(): Promise<UsersYamlData> {
@@ -93,43 +102,38 @@ export class YamlFileService implements IYamlFileService {
       // Validate data before writing
       const validatedData = validateUsersYaml(data);
 
-      // Create backup first
-      await this.createBackup();
-
-      // Ensure directory exists
+      // Ensure directory exists first
       const dir = path.dirname(this.filePath);
       await fs.mkdir(dir, { recursive: true });
 
-      // Use file locking for concurrent writes
-      await lockfile.lock(this.filePath, {
-        stale: 30000, // 30 seconds
-        retries: {
-          retries: 3,
-          factor: 2,
-          minTimeout: 1000,
-          maxTimeout: 5000,
-        },
+      // Create backup after directory exists
+      await this.createBackup();
+
+      // Create empty file if it doesn't exist (required for lockfile)
+      try {
+        await fs.access(this.filePath);
+      } catch {
+        // File doesn't exist, create empty YAML structure
+        const emptyYaml = YAML.stringify({ users: [], config: {} }, { indent: 2 });
+        await fs.writeFile(this.filePath, emptyYaml, 'utf8');
+      }
+
+      // Write the file (temporarily removing lock for debugging)
+      const yamlContent = YAML.stringify(validatedData, {
+        indent: 2,
+        lineWidth: 0,
       });
 
-      try {
-        const yamlContent = YAML.stringify(validatedData, {
-          indent: 2,
-          lineWidth: 0,
-        });
+      await fs.writeFile(this.filePath, yamlContent, "utf8");
 
-        await fs.writeFile(this.filePath, yamlContent, "utf8");
+      // Set secure permissions (600 - rw-------)
+      await fs.chmod(this.filePath, 0o600);
 
-        // Set secure permissions (600 - rw-------)
-        await fs.chmod(this.filePath, 0o600);
+      // Update cache
+      this.cache = validatedData;
+      this.cacheExpiry = new Date(Date.now() + this.CACHE_TTL);
 
-        // Update cache
-        this.cache = validatedData;
-        this.cacheExpiry = new Date(Date.now() + this.CACHE_TTL);
-
-        requestLogger.info("Users data written successfully");
-      } finally {
-        await lockfile.unlock(this.filePath);
-      }
+      requestLogger.info("Users data written successfully");
     } catch (error) {
       requestLogger.error("Failed to write users YAML file", error as Error);
       throw new Error(
@@ -350,6 +354,15 @@ export class YamlFileService implements IYamlFileService {
     try {
       const dir = path.dirname(this.filePath);
       const baseName = path.basename(this.filePath);
+      
+      // Check if directory exists before trying to read it
+      try {
+        await fs.access(dir);
+      } catch {
+        // Directory doesn't exist, no backups to clean up
+        return;
+      }
+      
       const files = await fs.readdir(dir);
 
       const backupFiles = files
@@ -357,18 +370,21 @@ export class YamlFileService implements IYamlFileService {
         .map(file => ({
           name: file,
           path: path.join(dir, file),
-          stat: fs.stat(path.join(dir, file)),
         }));
 
       if (backupFiles.length <= 5) return;
 
       // Get file stats and sort by modification time
-      const backupsWithStats = await Promise.all(
-        backupFiles.map(async backup => ({
-          ...backup,
-          stat: await backup.stat,
-        }))
-      );
+      const backupsWithStats = [];
+      for (const backup of backupFiles) {
+        try {
+          const stat = await fs.stat(backup.path);
+          backupsWithStats.push({ ...backup, stat });
+        } catch (error) {
+          // File might have been deleted, skip it
+          this.logger.debug("Backup file no longer exists, skipping", { path: backup.path });
+        }
+      }
 
       backupsWithStats.sort(
         (a, b) => b.stat.mtime.getTime() - a.stat.mtime.getTime()

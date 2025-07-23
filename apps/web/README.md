@@ -22,7 +22,7 @@ Uma aplicação web full-stack construída com Remix, agora com sistema de auten
 2. **Configurar ambiente:**
    ```bash
    cp .env.example .env
-   # Configurar USE_YAML_AUTH=true no .env
+   # Sistema usa autenticação YAML por padrão
    ```
 
 3. **Executar aplicação:**
@@ -104,7 +104,6 @@ Os testes utilizam um arquivo `config/users-test.yaml` separado para isolamento.
 
 ```env
 NODE_ENV=production
-USE_YAML_AUTH=true
 YAML_USERS_FILE=config/users.yaml
 SESSION_SECRET=your-session-secret
 ```

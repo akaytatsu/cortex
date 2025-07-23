@@ -1,3 +1,4 @@
+import path from "path";
 import type {
   IAuthService,
   IUserService,
@@ -6,8 +7,6 @@ import type {
   IWorkspaceService,
   ILogger,
 } from "../types/services";
-import { AuthService } from "../services/auth.service";
-import { UserService } from "../services/user.service";
 import { YamlAuthService } from "../services/auth.service.yaml";
 import { YamlUserService } from "../services/user.service.yaml";
 import { YamlFileService } from "./yaml-file-service";
@@ -44,19 +43,10 @@ class ServiceContainer {
   }
 
   private registerDefaultServices(): void {
-    // Determinar qual implementação usar baseado em variável de ambiente
-    const useYaml = process.env.USE_YAML_AUTH === "true";
-
-    if (useYaml) {
-      // Usar implementações YAML
-      const yamlService = new YamlFileService();
-      this.factories.set("auth", () => new YamlAuthService(yamlService));
-      this.factories.set("user", () => new YamlUserService(yamlService));
-    } else {
-      // Usar implementações Prisma (padrão para compatibilidade)
-      this.factories.set("auth", () => new AuthService());
-      this.factories.set("user", () => new UserService());
-    }
+    // Usar implementações YAML (sistema único)
+    const yamlService = new YamlFileService();
+    this.factories.set("auth", () => new YamlAuthService(yamlService));
+    this.factories.set("user", () => new YamlUserService(yamlService));
 
     // Outros serviços permanecem inalterados
     this.factories.set("terminal", () => terminalService);
