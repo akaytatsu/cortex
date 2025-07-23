@@ -145,10 +145,10 @@
     4. Um mecanismo de limpeza remove sessões "órfãs" (processos que não existem mais).
 
 - **História 4.5: Backend - Timeout Automático de Sessões Inativas**
-  - **Como um(a)** Desenvolvedor(a), **eu quero** que sessões inativas por mais de 6 horas sejam encerradas, **para que** os recursos do sistema sejam preservados.
+  - **Como um(a)** Desenvolvedor(a), **eu quero** que sessões inativas por mais de 12 horas sejam encerradas, **para que** os recursos do sistema sejam preservados.
   - **Critérios de Aceitação:**
     1. Uma tarefa agendada verifica periodicamente o `sessions.yaml`.
-    2. Sessões com mais de 6 horas de duração são identificadas.
+    2. Sessões com mais de 12 horas de duração são identificadas.
     3. O processo `claude code` correspondente é encerrado, e a entrada é removida do `sessions.yaml`.
 
 - **História 4.6: Frontend - Painel do Copiloto e Exibição em Tempo Real**
