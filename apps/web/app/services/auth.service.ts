@@ -5,123 +5,28 @@ import { config } from "../lib/config";
 import { createServiceLogger } from "../lib/logger";
 import { serviceContainer } from "../lib/service-container";
 
+/**
+ * @deprecated AuthService foi substituído pelo YamlAuthService.
+ * Este arquivo é mantido apenas para garantir que referências obsoletas falhem explicitamente.
+ * Use o YamlAuthService através do service container em vez desta implementação.
+ */
 export class AuthService implements IAuthService {
   private logger: ILogger;
 
   constructor(logger?: ILogger) {
     this.logger = logger || createServiceLogger("AuthService");
+    throw new Error("AuthService obsoleto - use YamlAuthService através do service container");
   }
-  /**
-   * Verifica se existem usuários no banco de dados
-   */
+
   async hasUsers(): Promise<boolean> {
-    try {
-      this.logger.debug("Checking if users exist in database");
-      // REMOVIDO: Verificação que dependia do Prisma
-      throw new Error("AuthService obsoleto - use YamlAuthService");
-      const hasUsers = userCount > 0;
-      this.logger.debug("User count check completed", { userCount, hasUsers });
-      return hasUsers;
-    } catch (error) {
-      this.logger.error("Failed to check user count", error as Error);
-      if (error instanceof Error) {
-        throw new Error(`Failed to check user count: ${error.message}`);
-      }
-      throw error;
-    }
+    throw new Error("AuthService obsoleto - use YamlAuthService através do service container");
   }
 
-  /**
-   * Cria o primeiro usuário (para setup inicial)
-   */
-  async createFirstUser(data: {
-    email: string;
-    password: string;
-  }): Promise<User> {
-    const requestLogger = this.logger.withContext({ email: data.email });
-    try {
-      requestLogger.info("Attempting to create first user");
-
-      // Verifica se já existe algum usuário
-      const hasExistingUsers = await this.hasUsers();
-      if (hasExistingUsers) {
-        requestLogger.warn("Cannot create first user: users already exist");
-        throw new Error("Cannot create first user: users already exist");
-      }
-
-      // Hash da senha usando configuração centralizada
-      const hashedPassword = await bcrypt.hash(
-        data.password,
-        config.auth.saltRounds
-      );
-      requestLogger.debug("Password hashed successfully");
-
-      // REMOVIDO: Criação que dependia do Prisma
-      throw new Error("AuthService obsoleto - use YamlAuthService");
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes("Unique constraint failed")
-      ) {
-        requestLogger.error(
-          "User creation failed: email already exists",
-          error
-        );
-        throw new Error(`User with email ${data.email} already exists`);
-      }
-      requestLogger.error("Failed to create first user", error as Error);
-      throw error;
-    }
+  async createFirstUser(data: { email: string; password: string }): Promise<User> {
+    throw new Error("AuthService obsoleto - use YamlAuthService através do service container");
   }
 
-  /**
-   * Valida as credenciais de login do usuário
-   */
-  async validateLogin(data: {
-    email: string;
-    password: string;
-  }): Promise<UserPublic> {
-    const requestLogger = this.logger.withContext({ email: data.email });
-    try {
-      requestLogger.debug("Attempting user login validation");
-
-      // Busca o usuário pelo email
-      const userService = serviceContainer.getUserService();
-      const user = await userService.getUserByEmail(data.email);
-      if (!user) {
-        requestLogger.warn("Login attempt failed: user not found");
-        throw new Error("Invalid email or password");
-      }
-
-      requestLogger.debug("User found, validating password", {
-        userId: user.id,
-      });
-
-      // Verifica se a senha está correta usando bcrypt
-      const isValidPassword = await bcrypt.compare(
-        data.password,
-        user.password
-      );
-      if (!isValidPassword) {
-        requestLogger.warn("Login attempt failed: invalid password", {
-          userId: user.id,
-        });
-        throw new Error("Invalid email or password");
-      }
-
-      requestLogger.info("User login successful", { userId: user.id });
-
-      // Retorna o usuário sem a senha usando o tipo UserPublic
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password, ...userWithoutPassword } = user;
-      return userWithoutPassword;
-    } catch (error) {
-      if (error instanceof Error) {
-        requestLogger.error("Login validation failed", error);
-        throw error;
-      }
-      requestLogger.error("Authentication failed with unknown error");
-      throw new Error("Authentication failed");
-    }
+  async validateLogin(data: { email: string; password: string }): Promise<UserPublic> {
+    throw new Error("AuthService obsoleto - use YamlAuthService através do service container");
   }
 }
