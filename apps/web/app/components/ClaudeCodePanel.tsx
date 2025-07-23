@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Minus, MessageSquare } from "lucide-react";
-import type { ClaudeCodeConversation } from "shared-types";
+import type { ClaudeCodeConversation, ClaudeCodeMessage } from "shared-types";
 import { ConversationHistory } from "./ConversationHistory";
 import { MessageInput } from "./MessageInput";
 import { StatusIndicator } from "./StatusIndicator";
 import { useClaudeCodeService } from "./ClaudeCodeService";
+import { AgentService } from "../services/agent.service";
 
 interface ClaudeCodePanelProps {
   workspaceName: string;
@@ -34,8 +35,61 @@ export function ClaudeCodePanel({
     onConversationUpdate: setConversation,
   });
 
+  const agentService = AgentService.getInstance();
+  const [activeAgent, setActiveAgent] = useState(agentService.getActiveAgent());
+
+  // Update active agent state when it changes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentAgent = agentService.getActiveAgent();
+      setActiveAgent(currentAgent);
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [agentService]);
+
+  const addMessageToConversation = (content: string, type: "user" | "assistant") => {
+    const newMessage: ClaudeCodeMessage = {
+      id: Date.now().toString(),
+      type,
+      content,
+      timestamp: new Date(),
+      status: "sent"
+    };
+
+    setConversation(prev => ({
+      ...prev,
+      messages: [...prev.messages, newMessage]
+    }));
+  };
+
   const handleSendMessage = async (message: string) => {
+    // Add user message to conversation
+    addMessageToConversation(message, "user");
+
+    // Check if it's an agent command
+    if (agentService.isAgentCommand(message)) {
+      const response = agentService.processAgentCommand(message);
+      addMessageToConversation(response, "assistant");
+      return;
+    }
+
+    // Otherwise, send to Claude Code CLI
     await sendMessage(message);
+  };
+
+  const handleSlashCommand = async (command: string, args: string[]) => {
+    // Add command to conversation
+    addMessageToConversation(`/${command} ${args.join(" ")}`, "user");
+
+    // Activate agent
+    const result = await agentService.activateAgent(command, args);
+    
+    if (result.success && result.greeting) {
+      addMessageToConversation(result.greeting, "assistant");
+    } else if (result.error) {
+      addMessageToConversation(`❌ ${result.error}`, "assistant");
+    }
   };
 
   if (!isVisible) {
@@ -52,11 +106,11 @@ export function ClaudeCodePanel({
           </div>
           <div className="flex-1">
             <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              Claude Code Assistant
+              {activeAgent ? `${activeAgent.name} ${activeAgent.icon}` : "Claude Code Assistant"}
             </h2>
             <div className="flex items-center justify-between mt-1">
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                AI pair programming companion
+                {activeAgent ? activeAgent.title : "AI pair programming companion"}
               </p>
             </div>
           </div>
@@ -136,7 +190,12 @@ export function ClaudeCodePanel({
         {/* Input Area */}
         <MessageInput
           onSendMessage={handleSendMessage}
-          placeholder="Ask Claude Code anything..."
+          onSlashCommand={handleSlashCommand}
+          placeholder={
+            activeAgent 
+              ? `Fale com ${activeAgent.name} ${activeAgent.icon}...` 
+              : "Ask Claude Code anything..."
+          }
           isDisabled={conversation.status === "thinking"}
         />
       </div>

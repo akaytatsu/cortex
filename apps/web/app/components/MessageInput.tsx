@@ -3,22 +3,43 @@ import { Send } from "lucide-react";
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
+  onSlashCommand?: (command: string, args: string[]) => void;
   isDisabled?: boolean;
   placeholder?: string;
 }
 
 export function MessageInput({
   onSendMessage,
+  onSlashCommand,
   isDisabled = false,
   placeholder = "Ask Claude Code anything...",
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const isSlashCommand = (text: string): boolean => {
+    return text.startsWith("/") && text.includes(":");
+  };
+
+  const parseSlashCommand = (text: string): { command: string; args: string[] } => {
+    const parts = text.slice(1).split(/\s+/);
+    const command = parts[0];
+    const args = parts.slice(1);
+    return { command, args };
+  };
+
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (message.trim() && !isDisabled) {
-      onSendMessage(message.trim());
+      const trimmedMessage = message.trim();
+      
+      if (isSlashCommand(trimmedMessage) && onSlashCommand) {
+        const { command, args } = parseSlashCommand(trimmedMessage);
+        onSlashCommand(command, args);
+      } else {
+        onSendMessage(trimmedMessage);
+      }
+      
       setMessage("");
     }
   };
@@ -44,6 +65,8 @@ export function MessageInput({
     adjustTextareaHeight();
   }, [message]);
 
+  const isCurrentlySlashCommand = isSlashCommand(message);
+
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
       <div className="p-4">
@@ -56,7 +79,11 @@ export function MessageInput({
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
               disabled={isDisabled}
-              className="w-full p-3 pr-4 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 placeholder-gray-500 dark:placeholder-gray-400"
+              className={`w-full p-3 pr-4 text-sm bg-gray-50 dark:bg-gray-700 border rounded-xl resize-none focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 placeholder-gray-500 dark:placeholder-gray-400 ${
+                isCurrentlySlashCommand 
+                  ? "border-purple-300 dark:border-purple-600 focus:ring-purple-500 bg-purple-50 dark:bg-purple-900/20" 
+                  : "border-gray-200 dark:border-gray-600 focus:ring-blue-500 focus:border-transparent"
+              }`}
               style={{ minHeight: "44px", maxHeight: "120px" }}
               rows={1}
             />
@@ -71,16 +98,22 @@ export function MessageInput({
           </button>
         </form>
         <div className="flex items-center justify-between mt-2">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs border border-gray-200 dark:border-gray-600">
-              Enter
-            </kbd>{" "}
-            para enviar,{" "}
-            <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs border border-gray-200 dark:border-gray-600">
-              Shift+Enter
-            </kbd>{" "}
-            para nova linha
-          </p>
+          {isCurrentlySlashCommand ? (
+            <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+              🤖 Comando de agente detectado
+            </p>
+          ) : (
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs border border-gray-200 dark:border-gray-600">
+                Enter
+              </kbd>{" "}
+              para enviar,{" "}
+              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs border border-gray-200 dark:border-gray-600">
+                Shift+Enter
+              </kbd>{" "}
+              para nova linha
+            </p>
+          )}
           {message && (
             <p className="text-xs text-gray-400 dark:text-gray-500">
               {message.length} caracteres
