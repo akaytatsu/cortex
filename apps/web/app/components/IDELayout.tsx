@@ -4,6 +4,7 @@ import type { Workspace } from "shared-types";
 import { FileBrowser } from "./FileBrowser";
 import { CodeViewer } from "./CodeViewer";
 import { Terminal } from "./Terminal";
+import { ClaudeCodePanel } from "./ClaudeCodePanel";
 import { FileWebSocketProvider } from "../contexts/FileWebSocketContext";
 
 interface IDELayoutProps {
@@ -14,6 +15,7 @@ export function IDELayout({ workspace }: IDELayoutProps) {
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [bottomPanelHeight, setBottomPanelHeight] = useState(200);
   const [isBottomPanelVisible, setIsBottomPanelVisible] = useState(false);
+  const [isClaudeCodePanelVisible, setIsClaudeCodePanelVisible] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
   const handleSidebarResize = (e: React.MouseEvent) => {
@@ -121,46 +123,57 @@ export function IDELayout({ workspace }: IDELayoutProps) {
         ></button>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col">
-          {/* Main Content */}
-          <div
-            className="flex-1 bg-white dark:bg-gray-800"
-            style={{
-              height: isBottomPanelVisible
-                ? `calc(100% - ${bottomPanelHeight}px)`
-                : "100%",
-            }}
-          >
-            <FileWebSocketProvider workspaceName={workspace.name}>
-              <CodeViewer
-                workspaceName={workspace.name}
-                filePath={selectedFile}
-              />
-            </FileWebSocketProvider>
+        <div className="flex-1 flex">
+          {/* Code Editor Area */}
+          <div className="flex-1 flex flex-col">
+            {/* Main Content */}
+            <div
+              className="flex-1 bg-white dark:bg-gray-800"
+              style={{
+                height: isBottomPanelVisible
+                  ? `calc(100% - ${bottomPanelHeight}px)`
+                  : "100%",
+              }}
+            >
+              <FileWebSocketProvider workspaceName={workspace.name}>
+                <CodeViewer
+                  workspaceName={workspace.name}
+                  filePath={selectedFile}
+                />
+              </FileWebSocketProvider>
+            </div>
+
+            {/* Bottom Panel Resize Handle */}
+            {isBottomPanelVisible && (
+              <button
+                className="h-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-row-resize focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onMouseDown={handleBottomPanelResize}
+                aria-label="Redimensionar painel inferior"
+              ></button>
+            )}
+
+            {/* Bottom Panel (Terminal) */}
+            {isBottomPanelVisible && (
+              <div
+                className="bg-gray-900 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700"
+                style={{ height: bottomPanelHeight }}
+              >
+                <Terminal
+                  workspaceName={workspace.name}
+                  workspacePath={workspace.path}
+                  onClose={() => setIsBottomPanelVisible(false)}
+                />
+              </div>
+            )}
           </div>
 
-          {/* Bottom Panel Resize Handle */}
-          {isBottomPanelVisible && (
-            <button
-              className="h-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-row-resize focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onMouseDown={handleBottomPanelResize}
-              aria-label="Redimensionar painel inferior"
-            ></button>
-          )}
-
-          {/* Bottom Panel (Terminal) */}
-          {isBottomPanelVisible && (
-            <div
-              className="bg-gray-900 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700"
-              style={{ height: bottomPanelHeight }}
-            >
-              <Terminal
-                workspaceName={workspace.name}
-                workspacePath={workspace.path}
-                onClose={() => setIsBottomPanelVisible(false)}
-              />
-            </div>
-          )}
+          {/* Claude Code Panel */}
+          <ClaudeCodePanel
+            workspaceName={workspace.name}
+            workspacePath={workspace.path}
+            isVisible={isClaudeCodePanelVisible}
+            onToggleVisibility={setIsClaudeCodePanelVisible}
+          />
         </div>
       </div>
 
@@ -173,6 +186,12 @@ export function IDELayout({ workspace }: IDELayoutProps) {
             className="hover:bg-blue-500 dark:hover:bg-blue-600 px-2 py-0.5 rounded"
           >
             Terminal
+          </button>
+          <button
+            onClick={() => setIsClaudeCodePanelVisible(!isClaudeCodePanelVisible)}
+            className="hover:bg-blue-500 dark:hover:bg-blue-600 px-2 py-0.5 rounded"
+          >
+            Claude Code
           </button>
         </div>
         <div className="text-xs text-white">

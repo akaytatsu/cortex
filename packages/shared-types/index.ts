@@ -219,3 +219,20 @@ export interface ExternalChangeMessage extends WSFileMessage {
     changeType: "modified" | "created" | "deleted";
   };
 }
+
+// Claude Code Panel types
+export interface ClaudeCodeMessage {
+  id: string;
+  type: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+  status?: "sending" | "sent" | "error";
+}
+
+export interface ClaudeCodeConversation {
+  id: string;
+  sessionId: string;
+  messages: ClaudeCodeMessage[];
+  status: "active" | "thinking" | "error" | "idle";
+  workspacePath: string;
+}
