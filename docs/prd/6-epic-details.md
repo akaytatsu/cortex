@@ -109,32 +109,47 @@
     1.  O painel inferior contém um terminal web funcional.
     2.  A sessão do terminal inicia no diretório do workspace selecionado.
 
-## Epic 4: AI Integration
+## Epic 4: Claude Code CLI Integration
 
-**Meta Expandida:** Este épico integra a CLI do Claude Code na IDE, transformando-a em uma interface gráfica inteligente para a ferramenta, permitindo a execução de fluxos de trabalho de forma visual e a criação de automações.
+**Meta Expandida:** Este épico integra o Claude Code CLI - uma ferramenta de IA para desenvolvimento que roda no terminal - na IDE, permitindo que desenvolvedores aproveitem suas capacidades de análise de codebase, geração de código e automação de tarefas diretamente no ambiente web, mantendo a experiência natural de linha de comando.
 
-- **Story 4.1: Integrate Claude Code CLI into the Web Terminal**
-  - **As a** Developer, **I want** a CLI do Claude Code acessível no terminal, **so that** I can run its commands.
+- **Story 4.1: Verify Claude Code CLI Compatibility and Detection**
+  - **As a** Developer, **I want** que o sistema detecte se o Claude Code CLI está disponível, **so that** I can use AI-powered coding assistance when properly configured.
   - **Acceptance Criteria:**
-    1.  A CLI `claude-code` está instalada no ambiente do servidor.
-    2.  `claude-code --version` funciona no terminal da IDE.
-    3.  A configuração das chaves de API é gerenciada por variáveis de ambiente.
-- **Story 4.2: Create a UI Assistant for Common Claude Code Workflows**
-  - **As a** Developer, **I want** a UI to help me use common Claude Code workflows, **so that** I don't have to type the full commands.
+    1.  Sistema verifica se o comando `claude` está disponível no PATH do servidor.
+    2.  Se disponível, exibe indicador visual no terminal ou interface.
+    3.  Se não disponível, exibe instruções claras de instalação manual para o administrador.
+    4.  Terminal inicia no diretório correto do workspace para contexto adequado.
+    5.  Sistema não tenta instalar ou configurar automaticamente o Claude Code CLI.
+- **Story 4.2: Create Elegant Claude Code Conversation Panel**
+  - **As a** Developer, **I want** um painel elegante e conversacional no canto direito para interagir com o Claude Code CLI, **so that** I can ter uma experiência de colaboração com IA profissional e intuitiva.
   - **Acceptance Criteria:**
-    1.  O painel direito é um "Assistente Claude Code".
-    2.  Contém UI para ações como "Gerar Testes", "Explicar Código".
-    3.  As ações constroem e executam o comando CLI correspondente.
-    4.  O output da CLI é exibido de forma formatada no painel.
-    5.  A lógica de backend que constrói os comandos é abstraída para permitir futuros "providers" de outras CLIs.
-- **Story 4.3: Re-imagine AI Task Orchestration as a Claude Code Workflow Builder**
-  - **As a** Developer, **I want** to build and save custom workflows using `claude-code` commands, **so that** I can automate my processes.
+    1.  Um painel "Claude Code Assistant" é posicionado no canto direito da IDE (conforme layout spec).
+    2.  Interface conversacional elegante com design limpo inspirado no Conductor - fundo claro, tipografia moderna, espaçamento adequado.
+    3.  Mensagens são apresentadas como bubbles de conversa, não como output de terminal.
+    4.  Suporte para markdown rendering nas respostas do Claude Code (código, listas, etc.).
+    5.  Histórico de conversas navegável com scroll suave e indicadores visuais.
+    6.  Input field moderno com placeholder contextual ("Ask Claude Code anything...").
+    7.  Indicadores visuais elegantes para status (thinking, typing, error states).
+- **Story 4.3: Implement Claude Code Context Awareness in Dedicated Panel**
+  - **As a** Developer, **I want** que o Claude Code no painel dedicado tenha contexto completo do meu workspace, **so that** suas sugestões sejam mais precisas.
   - **Acceptance Criteria:**
-    1.  A UI de "Orquestração de Tarefas" é um "Construtor de Workflows".
-    2.  Permite criar um workflow com múltiplos passos, cada um sendo um comando `claude-code`.
-    3.  Workflows podem ser salvos.
-    4.  Executar um workflow roda os comandos em sequência.
-    5.  A estrutura do workflow é genérica para suportar outras CLIs no futuro.
+    1.  Claude Code no painel dedicado é iniciado sempre no diretório raiz do workspace selecionado.
+    2.  Arquivos `.claude-code/` para configurações específicas do projeto são suportados.
+    3.  Claude Code pode acessar todos os arquivos do workspace para análise.
+    4.  Sessões podem ser resumidas usando funcionalidade `--resume` do Claude Code.
+    5.  Configurações de projeto (se existirem) são respeitadas automaticamente.
+    6.  Mudanças de workspace atualizam automaticamente o contexto do Claude Code no painel.
+- **Story 4.4: Implement Elegant Claude Code Panel Integration Features**
+  - **As a** Developer, **I want** funcionalidades sofisticadas de integração entre o painel conversacional Claude Code e a IDE, **so that** I can collaborate seamlessly with AI.
+  - **Acceptance Criteria:**
+    1.  Arquivos mencionados pelo Claude Code são apresentados como links elegantes que abrem no editor principal.
+    2.  Código sugerido aparece em blocos destacados com botão "Apply to File" elegante.
+    3.  Copy buttons discretos mas acessíveis para comandos e snippets de código.
+    4.  Integração contextual: arquivos selecionados no file browser podem ser enviados ao Claude Code com "@filename".
+    5.  Loading states elegantes e progress indicators para operações longas.
+    6.  Modo focus expandido com overlay elegante para conversas complexas.
+    7.  Quick actions buttons para comandos comuns (Explain, Test, Fix, Refactor).
 
 ## Epic 5: Git Integration
 
