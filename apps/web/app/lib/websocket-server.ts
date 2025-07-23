@@ -131,7 +131,7 @@ class TerminalWebSocketServer {
     logger.info("Terminal WebSocket server started", { port: this.port });
   }
 
-  private handleTerminalConnection(ws: TerminalWebSocket, _request: IncomingMessage) {
+  private handleTerminalConnection(ws: TerminalWebSocket) {
     logger.info("Accepted terminal connection");
 
     ws.isAlive = true;
