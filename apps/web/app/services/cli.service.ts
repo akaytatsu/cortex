@@ -18,6 +18,7 @@ interface ClaudeProcess {
   workspacePath: string;
   command?: string;
   startTime: Date;
+  forceKillTimeout?: NodeJS.Timeout;
 }
 
 const logger = createServiceLogger("CliService");
@@ -25,7 +26,7 @@ const logger = createServiceLogger("CliService");
 class CliService {
   private activeProcesses = new Map<string, ClaudeProcess>();
   private readonly ALLOWED_COMMANDS = ["claude"];
-  private readonly DANGEROUS_CHARS_REGEX = /[;&|$`\\]/;
+  private readonly DANGEROUS_CHARS_REGEX = /[;&|$`\\<>]/;
   private readonly COMMAND_TIMEOUT = 30000; // 30 seconds
 
   private validateWorkspacePath(workspacePath: string): string {
@@ -123,11 +124,19 @@ class CliService {
 
       childProcess.on('exit', (code, signal) => {
         sessionLogger.info("Claude Code process exited", { exitCode: code, signal });
+        const process = this.activeProcesses.get(sessionId);
+        if (process?.forceKillTimeout) {
+          clearTimeout(process.forceKillTimeout);
+        }
         this.activeProcesses.delete(sessionId);
       });
 
       childProcess.on('error', (error) => {
         sessionLogger.error("Claude Code process error", error);
+        const process = this.activeProcesses.get(sessionId);
+        if (process?.forceKillTimeout) {
+          clearTimeout(process.forceKillTimeout);
+        }
         this.activeProcesses.delete(sessionId);
       });
 
@@ -156,14 +165,17 @@ class CliService {
 
       claudeProcess.process.kill('SIGTERM');
 
-      setTimeout(() => {
+      // Force kill after 5 seconds if process doesn't terminate gracefully
+      const forceKillTimeout = setTimeout(() => {
         if (this.activeProcesses.has(sessionId)) {
           sessionLogger.warn("Process did not terminate gracefully, sending SIGKILL");
           claudeProcess.process.kill('SIGKILL');
         }
       }, 5000);
 
-      this.activeProcesses.delete(sessionId);
+      // Store the timeout so it can be cleared later if process exits gracefully
+      claudeProcess.forceKillTimeout = forceKillTimeout;
+      this.activeProcesses.set(sessionId, claudeProcess);
       sessionLogger.info("Claude Code process stopped successfully");
       
       return true;
@@ -203,7 +215,11 @@ class CliService {
   cleanup(): void {
     logger.info("Cleaning up all Claude Code processes", { count: this.activeProcesses.size });
     
-    for (const sessionId of this.activeProcesses.keys()) {
+    // Clear all timeouts before stopping processes to prevent memory leaks
+    for (const [sessionId, process] of this.activeProcesses.entries()) {
+      if (process.forceKillTimeout) {
+        clearTimeout(process.forceKillTimeout);
+      }
       this.stopProcess(sessionId);
     }
   }
