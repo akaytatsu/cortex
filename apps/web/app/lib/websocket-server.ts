@@ -1,7 +1,8 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { IncomingMessage } from "http";
 import { terminalService } from "../services/terminal.service";
-import type { TerminalMessage, ClaudeCodeMessage } from "shared-types";
+import { cliService } from "../services/cli.service";
+import type { TerminalMessage, ClaudeCodeMessage, SessionMapping } from "shared-types";
 import { SessionService } from "../services/session.service";
 import { createServiceLogger } from "./logger";
 
@@ -28,6 +29,7 @@ class TerminalWebSocketServer {
   private wss: WebSocketServer | null = null;
   private clients = new Map<string, TerminalWebSocket>();
   private claudeCodeClients = new Map<string, ClaudeCodeWebSocket>();
+  private activeSessions = new Map<string, SessionMapping>();
   public port: number = 8000;
 
   static getInstance(): TerminalWebSocketServer {
@@ -259,27 +261,16 @@ class TerminalWebSocketServer {
 
   private async handleClaudeCodeMessage(ws: ClaudeCodeWebSocket, message: ClaudeCodeMessage) {
     try {
-      // Ensure connection has sessionId
-      if (!ws.sessionId) {
-        ws.sessionId = message.sessionId;
-        this.claudeCodeClients.set(message.sessionId, ws);
-      }
-
       // Process message based on type
       switch (message.type) {
+        case 'start_session':
+          await this.handleStartSession(ws, message);
+          break;
+        case 'stop_session':
+          await this.handleStopSession(ws, message);
+          break;
         case 'input':
-          // Handle input from client (e.g., commands to execute)
-          logger.info("Received input from Claude Code client", { 
-            sessionId: message.sessionId,
-            userId: ws.userId,
-            data: message.data.substring(0, 100) // Log first 100 chars
-          });
-          // Echo back for now - in future this will integrate with claude code execution
-          this.sendClaudeCodeMessage(ws, {
-            type: "output",
-            data: `Processed: ${message.data}`,
-            sessionId: message.sessionId,
-          });
+          await this.handleSessionInput(ws, message);
           break;
         case 'exit':
           // Handle client exit
@@ -287,7 +278,10 @@ class TerminalWebSocketServer {
             sessionId: message.sessionId,
             userId: ws.userId 
           });
-          this.claudeCodeClients.delete(message.sessionId);
+          if (message.sessionId) {
+            await this.handleStopSession(ws, message);
+            this.claudeCodeClients.delete(message.sessionId);
+          }
           ws.close();
           break;
         default:
@@ -303,6 +297,197 @@ class TerminalWebSocketServer {
       this.sendClaudeCodeMessage(ws, {
         type: "error",
         data: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+        sessionId: message.sessionId,
+      });
+    }
+  }
+
+  private async handleStartSession(ws: ClaudeCodeWebSocket, message: ClaudeCodeMessage) {
+    try {
+      if (!message.workspacePath || !message.sessionId) {
+        throw new Error("Missing required parameters: workspacePath and sessionId");
+      }
+
+      logger.info("Starting Claude Code session", {
+        sessionId: message.sessionId,
+        workspacePath: message.workspacePath,
+        command: message.command,
+        userId: ws.userId
+      });
+
+      // Check if session already exists
+      if (this.activeSessions.has(message.sessionId)) {
+        throw new Error("Session already exists");
+      }
+
+      // Start the Claude Code process
+      const result = await cliService.startProcess(
+        message.workspacePath,
+        message.sessionId,
+        message.command
+      );
+
+      // Store session mapping
+      const sessionMapping: SessionMapping = {
+        pid: result.pid,
+        websocketConnection: ws,
+        startTime: new Date(),
+        workspacePath: message.workspacePath,
+      };
+
+      this.activeSessions.set(message.sessionId, sessionMapping);
+      this.claudeCodeClients.set(message.sessionId, ws);
+      ws.sessionId = message.sessionId;
+
+      // Setup output redirection
+      const process = cliService.getProcess(message.sessionId);
+      if (process) {
+        // Create a buffer to avoid spam of small messages
+        let outputBuffer = '';
+        let errorBuffer = '';
+        const bufferDelay = 50; // 50ms buffer
+
+        const flushOutputBuffer = () => {
+          if (outputBuffer.length > 0) {
+            this.sendClaudeCodeMessage(ws, {
+              type: 'stdout',
+              data: outputBuffer,
+              sessionId: message.sessionId,
+            });
+            outputBuffer = '';
+          }
+        };
+
+        const flushErrorBuffer = () => {
+          if (errorBuffer.length > 0) {
+            this.sendClaudeCodeMessage(ws, {
+              type: 'stderr',
+              data: errorBuffer,
+              sessionId: message.sessionId,
+            });
+            errorBuffer = '';
+          }
+        };
+
+        process.stdout?.on('data', (data: Buffer) => {
+          outputBuffer += data.toString();
+          setTimeout(flushOutputBuffer, bufferDelay);
+        });
+
+        process.stderr?.on('data', (data: Buffer) => {
+          errorBuffer += data.toString();
+          setTimeout(flushErrorBuffer, bufferDelay);
+        });
+
+        process.on('exit', (code) => {
+          // Flush any remaining buffered output
+          flushOutputBuffer();
+          flushErrorBuffer();
+          
+          this.sendClaudeCodeMessage(ws, {
+            type: 'session_stopped',
+            sessionId: message.sessionId,
+            exitCode: code || undefined,
+          });
+          
+          this.activeSessions.delete(message.sessionId);
+          this.claudeCodeClients.delete(message.sessionId);
+        });
+      }
+
+      // Send success response
+      this.sendClaudeCodeMessage(ws, {
+        type: 'session_started',
+        sessionId: message.sessionId,
+        status: 'success',
+      });
+
+    } catch (error) {
+      logger.error("Failed to start Claude Code session", error as Error, {
+        sessionId: message.sessionId,
+        workspacePath: message.workspacePath,
+      });
+
+      this.sendClaudeCodeMessage(ws, {
+        type: 'session_started',
+        sessionId: message.sessionId,
+        status: 'error',
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  private async handleStopSession(ws: ClaudeCodeWebSocket, message: ClaudeCodeMessage) {
+    try {
+      if (!message.sessionId) {
+        throw new Error("Missing sessionId");
+      }
+
+      logger.info("Stopping Claude Code session", {
+        sessionId: message.sessionId,
+        userId: ws.userId
+      });
+
+      const sessionMapping = this.activeSessions.get(message.sessionId);
+      if (!sessionMapping) {
+        this.sendClaudeCodeMessage(ws, {
+          type: 'session_stopped',
+          sessionId: message.sessionId,
+          message: "Session not found",
+        });
+        return;
+      }
+
+      // Stop the process
+      const success = cliService.stopProcess(message.sessionId);
+      
+      if (success) {
+        this.activeSessions.delete(message.sessionId);
+        this.claudeCodeClients.delete(message.sessionId);
+        
+        this.sendClaudeCodeMessage(ws, {
+          type: 'session_stopped',
+          sessionId: message.sessionId,
+        });
+      } else {
+        throw new Error("Failed to stop process");
+      }
+
+    } catch (error) {
+      logger.error("Failed to stop Claude Code session", error as Error, {
+        sessionId: message.sessionId,
+      });
+
+      this.sendClaudeCodeMessage(ws, {
+        type: 'error',
+        data: `Failed to stop session: ${error instanceof Error ? error.message : "Unknown error"}`,
+        sessionId: message.sessionId,
+      });
+    }
+  }
+
+  private async handleSessionInput(ws: ClaudeCodeWebSocket, message: ClaudeCodeMessage) {
+    try {
+      if (!message.sessionId || !message.data) {
+        throw new Error("Missing sessionId or data");
+      }
+
+      const process = cliService.getProcess(message.sessionId);
+      if (!process || !process.stdin) {
+        throw new Error("Process not found or stdin not available");
+      }
+
+      // Write input to the Claude Code process
+      process.stdin.write(message.data);
+
+    } catch (error) {
+      logger.error("Failed to send input to Claude Code session", error as Error, {
+        sessionId: message.sessionId,
+      });
+
+      this.sendClaudeCodeMessage(ws, {
+        type: 'error',
+        data: `Failed to send input: ${error instanceof Error ? error.message : "Unknown error"}`,
         sessionId: message.sessionId,
       });
     }
@@ -486,8 +671,15 @@ class TerminalWebSocketServer {
       this.wss.close();
       this.wss = null;
     }
+    
+    // Clean up all active Claude Code sessions
+    for (const sessionId of this.activeSessions.keys()) {
+      cliService.stopProcess(sessionId);
+    }
+    
     this.clients.clear();
     this.claudeCodeClients.clear();
+    this.activeSessions.clear();
     globalStarting = false;
   }
 }
