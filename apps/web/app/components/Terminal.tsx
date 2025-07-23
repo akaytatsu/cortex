@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import type { TerminalMessage, TerminalSession, CliStatusMessage } from "shared-types";
+import type {
+  TerminalMessage,
+  TerminalSession,
+  CliStatusMessage,
+} from "shared-types";
 import { CliStatusIndicator } from "./CliStatusIndicator";
 import { ClaudeCodeInstallationInstructions } from "./ClaudeCodeInstallationInstructions";
 
@@ -33,7 +37,8 @@ export function Terminal({
     `terminal_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
   );
   const [isInitialized, setIsInitialized] = useState(false);
-  const [terminalSession, setTerminalSession] = useState<TerminalSession | null>(null);
+  const [terminalSession, setTerminalSession] =
+    useState<TerminalSession | null>(null);
   const [showInstallInstructions, setShowInstallInstructions] = useState(false);
   const isInitializingRef = useRef(false);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -170,15 +175,15 @@ export function Terminal({
                   id: sessionIdRef.current,
                   workspaceName,
                   workspacePath,
-                  userId: 'current-user', // This should come from session context
-                  status: 'active' as const,
+                  userId: "current-user", // This should come from session context
+                  status: "active" as const,
                   createdAt: new Date(),
                   claudeCodeCliStatus: cliData.status,
                   claudeCodeCliVersion: cliData.version,
                 }));
-                
+
                 // Show install instructions if CLI is not available
-                setShowInstallInstructions(cliData.status === 'not-available');
+                setShowInstallInstructions(cliData.status === "not-available");
               } catch (cliError) {
                 console.error("Error parsing CLI status data:", cliError);
               }
@@ -339,15 +344,15 @@ export function Terminal({
           )}
         </div>
       </div>
-      
+
       {/* Claude Code CLI Installation Instructions */}
       {showInstallInstructions && (
-        <ClaudeCodeInstallationInstructions 
+        <ClaudeCodeInstallationInstructions
           onDismiss={() => setShowInstallInstructions(false)}
           className="mx-2 mt-2"
         />
       )}
-      
+
       <div className="flex-1 overflow-hidden">
         <div ref={terminalRef} className="w-full h-full p-2" />
       </div>

@@ -1,5 +1,5 @@
-import React from 'react';
-import type { TerminalSession } from 'shared-types';
+import React from "react";
+import type { TerminalSession } from "shared-types";
 
 interface CliStatusIndicatorProps {
   session: TerminalSession | null;
@@ -14,56 +14,59 @@ interface CliStatus {
 }
 
 const getCliStatusConfig = (
-  status?: TerminalSession['claudeCodeCliStatus'],
+  status?: TerminalSession["claudeCodeCliStatus"],
   version?: string
 ): CliStatus => {
   switch (status) {
-    case 'available':
+    case "available":
       return {
-        icon: '🤖',
-        color: 'text-green-400',
-        text: version ? `Claude CLI v${version}` : 'Claude CLI Available',
-        title: `Claude Code CLI is available${version ? ` (version ${version})` : ''}`
+        icon: "🤖",
+        color: "text-green-400",
+        text: version ? `Claude CLI v${version}` : "Claude CLI Available",
+        title: `Claude Code CLI is available${version ? ` (version ${version})` : ""}`,
       };
-    case 'not-available':
+    case "not-available":
       return {
-        icon: '⚠️',
-        color: 'text-yellow-400',
-        text: 'Claude CLI Not Found',
-        title: 'Claude Code CLI is not available in PATH'
+        icon: "⚠️",
+        color: "text-yellow-400",
+        text: "Claude CLI Not Found",
+        title: "Claude Code CLI is not available in PATH",
       };
-    case 'error':
+    case "error":
       return {
-        icon: '❌',
-        color: 'text-red-400',
-        text: 'CLI Detection Error',
-        title: 'Failed to detect Claude Code CLI status'
+        icon: "❌",
+        color: "text-red-400",
+        text: "CLI Detection Error",
+        title: "Failed to detect Claude Code CLI status",
       };
-    case 'checking':
+    case "checking":
       return {
-        icon: '🔍',
-        color: 'text-blue-400',
-        text: 'Checking CLI...',
-        title: 'Checking Claude Code CLI availability'
+        icon: "🔍",
+        color: "text-blue-400",
+        text: "Checking CLI...",
+        title: "Checking Claude Code CLI availability",
       };
     default:
       return {
-        icon: '❓',
-        color: 'text-gray-400',
-        text: 'CLI Status Unknown',
-        title: 'Claude Code CLI status unknown'
+        icon: "❓",
+        color: "text-gray-400",
+        text: "CLI Status Unknown",
+        title: "Claude Code CLI status unknown",
       };
   }
 };
 
-export function CliStatusIndicator({ session, className = '' }: CliStatusIndicatorProps) {
+export function CliStatusIndicator({
+  session,
+  className = "",
+}: CliStatusIndicatorProps) {
   const statusConfig = getCliStatusConfig(
     session?.claudeCodeCliStatus,
     session?.claudeCodeCliVersion
   );
 
   return (
-    <div 
+    <div
       className={`flex items-center space-x-1 ${className}`}
       title={statusConfig.title}
     >

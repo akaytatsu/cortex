@@ -52,7 +52,7 @@ export interface TerminalSession {
   pid?: number;
   status: "active" | "inactive" | "terminated";
   createdAt: Date;
-  claudeCodeCliStatus?: 'available' | 'not-available' | 'error' | 'checking';
+  claudeCodeCliStatus?: "available" | "not-available" | "error" | "checking";
   claudeCodeCliVersion?: string;
 }
 
@@ -63,9 +63,9 @@ export interface TerminalMessage {
 }
 
 export interface CliStatusMessage {
-  type: 'cli-status';
+  type: "cli-status";
   data: {
-    status: 'available' | 'not-available' | 'error';
+    status: "available" | "not-available" | "error";
     version?: string;
     error?: string;
   };

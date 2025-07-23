@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 interface ClaudeCodeInstallationInstructionsProps {
   onDismiss?: () => void;
@@ -6,10 +6,10 @@ interface ClaudeCodeInstallationInstructionsProps {
   show?: boolean;
 }
 
-export function ClaudeCodeInstallationInstructions({ 
-  onDismiss, 
-  className = '',
-  show = true 
+export function ClaudeCodeInstallationInstructions({
+  onDismiss,
+  className = "",
+  show = true,
 }: ClaudeCodeInstallationInstructionsProps) {
   const [isDismissed, setIsDismissed] = useState(!show);
 
@@ -23,7 +23,9 @@ export function ClaudeCodeInstallationInstructions({
   }
 
   return (
-    <div className={`bg-yellow-50 border-l-4 border-yellow-400 p-4 ${className}`}>
+    <div
+      className={`bg-yellow-50 border-l-4 border-yellow-400 p-4 ${className}`}
+    >
       <div className="flex">
         <div className="flex-shrink-0">
           <span className="text-yellow-400 text-lg">⚠️</span>
@@ -34,26 +36,34 @@ export function ClaudeCodeInstallationInstructions({
           </p>
           <div className="mt-2 text-sm text-yellow-700">
             <p className="mb-2">
-              To enable AI-powered coding assistance, please install the Claude Code CLI:
+              To enable AI-powered coding assistance, please install the Claude
+              Code CLI:
             </p>
             <ol className="list-decimal list-inside space-y-1 mb-3">
               <li>
-                Visit the{' '}
-                <a 
-                  href="https://docs.anthropic.com/en/docs/claude-code" 
-                  target="_blank" 
+                Visit the{" "}
+                <a
+                  href="https://docs.anthropic.com/en/docs/claude-code"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-yellow-600 underline hover:text-yellow-800"
                 >
                   official Claude Code documentation
                 </a>
               </li>
-              <li>Follow the installation instructions for your operating system</li>
-              <li>Ensure the <code className="bg-yellow-100 px-1 rounded">claude</code> command is available in your PATH</li>
+              <li>
+                Follow the installation instructions for your operating system
+              </li>
+              <li>
+                Ensure the{" "}
+                <code className="bg-yellow-100 px-1 rounded">claude</code>{" "}
+                command is available in your PATH
+              </li>
               <li>Restart the terminal to detect the CLI</li>
             </ol>
             <p className="text-xs text-yellow-600">
-              The Claude Code CLI requires proper authentication and may not be available in all environments.
+              The Claude Code CLI requires proper authentication and may not be
+              available in all environments.
             </p>
           </div>
         </div>
@@ -64,8 +74,18 @@ export function ClaudeCodeInstallationInstructions({
             title="Dismiss this message"
           >
             <span className="sr-only">Dismiss</span>
-            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="h-3 w-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>

@@ -11,14 +11,14 @@ describe("CliDetectionService", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    
+
     // Create fresh mock
     mockExecAsync = vi.fn();
-    
+
     // Mock util.promisify to return our mock
     const util = await import("util");
     vi.mocked(util.promisify).mockReturnValue(mockExecAsync);
-    
+
     // Dynamically import the service after mocking
     const module = await import("./cli-detection.service");
     cliDetectionService = module.cliDetectionService;
@@ -36,7 +36,7 @@ describe("CliDetectionService", () => {
 
       expect(result).toEqual({
         status: "available",
-        version: "1.2.3"
+        version: "1.2.3",
       });
       expect(mockExecAsync).toHaveBeenCalledWith("which claude", {});
       expect(mockExecAsync).toHaveBeenCalledWith("claude --version", {});
@@ -52,7 +52,7 @@ describe("CliDetectionService", () => {
 
       expect(result).toEqual({
         status: "available",
-        error: "Version check failed but CLI is present"
+        error: "Version check failed but CLI is present",
       });
     });
 
@@ -64,7 +64,7 @@ describe("CliDetectionService", () => {
 
       expect(result).toEqual({
         status: "not-available",
-        error: "Claude Code CLI not found in PATH"
+        error: "Claude Code CLI not found in PATH",
       });
       expect(mockExecAsync).toHaveBeenCalledWith("which claude", {});
       expect(mockExecAsync).toHaveBeenCalledTimes(1); // Should not try version check
@@ -76,7 +76,9 @@ describe("CliDetectionService", () => {
 
       await cliDetectionService.checkClaudeCodeAvailability(workingDir);
 
-      expect(mockExecAsync).toHaveBeenCalledWith("which claude", { cwd: workingDir });
+      expect(mockExecAsync).toHaveBeenCalledWith("which claude", {
+        cwd: workingDir,
+      });
     });
 
     it("should return cached result on subsequent calls", async () => {
@@ -86,7 +88,7 @@ describe("CliDetectionService", () => {
         .mockResolvedValueOnce({ stdout: "claude 1.2.3", stderr: "" });
 
       const result1 = await cliDetectionService.checkClaudeCodeAvailability();
-      
+
       // Second call - should use cache
       const result2 = await cliDetectionService.checkClaudeCodeAvailability();
 
@@ -103,8 +105,12 @@ describe("CliDetectionService", () => {
       await cliDetectionService.checkClaudeCodeAvailability(workingDir1);
       await cliDetectionService.checkClaudeCodeAvailability(workingDir2);
 
-      expect(mockExecAsync).toHaveBeenCalledWith("which claude", { cwd: workingDir1 });
-      expect(mockExecAsync).toHaveBeenCalledWith("which claude", { cwd: workingDir2 });
+      expect(mockExecAsync).toHaveBeenCalledWith("which claude", {
+        cwd: workingDir1,
+      });
+      expect(mockExecAsync).toHaveBeenCalledWith("which claude", {
+        cwd: workingDir2,
+      });
       expect(mockExecAsync).toHaveBeenCalledTimes(2);
     });
 
@@ -113,17 +119,20 @@ describe("CliDetectionService", () => {
         { output: "claude version 1.2.3", expected: "1.2.3" },
         { output: "Claude Code CLI v2.1.0", expected: "2.1.0" },
         { output: "version: 0.9.15-beta", expected: "0.9.15" },
-        { output: "no version info", expected: "no version info" } // fallback to sanitized output
+        { output: "no version info", expected: "no version info" }, // fallback to sanitized output
       ];
 
       for (const testCase of testCases) {
         cliDetectionService.clearCache();
         mockExecAsync
-          .mockResolvedValueOnce({ stdout: "/usr/local/bin/claude", stderr: "" })
+          .mockResolvedValueOnce({
+            stdout: "/usr/local/bin/claude",
+            stderr: "",
+          })
           .mockResolvedValueOnce({ stdout: testCase.output, stderr: "" });
 
         const result = await cliDetectionService.checkClaudeCodeAvailability();
-        
+
         expect(result.status).toBe("available");
         expect(result.version).toBe(testCase.expected);
       }

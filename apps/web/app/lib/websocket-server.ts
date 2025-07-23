@@ -301,9 +301,12 @@ class TerminalWebSocketServer {
 
     try {
       const cliStatusData = {
-        status: session.claudeCodeCliStatus || 'not-available',
+        status: session.claudeCodeCliStatus || "not-available",
         version: session.claudeCodeCliVersion,
-        error: session.claudeCodeCliStatus === 'error' ? 'Detection failed' : undefined
+        error:
+          session.claudeCodeCliStatus === "error"
+            ? "Detection failed"
+            : undefined,
       };
 
       const cliStatusMessage: TerminalMessage = {
@@ -313,15 +316,15 @@ class TerminalWebSocketServer {
       };
 
       this.sendMessage(ws, cliStatusMessage);
-      
+
       logger.info("Sent CLI status to client", {
         sessionId: ws.sessionId,
         status: cliStatusData.status,
-        version: cliStatusData.version || 'N/A'
+        version: cliStatusData.version || "N/A",
       });
     } catch (error) {
       logger.error("Failed to send CLI status", error as Error, {
-        sessionId: ws.sessionId
+        sessionId: ws.sessionId,
       });
     }
   }
