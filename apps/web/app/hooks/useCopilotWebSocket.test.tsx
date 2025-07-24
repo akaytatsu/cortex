@@ -67,9 +67,11 @@ describe("useCopilotWebSocket Hook", () => {
     } as Response);
 
     // Capture the WebSocket instance
-    const OriginalWebSocket = global.WebSocket;
     global.WebSocket = vi.fn().mockImplementation((url: string) => {
       mockWebSocket = new MockWebSocket(url);
+      // Clear previous mocks on the instance
+      mockWebSocket.send = vi.fn();
+      mockWebSocket.close = vi.fn();
       return mockWebSocket;
     }) as any;
   });
@@ -222,6 +224,7 @@ describe("useCopilotWebSocket Hook", () => {
   });
 
   it("attempts to reconnect on unexpected close", async () => {
+    vi.useFakeTimers();
     const { result } = renderHook(() => useCopilotWebSocket({ sessionId: "test-session" }));
 
     await waitFor(() => {
@@ -241,9 +244,12 @@ describe("useCopilotWebSocket Hook", () => {
 
     // Check that reconnection is attempted (timer should be set)
     expect(vi.getTimerCount()).toBeGreaterThan(0);
+    
+    vi.useRealTimers();
   });
 
   it("does not reconnect on normal close", async () => {
+    vi.useFakeTimers();
     const { result } = renderHook(() => useCopilotWebSocket({ sessionId: "test-session" }));
 
     await waitFor(() => {
@@ -261,6 +267,8 @@ describe("useCopilotWebSocket Hook", () => {
 
     expect(result.current.connectionStatus).toBe('closed');
     expect(vi.getTimerCount()).toBe(0);
+    
+    vi.useRealTimers();
   });
 
   it("sends messages when connected", async () => {
