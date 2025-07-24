@@ -36,7 +36,7 @@ class MockWebSocket {
 
   simulateClose(code: number = 1000, reason: string = "") {
     this.readyState = MockWebSocket.CLOSED;
-    const closeEvent = new CloseEvent('close', { code, reason });
+    const closeEvent = new CloseEvent("close", { code, reason });
     this.onclose?.(closeEvent);
   }
 
@@ -45,7 +45,7 @@ class MockWebSocket {
   }
 
   simulateMessage(data: string) {
-    const messageEvent = new MessageEvent('message', { data });
+    const messageEvent = new MessageEvent("message", { data });
     this.onmessage?.(messageEvent);
   }
 }
@@ -59,7 +59,7 @@ describe("useCopilotWebSocket Hook", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Mock successful port fetch
     mockFetch.mockResolvedValue({
       ok: true,
@@ -83,7 +83,7 @@ describe("useCopilotWebSocket Hook", () => {
   it("initializes with correct default values", () => {
     const { result } = renderHook(() => useCopilotWebSocket());
 
-    expect(result.current.connectionStatus).toBe('closed');
+    expect(result.current.connectionStatus).toBe("closed");
     expect(result.current.isConnected).toBe(false);
     expect(result.current.error).toBe(null);
     expect(result.current.lastMessage).toBe(null);
@@ -97,16 +97,20 @@ describe("useCopilotWebSocket Hook", () => {
   });
 
   it("connects when sessionId is provided", async () => {
-    const { result } = renderHook(() => useCopilotWebSocket({ sessionId: "test-session" }));
+    const { result } = renderHook(() =>
+      useCopilotWebSocket({ sessionId: "test-session" })
+    );
 
     await waitFor(() => {
       expect(global.WebSocket).toHaveBeenCalledWith("ws://localhost:8000");
-      expect(result.current.connectionStatus).toBe('connecting');
+      expect(result.current.connectionStatus).toBe("connecting");
     });
   });
 
   it("updates connection status when WebSocket opens", async () => {
-    const { result } = renderHook(() => useCopilotWebSocket({ sessionId: "test-session" }));
+    const { result } = renderHook(() =>
+      useCopilotWebSocket({ sessionId: "test-session" })
+    );
 
     await waitFor(() => {
       expect(mockWebSocket).toBeDefined();
@@ -116,14 +120,14 @@ describe("useCopilotWebSocket Hook", () => {
       mockWebSocket.simulateOpen();
     });
 
-    expect(result.current.connectionStatus).toBe('open');
+    expect(result.current.connectionStatus).toBe("open");
     expect(result.current.isConnected).toBe(true);
     expect(result.current.error).toBe(null);
   });
 
   it("handles WebSocket messages correctly", async () => {
     const onMessage = vi.fn();
-    const { result } = renderHook(() => 
+    const { result } = renderHook(() =>
       useCopilotWebSocket({ sessionId: "test-session", onMessage })
     );
 
@@ -136,9 +140,9 @@ describe("useCopilotWebSocket Hook", () => {
     });
 
     const testMessage: ClaudeCodeMessage = {
-      type: 'output',
-      data: 'Hello world',
-      sessionId: 'test-session',
+      type: "output",
+      data: "Hello world",
+      sessionId: "test-session",
     };
 
     act(() => {
@@ -150,7 +154,9 @@ describe("useCopilotWebSocket Hook", () => {
   });
 
   it("handles start_processing and end_processing messages", async () => {
-    const { result } = renderHook(() => useCopilotWebSocket({ sessionId: "test-session" }));
+    const { result } = renderHook(() =>
+      useCopilotWebSocket({ sessionId: "test-session" })
+    );
 
     await waitFor(() => {
       expect(mockWebSocket).toBeDefined();
@@ -162,27 +168,33 @@ describe("useCopilotWebSocket Hook", () => {
 
     // Test start_processing
     act(() => {
-      mockWebSocket.simulateMessage(JSON.stringify({
-        type: 'start_processing',
-        sessionId: 'test-session',
-      }));
+      mockWebSocket.simulateMessage(
+        JSON.stringify({
+          type: "start_processing",
+          sessionId: "test-session",
+        })
+      );
     });
 
     expect(result.current.isProcessing).toBe(true);
 
     // Test end_processing
     act(() => {
-      mockWebSocket.simulateMessage(JSON.stringify({
-        type: 'end_processing',
-        sessionId: 'test-session',
-      }));
+      mockWebSocket.simulateMessage(
+        JSON.stringify({
+          type: "end_processing",
+          sessionId: "test-session",
+        })
+      );
     });
 
     expect(result.current.isProcessing).toBe(false);
   });
 
   it("handles WebSocket close events", async () => {
-    const { result } = renderHook(() => useCopilotWebSocket({ sessionId: "test-session" }));
+    const { result } = renderHook(() =>
+      useCopilotWebSocket({ sessionId: "test-session" })
+    );
 
     await waitFor(() => {
       expect(mockWebSocket).toBeDefined();
@@ -192,20 +204,20 @@ describe("useCopilotWebSocket Hook", () => {
       mockWebSocket.simulateOpen();
     });
 
-    expect(result.current.connectionStatus).toBe('open');
+    expect(result.current.connectionStatus).toBe("open");
 
     act(() => {
       mockWebSocket.simulateClose(1000, "Normal closure");
     });
 
-    expect(result.current.connectionStatus).toBe('closed');
+    expect(result.current.connectionStatus).toBe("closed");
     expect(result.current.isConnected).toBe(false);
     expect(result.current.isProcessing).toBe(false);
   });
 
   it("handles WebSocket error events", async () => {
     const onError = vi.fn();
-    const { result } = renderHook(() => 
+    const { result } = renderHook(() =>
       useCopilotWebSocket({ sessionId: "test-session", onError })
     );
 
@@ -217,15 +229,17 @@ describe("useCopilotWebSocket Hook", () => {
       mockWebSocket.simulateError();
     });
 
-    expect(result.current.connectionStatus).toBe('error');
-    expect(result.current.error).toBe('WebSocket connection failed');
+    expect(result.current.connectionStatus).toBe("error");
+    expect(result.current.error).toBe("WebSocket connection failed");
     expect(result.current.isProcessing).toBe(false);
-    expect(onError).toHaveBeenCalledWith('WebSocket connection failed');
+    expect(onError).toHaveBeenCalledWith("WebSocket connection failed");
   });
 
   it("attempts to reconnect on unexpected close", async () => {
     vi.useFakeTimers();
-    const { result } = renderHook(() => useCopilotWebSocket({ sessionId: "test-session" }));
+    const { result } = renderHook(() =>
+      useCopilotWebSocket({ sessionId: "test-session" })
+    );
 
     await waitFor(() => {
       expect(mockWebSocket).toBeDefined();
@@ -240,17 +254,19 @@ describe("useCopilotWebSocket Hook", () => {
       mockWebSocket.simulateClose(1006, "Connection lost");
     });
 
-    expect(result.current.connectionStatus).toBe('closed');
+    expect(result.current.connectionStatus).toBe("closed");
 
     // Check that reconnection is attempted (timer should be set)
     expect(vi.getTimerCount()).toBeGreaterThan(0);
-    
+
     vi.useRealTimers();
   });
 
   it("does not reconnect on normal close", async () => {
     vi.useFakeTimers();
-    const { result } = renderHook(() => useCopilotWebSocket({ sessionId: "test-session" }));
+    const { result } = renderHook(() =>
+      useCopilotWebSocket({ sessionId: "test-session" })
+    );
 
     await waitFor(() => {
       expect(mockWebSocket).toBeDefined();
@@ -265,14 +281,16 @@ describe("useCopilotWebSocket Hook", () => {
       mockWebSocket.simulateClose(1000, "Normal closure");
     });
 
-    expect(result.current.connectionStatus).toBe('closed');
+    expect(result.current.connectionStatus).toBe("closed");
     expect(vi.getTimerCount()).toBe(0);
-    
+
     vi.useRealTimers();
   });
 
   it("sends messages when connected", async () => {
-    const { result } = renderHook(() => useCopilotWebSocket({ sessionId: "test-session" }));
+    const { result } = renderHook(() =>
+      useCopilotWebSocket({ sessionId: "test-session" })
+    );
 
     await waitFor(() => {
       expect(mockWebSocket).toBeDefined();
@@ -283,25 +301,29 @@ describe("useCopilotWebSocket Hook", () => {
     });
 
     const testMessage: ClaudeCodeMessage = {
-      type: 'input',
-      data: 'test command',
-      sessionId: 'test-session',
+      type: "input",
+      data: "test command",
+      sessionId: "test-session",
     };
 
     act(() => {
       result.current.sendMessage(testMessage);
     });
 
-    expect(mockWebSocket.send).toHaveBeenCalledWith(JSON.stringify(testMessage));
+    expect(mockWebSocket.send).toHaveBeenCalledWith(
+      JSON.stringify(testMessage)
+    );
   });
 
   it("queues messages when not connected", async () => {
-    const { result } = renderHook(() => useCopilotWebSocket({ sessionId: "test-session" }));
+    const { result } = renderHook(() =>
+      useCopilotWebSocket({ sessionId: "test-session" })
+    );
 
     const testMessage: ClaudeCodeMessage = {
-      type: 'input',
-      data: 'test command',
-      sessionId: 'test-session',
+      type: "input",
+      data: "test command",
+      sessionId: "test-session",
     };
 
     // Send message before connection is open
@@ -322,11 +344,15 @@ describe("useCopilotWebSocket Hook", () => {
     });
 
     // Queued message should be sent
-    expect(mockWebSocket.send).toHaveBeenCalledWith(JSON.stringify(testMessage));
+    expect(mockWebSocket.send).toHaveBeenCalledWith(
+      JSON.stringify(testMessage)
+    );
   });
 
   it("disconnects properly", async () => {
-    const { result } = renderHook(() => useCopilotWebSocket({ sessionId: "test-session" }));
+    const { result } = renderHook(() =>
+      useCopilotWebSocket({ sessionId: "test-session" })
+    );
 
     await waitFor(() => {
       expect(mockWebSocket).toBeDefined();
@@ -340,18 +366,21 @@ describe("useCopilotWebSocket Hook", () => {
       result.current.disconnect();
     });
 
-    expect(mockWebSocket.close).toHaveBeenCalledWith(1000, "Client disconnecting");
-    expect(result.current.connectionStatus).toBe('closed');
+    expect(mockWebSocket.close).toHaveBeenCalledWith(
+      1000,
+      "Client disconnecting"
+    );
+    expect(result.current.connectionStatus).toBe("closed");
     expect(result.current.error).toBe(null);
     expect(result.current.isProcessing).toBe(false);
     expect(result.current.lastMessage).toBe(null);
   });
 
   it("handles invalid JSON messages gracefully", async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const onError = vi.fn();
-    
-    const { result } = renderHook(() => 
+
+    const { result } = renderHook(() =>
       useCopilotWebSocket({ sessionId: "test-session", onError })
     );
 
@@ -378,13 +407,13 @@ describe("useCopilotWebSocket Hook", () => {
 
   it("calls onConnectionChange callback", async () => {
     const onConnectionChange = vi.fn();
-    
-    renderHook(() => 
+
+    renderHook(() =>
       useCopilotWebSocket({ sessionId: "test-session", onConnectionChange })
     );
 
     await waitFor(() => {
-      expect(onConnectionChange).toHaveBeenCalledWith('connecting');
+      expect(onConnectionChange).toHaveBeenCalledWith("connecting");
     });
 
     await waitFor(() => {
@@ -395,14 +424,16 @@ describe("useCopilotWebSocket Hook", () => {
       mockWebSocket.simulateOpen();
     });
 
-    expect(onConnectionChange).toHaveBeenCalledWith('open');
+    expect(onConnectionChange).toHaveBeenCalledWith("open");
   });
 
   it("handles port fetch failure", async () => {
     mockFetch.mockRejectedValue(new Error("Failed to fetch port"));
-    
+
     const onError = vi.fn();
-    renderHook(() => useCopilotWebSocket({ sessionId: "test-session", onError }));
+    renderHook(() =>
+      useCopilotWebSocket({ sessionId: "test-session", onError })
+    );
 
     await waitFor(() => {
       expect(onError).toHaveBeenCalledWith("Failed to fetch port");
@@ -423,11 +454,11 @@ describe("useCopilotWebSocket Hook", () => {
       mockWebSocket.simulateOpen();
     });
 
-    expect(result.current.connectionStatus).toBe('open');
+    expect(result.current.connectionStatus).toBe("open");
 
     // Change sessionId to undefined
     rerender({ sessionId: undefined });
 
-    expect(result.current.connectionStatus).toBe('closed');
+    expect(result.current.connectionStatus).toBe("closed");
   });
 });

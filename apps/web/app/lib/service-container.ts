@@ -63,11 +63,18 @@ class ServiceContainer {
     this.factories.set("terminal", () => terminalService);
     this.factories.set("filesystem", () => new FileSystemService());
     this.factories.set("workspace", () => new WorkspaceService());
-    this.factories.set("agent", () => new AgentService(new FileSystemService()));
+    this.factories.set(
+      "agent",
+      () => new AgentService(new FileSystemService())
+    );
     this.factories.set("logger", () => createServiceLogger("ServiceContainer"));
-    this.factories.set("sessionPersistence", () => new SessionPersistenceService());
+    this.factories.set(
+      "sessionPersistence",
+      () => new SessionPersistenceService()
+    );
     this.factories.set("sessionTimeout", () => {
-      const sessionPersistence = this.get<ISessionPersistenceService>("sessionPersistence");
+      const sessionPersistence =
+        this.get<ISessionPersistenceService>("sessionPersistence");
       return new SessionTimeoutService(sessionPersistence);
     });
   }

@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, vi, beforeAll, afterEach } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  vi,
+  beforeAll,
+  afterEach,
+} from "vitest";
 import { SessionPersistenceService } from "./session-persistence.service";
 import type { ILogger } from "../types/services";
 import type { PersistedSession } from "shared-types";
@@ -61,7 +69,7 @@ describe("SessionPersistenceService", () => {
     } catch {
       // File might not exist, ignore
     }
-    
+
     // Clean up backup files
     try {
       const files = await fs.readdir(testDir);
@@ -77,7 +85,7 @@ describe("SessionPersistenceService", () => {
   describe("loadSessions", () => {
     it("should return empty array when file does not exist", async () => {
       const sessions = await service.loadSessions();
-      
+
       expect(sessions).toEqual([]);
       expect(mockLogger.info).toHaveBeenCalledWith(
         "Sessions file doesn't exist, returning empty array"
@@ -124,7 +132,9 @@ describe("SessionPersistenceService", () => {
       // Second call should use cache
       await service.loadSessions();
 
-      expect(mockLogger.debug).toHaveBeenCalledWith("Returning cached sessions data");
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        "Returning cached sessions data"
+      );
     });
   });
 
@@ -137,7 +147,9 @@ describe("SessionPersistenceService", () => {
 
       expect(parsedData.sessions).toHaveLength(1);
       expect(parsedData.sessions[0]).toEqual(mockSession1);
-      expect(mockLogger.info).toHaveBeenCalledWith("Session saved successfully");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "Session saved successfully"
+      );
     });
 
     it("should update existing session with same ID", async () => {
@@ -160,7 +172,10 @@ describe("SessionPersistenceService", () => {
 
       await newService.saveSession(mockSession1);
 
-      const exists = await fs.access(newFilePath).then(() => true).catch(() => false);
+      const exists = await fs
+        .access(newFilePath)
+        .then(() => true)
+        .catch(() => false);
       expect(exists).toBe(true);
 
       // Cleanup
@@ -174,7 +189,9 @@ describe("SessionPersistenceService", () => {
         pid: -1, // Invalid PID
       };
 
-      await expect(service.saveSession(invalidSession as PersistedSession)).rejects.toThrow();
+      await expect(
+        service.saveSession(invalidSession as PersistedSession)
+      ).rejects.toThrow();
     });
 
     it("should set secure permissions (600) on file", async () => {
@@ -198,7 +215,9 @@ describe("SessionPersistenceService", () => {
       const sessions = await service.loadSessions();
       expect(sessions).toHaveLength(1);
       expect(sessions[0].id).toBe("session-2");
-      expect(mockLogger.info).toHaveBeenCalledWith("Session removed successfully");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "Session removed successfully"
+      );
     });
 
     it("should handle removal of non-existent session gracefully", async () => {
@@ -209,7 +228,9 @@ describe("SessionPersistenceService", () => {
 
       const sessions = await service.loadSessions();
       expect(sessions).toHaveLength(1);
-      expect(mockLogger.warn).toHaveBeenCalledWith("Session not found for removal");
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        "Session not found for removal"
+      );
     });
   });
 
@@ -217,16 +238,18 @@ describe("SessionPersistenceService", () => {
     it("should update existing session", async () => {
       await service.saveSession(mockSession1);
 
-      const updates = { 
-        command: "claude updated", 
-        recovered: true 
+      const updates = {
+        command: "claude updated",
+        recovered: true,
       };
       await service.updateSession("session-1", updates);
 
       const sessions = await service.loadSessions();
       expect(sessions[0].command).toBe("claude updated");
       expect(sessions[0].recovered).toBe(true);
-      expect(mockLogger.info).toHaveBeenCalledWith("Session updated successfully");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "Session updated successfully"
+      );
     });
 
     it("should throw error when updating non-existent session", async () => {
@@ -240,7 +263,10 @@ describe("SessionPersistenceService", () => {
 
       const invalidUpdates = { pid: -1 };
       await expect(
-        service.updateSession("session-1", invalidUpdates as Partial<PersistedSession>)
+        service.updateSession(
+          "session-1",
+          invalidUpdates as Partial<PersistedSession>
+        )
       ).rejects.toThrow();
     });
   });
@@ -249,7 +275,7 @@ describe("SessionPersistenceService", () => {
     it("should create backups when writing to existing file", async () => {
       // Create initial file
       await service.saveSession(mockSession1);
-      
+
       // Update file (should create backup)
       await service.saveSession(mockSession2);
 
@@ -292,9 +318,11 @@ describe("SessionPersistenceService", () => {
       // This is harder to test directly, but the service should handle backup failures gracefully
       // by logging warnings but not throwing errors
       await service.saveSession(mockSession1);
-      
+
       // If we reach here without throwing, backup error handling is working
-      expect(mockLogger.info).toHaveBeenCalledWith("Session saved successfully");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "Session saved successfully"
+      );
     });
   });
 
@@ -306,13 +334,15 @@ describe("SessionPersistenceService", () => {
 
       // First load
       await service.loadSessions();
-      
+
       // Clear mock calls
       vi.clearAllMocks();
 
       // Second load should use cache
       await service.loadSessions();
-      expect(mockLogger.debug).toHaveBeenCalledWith("Returning cached sessions data");
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        "Returning cached sessions data"
+      );
     });
 
     it("should update cache after write operations", async () => {

@@ -1,5 +1,9 @@
 import type { PersistedSession } from "shared-types";
-import type { ILogger, ISessionTimeoutService, ISessionPersistenceService } from "../types/services";
+import type {
+  ILogger,
+  ISessionTimeoutService,
+  ISessionPersistenceService,
+} from "../types/services";
 import { createServiceLogger } from "../lib/logger";
 
 // Timeout configuration constants
@@ -39,7 +43,7 @@ export class SessionTimeoutService implements ISessionTimeoutService {
             sessionId: session.id,
             workspaceName: session.workspaceName,
             pid: session.pid,
-            ageHours: Math.round(sessionAge / (60 * 60 * 1000) * 10) / 10,
+            ageHours: Math.round((sessionAge / (60 * 60 * 1000)) * 10) / 10,
           });
         }
       }
@@ -68,7 +72,9 @@ export class SessionTimeoutService implements ISessionTimeoutService {
     }
   }
 
-  private async cleanupExpiredSession(session: PersistedSession): Promise<void> {
+  private async cleanupExpiredSession(
+    session: PersistedSession
+  ): Promise<void> {
     const sessionLogger = this.logger.withContext({
       sessionId: session.id,
       pid: session.pid,
@@ -93,14 +99,16 @@ export class SessionTimeoutService implements ISessionTimeoutService {
     try {
       // Check if process exists first
       process.kill(pid, 0);
-      logger.debug("Process found, attempting graceful termination with SIGTERM");
+      logger.debug(
+        "Process found, attempting graceful termination with SIGTERM"
+      );
 
       // Send SIGTERM for graceful shutdown
-      process.kill(pid, 'SIGTERM');
+      process.kill(pid, "SIGTERM");
 
       // Wait for graceful shutdown with timeout
       const shutdownPromise = this.waitForProcessTermination(pid, logger);
-      const timeoutPromise = new Promise<void>((resolve) => {
+      const timeoutPromise = new Promise<void>(resolve => {
         setTimeout(resolve, GRACEFUL_SHUTDOWN_TIMEOUT_MS);
       });
 
@@ -112,29 +120,35 @@ export class SessionTimeoutService implements ISessionTimeoutService {
         logger.warn("Process did not respond to SIGTERM, using SIGKILL", {
           gracefulTimeoutMs: GRACEFUL_SHUTDOWN_TIMEOUT_MS,
         });
-        process.kill(pid, 'SIGKILL');
+        process.kill(pid, "SIGKILL");
         logger.info("Process terminated with SIGKILL");
       } catch {
         // Process already terminated gracefully
         logger.info("Process terminated gracefully with SIGTERM");
       }
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ESRCH') {
+      if ((error as NodeJS.ErrnoException).code === "ESRCH") {
         logger.debug("Process already terminated or does not exist");
-      } else if ((error as NodeJS.ErrnoException).code === 'EPERM') {
+      } else if ((error as NodeJS.ErrnoException).code === "EPERM") {
         logger.warn("Permission denied when trying to terminate process", {
           error: (error as Error).message,
         });
         throw new Error(`Permission denied when terminating process ${pid}`);
       } else {
-        logger.error("Unexpected error when terminating process", error as Error);
+        logger.error(
+          "Unexpected error when terminating process",
+          error as Error
+        );
         throw error;
       }
     }
   }
 
-  private async waitForProcessTermination(pid: number, logger: ILogger): Promise<void> {
-    return new Promise<void>((resolve) => {
+  private async waitForProcessTermination(
+    pid: number,
+    logger: ILogger
+  ): Promise<void> {
+    return new Promise<void>(resolve => {
       const checkInterval = setInterval(() => {
         try {
           process.kill(pid, 0);
@@ -149,7 +163,9 @@ export class SessionTimeoutService implements ISessionTimeoutService {
     });
   }
 
-  startPeriodicCleanup(intervalMs: number = CLEANUP_INTERVAL_MS): NodeJS.Timeout {
+  startPeriodicCleanup(
+    intervalMs: number = CLEANUP_INTERVAL_MS
+  ): NodeJS.Timeout {
     // Stop any existing timer to ensure only one instance is active
     if (this.cleanupTimer) {
       this.stopPeriodicCleanup();

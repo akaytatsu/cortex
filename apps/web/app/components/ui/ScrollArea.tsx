@@ -10,9 +10,7 @@ const ScrollArea = forwardRef<
     className={cn("relative overflow-hidden", className)}
     {...props}
   >
-    <div className="h-full w-full overflow-auto">
-      {children}
-    </div>
+    <div className="h-full w-full overflow-auto">{children}</div>
   </div>
 ));
 ScrollArea.displayName = "ScrollArea";

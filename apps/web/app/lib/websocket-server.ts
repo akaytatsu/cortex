@@ -2,7 +2,11 @@ import { WebSocketServer, WebSocket } from "ws";
 import { IncomingMessage } from "http";
 import { terminalService } from "../services/terminal.service";
 import { cliService } from "../services/cli.service";
-import type { TerminalMessage, ClaudeCodeMessage, SessionMapping } from "shared-types";
+import type {
+  TerminalMessage,
+  ClaudeCodeMessage,
+  SessionMapping,
+} from "shared-types";
 import { SessionService } from "../services/session.service";
 import { createServiceLogger } from "./logger";
 
@@ -15,7 +19,7 @@ interface TerminalWebSocket extends WebSocket {
 interface ClaudeCodeWebSocket extends WebSocket {
   sessionId?: string;
   userId?: string;
-  connectionType: 'claude-code';
+  connectionType: "claude-code";
   isAlive?: boolean;
 }
 
@@ -82,46 +86,54 @@ class TerminalWebSocketServer {
       }
     }
 
-    this.wss.on("connection", (ws: TerminalWebSocket | ClaudeCodeWebSocket, request) => {
-      // Filter out Vite HMR connections
-      const protocol = request.headers["sec-websocket-protocol"];
-      if (
-        protocol &&
-        (protocol.includes("vite-hmr") || protocol.includes("vite-ping"))
-      ) {
-        logger.debug("Rejecting Vite HMR connection", { protocol });
-        ws.close(1002, "Not a terminal connection");
-        return;
-      }
+    this.wss.on(
+      "connection",
+      (ws: TerminalWebSocket | ClaudeCodeWebSocket, request) => {
+        // Filter out Vite HMR connections
+        const protocol = request.headers["sec-websocket-protocol"];
+        if (
+          protocol &&
+          (protocol.includes("vite-hmr") || protocol.includes("vite-ping"))
+        ) {
+          logger.debug("Rejecting Vite HMR connection", { protocol });
+          ws.close(1002, "Not a terminal connection");
+          return;
+        }
 
-      // Determine connection type based on URL path or query parameters
-      const url = new URL(request.url || '/', 'http://localhost');
-      const connectionType = url.searchParams.get('type');
-      
-      if (connectionType === 'claude-code') {
-        this.handleClaudeCodeConnection(ws as ClaudeCodeWebSocket, request);
-      } else {
-        this.handleTerminalConnection(ws as TerminalWebSocket, request);
+        // Determine connection type based on URL path or query parameters
+        const url = new URL(request.url || "/", "http://localhost");
+        const connectionType = url.searchParams.get("type");
+
+        if (connectionType === "claude-code") {
+          this.handleClaudeCodeConnection(ws as ClaudeCodeWebSocket, request);
+        } else {
+          this.handleTerminalConnection(ws as TerminalWebSocket, request);
+        }
       }
-    });
+    );
 
     const pingInterval = setInterval(() => {
       if (this.wss) {
-        this.wss.clients.forEach((ws: TerminalWebSocket | ClaudeCodeWebSocket) => {
-          if (ws.isAlive === false) {
-            if (ws.sessionId) {
-              if ('connectionType' in ws && ws.connectionType === 'claude-code') {
-                this.claudeCodeClients.delete(ws.sessionId);
-              } else {
-                terminalService.terminateSession(ws.sessionId);
-                this.clients.delete(ws.sessionId);
+        this.wss.clients.forEach(
+          (ws: TerminalWebSocket | ClaudeCodeWebSocket) => {
+            if (ws.isAlive === false) {
+              if (ws.sessionId) {
+                if (
+                  "connectionType" in ws &&
+                  ws.connectionType === "claude-code"
+                ) {
+                  this.claudeCodeClients.delete(ws.sessionId);
+                } else {
+                  terminalService.terminateSession(ws.sessionId);
+                  this.clients.delete(ws.sessionId);
+                }
               }
+              return ws.terminate();
             }
-            return ws.terminate();
+            ws.isAlive = false;
+            ws.ping();
           }
-          ws.isAlive = false;
-          ws.ping();
-        });
+        );
       }
     }, 30000);
 
@@ -176,10 +188,13 @@ class TerminalWebSocketServer {
     });
   }
 
-  private async handleClaudeCodeConnection(ws: ClaudeCodeWebSocket, request: IncomingMessage) {
+  private async handleClaudeCodeConnection(
+    ws: ClaudeCodeWebSocket,
+    request: IncomingMessage
+  ) {
     logger.info("Accepted Claude Code connection");
 
-    ws.connectionType = 'claude-code';
+    ws.connectionType = "claude-code";
     ws.isAlive = true;
     ws.on("pong", () => {
       ws.isAlive = true;
@@ -195,7 +210,10 @@ class TerminalWebSocketServer {
       }
       ws.userId = userId;
     } catch (error) {
-      logger.error("Authentication error for Claude Code connection", error as Error);
+      logger.error(
+        "Authentication error for Claude Code connection",
+        error as Error
+      );
       ws.close(1008, "Authentication failed");
       return;
     }
@@ -205,10 +223,14 @@ class TerminalWebSocketServer {
         const message: ClaudeCodeMessage = JSON.parse(data.toString());
         await this.handleClaudeCodeMessage(ws, message);
       } catch (error) {
-        logger.error("Error processing Claude Code WebSocket message", error as Error, {
-          sessionId: ws.sessionId,
-          userId: ws.userId,
-        });
+        logger.error(
+          "Error processing Claude Code WebSocket message",
+          error as Error,
+          {
+            sessionId: ws.sessionId,
+            userId: ws.userId,
+          }
+        );
         this.sendClaudeCodeMessage(ws, {
           type: "error",
           data: "Invalid message format",
@@ -218,9 +240,9 @@ class TerminalWebSocketServer {
     });
 
     ws.on("close", () => {
-      logger.info("Claude Code WebSocket connection closed", { 
+      logger.info("Claude Code WebSocket connection closed", {
         sessionId: ws.sessionId,
-        userId: ws.userId 
+        userId: ws.userId,
       });
       if (ws.sessionId) {
         this.claudeCodeClients.delete(ws.sessionId);
@@ -238,54 +260,62 @@ class TerminalWebSocketServer {
     });
   }
 
-  private async authenticateClaudeCodeConnection(request: IncomingMessage): Promise<string | null> {
+  private async authenticateClaudeCodeConnection(
+    request: IncomingMessage
+  ): Promise<string | null> {
     try {
       let cookie = request.headers.cookie;
-      
+
       // If no cookie in headers, try to get it from query string (fallback for WebSocket connections)
       if (!cookie && request.url) {
-        const url = new URL(request.url, 'http://localhost');
-        const sessionFromQuery = url.searchParams.get('session');
+        const url = new URL(request.url, "http://localhost");
+        const sessionFromQuery = url.searchParams.get("session");
         if (sessionFromQuery) {
           cookie = `__session=${decodeURIComponent(sessionFromQuery)}`;
         }
       }
-      
+
       if (!cookie) {
         return null;
       }
 
       // Create a minimal Request object for SessionService
-      const mockRequest = new Request('http://localhost', {
-        headers: { Cookie: cookie }
+      const mockRequest = new Request("http://localhost", {
+        headers: { Cookie: cookie },
       });
 
       const userId = await SessionService.getUserId(mockRequest);
       return userId || null;
     } catch (error) {
-      logger.error("Error authenticating Claude Code connection", error as Error);
+      logger.error(
+        "Error authenticating Claude Code connection",
+        error as Error
+      );
       return null;
     }
   }
 
-  private async handleClaudeCodeMessage(ws: ClaudeCodeWebSocket, message: ClaudeCodeMessage) {
+  private async handleClaudeCodeMessage(
+    ws: ClaudeCodeWebSocket,
+    message: ClaudeCodeMessage
+  ) {
     try {
       // Process message based on type
       switch (message.type) {
-        case 'start_session':
+        case "start_session":
           await this.handleStartSession(ws, message);
           break;
-        case 'stop_session':
+        case "stop_session":
           await this.handleStopSession(ws, message);
           break;
-        case 'input':
+        case "input":
           await this.handleSessionInput(ws, message);
           break;
-        case 'exit':
+        case "exit":
           // Handle client exit
-          logger.info("Claude Code client exiting", { 
+          logger.info("Claude Code client exiting", {
             sessionId: message.sessionId,
-            userId: ws.userId 
+            userId: ws.userId,
           });
           if (message.sessionId) {
             await this.handleStopSession(ws, message);
@@ -294,15 +324,19 @@ class TerminalWebSocketServer {
           ws.close();
           break;
         default:
-          logger.warn("Unknown Claude Code message type", { 
+          logger.warn("Unknown Claude Code message type", {
             type: message.type,
-            sessionId: message.sessionId 
+            sessionId: message.sessionId,
           });
       }
     } catch (error) {
-      logger.error("Error handling Claude Code WebSocket message", error as Error, {
-        sessionId: message.sessionId,
-      });
+      logger.error(
+        "Error handling Claude Code WebSocket message",
+        error as Error,
+        {
+          sessionId: message.sessionId,
+        }
+      );
       this.sendClaudeCodeMessage(ws, {
         type: "error",
         data: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -311,17 +345,22 @@ class TerminalWebSocketServer {
     }
   }
 
-  private async handleStartSession(ws: ClaudeCodeWebSocket, message: ClaudeCodeMessage) {
+  private async handleStartSession(
+    ws: ClaudeCodeWebSocket,
+    message: ClaudeCodeMessage
+  ) {
     try {
       if (!message.workspacePath || !message.sessionId) {
-        throw new Error("Missing required parameters: workspacePath and sessionId");
+        throw new Error(
+          "Missing required parameters: workspacePath and sessionId"
+        );
       }
 
       logger.info("Starting Claude Code session", {
         sessionId: message.sessionId,
         workspacePath: message.workspacePath,
         command: message.command,
-        userId: ws.userId
+        userId: ws.userId,
       });
 
       // Check if session already exists
@@ -352,53 +391,53 @@ class TerminalWebSocketServer {
       const process = cliService.getProcess(message.sessionId);
       if (process) {
         // Create a buffer to avoid spam of small messages
-        let outputBuffer = '';
-        let errorBuffer = '';
+        let outputBuffer = "";
+        let errorBuffer = "";
         const bufferDelay = 50; // 50ms buffer
 
         const flushOutputBuffer = () => {
           if (outputBuffer.length > 0) {
             this.sendClaudeCodeMessage(ws, {
-              type: 'stdout',
+              type: "stdout",
               data: outputBuffer,
               sessionId: message.sessionId,
             });
-            outputBuffer = '';
+            outputBuffer = "";
           }
         };
 
         const flushErrorBuffer = () => {
           if (errorBuffer.length > 0) {
             this.sendClaudeCodeMessage(ws, {
-              type: 'stderr',
+              type: "stderr",
               data: errorBuffer,
               sessionId: message.sessionId,
             });
-            errorBuffer = '';
+            errorBuffer = "";
           }
         };
 
-        process.stdout?.on('data', (data: Buffer) => {
+        process.stdout?.on("data", (data: Buffer) => {
           outputBuffer += data.toString();
           setTimeout(flushOutputBuffer, bufferDelay);
         });
 
-        process.stderr?.on('data', (data: Buffer) => {
+        process.stderr?.on("data", (data: Buffer) => {
           errorBuffer += data.toString();
           setTimeout(flushErrorBuffer, bufferDelay);
         });
 
-        process.on('exit', (code) => {
+        process.on("exit", code => {
           // Flush any remaining buffered output
           flushOutputBuffer();
           flushErrorBuffer();
-          
+
           this.sendClaudeCodeMessage(ws, {
-            type: 'session_stopped',
+            type: "session_stopped",
             sessionId: message.sessionId,
             exitCode: code || undefined,
           });
-          
+
           this.activeSessions.delete(message.sessionId);
           this.claudeCodeClients.delete(message.sessionId);
         });
@@ -406,11 +445,10 @@ class TerminalWebSocketServer {
 
       // Send success response
       this.sendClaudeCodeMessage(ws, {
-        type: 'session_started',
+        type: "session_started",
         sessionId: message.sessionId,
-        status: 'success',
+        status: "success",
       });
-
     } catch (error) {
       logger.error("Failed to start Claude Code session", error as Error, {
         sessionId: message.sessionId,
@@ -418,15 +456,18 @@ class TerminalWebSocketServer {
       });
 
       this.sendClaudeCodeMessage(ws, {
-        type: 'session_started',
+        type: "session_started",
         sessionId: message.sessionId,
-        status: 'error',
+        status: "error",
         message: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
 
-  private async handleStopSession(ws: ClaudeCodeWebSocket, message: ClaudeCodeMessage) {
+  private async handleStopSession(
+    ws: ClaudeCodeWebSocket,
+    message: ClaudeCodeMessage
+  ) {
     try {
       if (!message.sessionId) {
         throw new Error("Missing sessionId");
@@ -434,13 +475,13 @@ class TerminalWebSocketServer {
 
       logger.info("Stopping Claude Code session", {
         sessionId: message.sessionId,
-        userId: ws.userId
+        userId: ws.userId,
       });
 
       const sessionMapping = this.activeSessions.get(message.sessionId);
       if (!sessionMapping) {
         this.sendClaudeCodeMessage(ws, {
-          type: 'session_stopped',
+          type: "session_stopped",
           sessionId: message.sessionId,
           message: "Session not found",
         });
@@ -449,33 +490,35 @@ class TerminalWebSocketServer {
 
       // Stop the process
       const success = cliService.stopProcess(message.sessionId);
-      
+
       if (success) {
         this.activeSessions.delete(message.sessionId);
         this.claudeCodeClients.delete(message.sessionId);
-        
+
         this.sendClaudeCodeMessage(ws, {
-          type: 'session_stopped',
+          type: "session_stopped",
           sessionId: message.sessionId,
         });
       } else {
         throw new Error("Failed to stop process");
       }
-
     } catch (error) {
       logger.error("Failed to stop Claude Code session", error as Error, {
         sessionId: message.sessionId,
       });
 
       this.sendClaudeCodeMessage(ws, {
-        type: 'error',
+        type: "error",
         data: `Failed to stop session: ${error instanceof Error ? error.message : "Unknown error"}`,
         sessionId: message.sessionId,
       });
     }
   }
 
-  private async handleSessionInput(ws: ClaudeCodeWebSocket, message: ClaudeCodeMessage) {
+  private async handleSessionInput(
+    ws: ClaudeCodeWebSocket,
+    message: ClaudeCodeMessage
+  ) {
     try {
       if (!message.sessionId || !message.data) {
         throw new Error("Missing sessionId or data");
@@ -488,28 +531,37 @@ class TerminalWebSocketServer {
 
       // Write input to the Claude Code process
       process.stdin.write(message.data);
-
     } catch (error) {
-      logger.error("Failed to send input to Claude Code session", error as Error, {
-        sessionId: message.sessionId,
-      });
+      logger.error(
+        "Failed to send input to Claude Code session",
+        error as Error,
+        {
+          sessionId: message.sessionId,
+        }
+      );
 
       this.sendClaudeCodeMessage(ws, {
-        type: 'error',
+        type: "error",
         data: `Failed to send input: ${error instanceof Error ? error.message : "Unknown error"}`,
         sessionId: message.sessionId,
       });
     }
   }
 
-  private sendClaudeCodeMessage(ws: ClaudeCodeWebSocket, message: ClaudeCodeMessage) {
+  private sendClaudeCodeMessage(
+    ws: ClaudeCodeWebSocket,
+    message: ClaudeCodeMessage
+  ) {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message));
     }
   }
 
   // Method to send message to specific Claude Code client
-  public sendToClaudeCodeClient(sessionId: string, message: ClaudeCodeMessage): boolean {
+  public sendToClaudeCodeClient(
+    sessionId: string,
+    message: ClaudeCodeMessage
+  ): boolean {
     const client = this.claudeCodeClients.get(sessionId);
     if (client && client.readyState === WebSocket.OPEN) {
       this.sendClaudeCodeMessage(client, message);
@@ -519,9 +571,12 @@ class TerminalWebSocketServer {
   }
 
   // Method to broadcast to all Claude Code clients for a user
-  public broadcastToUserClaudeCodeClients(userId: string, message: ClaudeCodeMessage): number {
+  public broadcastToUserClaudeCodeClients(
+    userId: string,
+    message: ClaudeCodeMessage
+  ): number {
     let sentCount = 0;
-    this.claudeCodeClients.forEach((client) => {
+    this.claudeCodeClients.forEach(client => {
       if (client.userId === userId && client.readyState === WebSocket.OPEN) {
         this.sendClaudeCodeMessage(client, message);
         sentCount++;
@@ -680,12 +735,12 @@ class TerminalWebSocketServer {
       this.wss.close();
       this.wss = null;
     }
-    
+
     // Clean up all active Claude Code sessions
     for (const sessionId of this.activeSessions.keys()) {
       cliService.stopProcess(sessionId);
     }
-    
+
     this.clients.clear();
     this.claudeCodeClients.clear();
     this.activeSessions.clear();

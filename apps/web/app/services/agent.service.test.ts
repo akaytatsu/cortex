@@ -29,18 +29,30 @@ describe("AgentService", () => {
 
   describe("validateAgentCommand", () => {
     it("should accept valid commands with allowed prefixes", () => {
-      expect(agentService.validateAgentCommand("claude code --help")).toBe(true);
-      expect(agentService.validateAgentCommand("Claude Test run-all")).toBe(true);
-      expect(agentService.validateAgentCommand("CLAUDE REVIEW file.ts")).toBe(true);
-      expect(agentService.validateAgentCommand("claude analyze project")).toBe(true);
+      expect(agentService.validateAgentCommand("claude code --help")).toBe(
+        true
+      );
+      expect(agentService.validateAgentCommand("Claude Test run-all")).toBe(
+        true
+      );
+      expect(agentService.validateAgentCommand("CLAUDE REVIEW file.ts")).toBe(
+        true
+      );
+      expect(agentService.validateAgentCommand("claude analyze project")).toBe(
+        true
+      );
       expect(agentService.validateAgentCommand("claude help")).toBe(true);
     });
 
     it("should reject commands with disallowed prefixes", () => {
       expect(agentService.validateAgentCommand("rm -rf /")).toBe(false);
       expect(agentService.validateAgentCommand("sudo rm -rf")).toBe(false);
-      expect(agentService.validateAgentCommand("npm install malicious")).toBe(false);
-      expect(agentService.validateAgentCommand("curl http://evil.com")).toBe(false);
+      expect(agentService.validateAgentCommand("npm install malicious")).toBe(
+        false
+      );
+      expect(agentService.validateAgentCommand("curl http://evil.com")).toBe(
+        false
+      );
       expect(agentService.validateAgentCommand("")).toBe(false);
     });
   });
@@ -75,7 +87,9 @@ describe("AgentService", () => {
         mimeType: "text/yaml",
       };
 
-      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(validYamlContent);
+      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(
+        validYamlContent
+      );
 
       const result = await agentService.loadAgentsFromWorkspace("/valid/path");
 
@@ -111,12 +125,16 @@ describe("AgentService", () => {
         mimeType: "text/yaml",
       };
 
-      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(yamlWithInvalidCommands);
+      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(
+        yamlWithInvalidCommands
+      );
 
       const result = await agentService.loadAgentsFromWorkspace("/valid/path");
 
       expect(result).toHaveLength(2);
-      expect(result.find(agent => agent.name === "malicious-agent")).toBeUndefined();
+      expect(
+        result.find(agent => agent.name === "malicious-agent")
+      ).toBeUndefined();
       expect(mockLogger.warn).toHaveBeenCalledWith(
         "Invalid agent command rejected",
         expect.objectContaining({
@@ -136,7 +154,9 @@ not_an_array: "this should be an array"
         mimeType: "text/yaml",
       };
 
-      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(invalidYamlStructure);
+      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(
+        invalidYamlStructure
+      );
 
       const result = await agentService.loadAgentsFromWorkspace("/valid/path");
 
@@ -160,7 +180,9 @@ not_an_array: "this should be an array"
         mimeType: "text/yaml",
       };
 
-      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(incompleteYaml);
+      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(
+        incompleteYaml
+      );
 
       const result = await agentService.loadAgentsFromWorkspace("/valid/path");
 
@@ -172,14 +194,16 @@ not_an_array: "this should be an array"
     });
 
     it("should reject paths with directory traversal", async () => {
-      const result = await agentService.loadAgentsFromWorkspace("/valid/../etc/passwd");
+      const result = await agentService.loadAgentsFromWorkspace(
+        "/valid/../etc/passwd"
+      );
 
       expect(result).toEqual([]);
       expect(mockLogger.error).toHaveBeenCalledWith(
         "Error loading agents",
         expect.any(Error),
         expect.objectContaining({
-          workspacePath: "/valid/../etc/passwd"
+          workspacePath: "/valid/../etc/passwd",
         })
       );
     });
@@ -197,7 +221,9 @@ not_an_array: "this should be an array"
         mimeType: "text/yaml",
       };
 
-      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(validYamlContent);
+      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(
+        validYamlContent
+      );
 
       // First call - should read from file
       const result1 = await agentService.loadAgentsFromWorkspace("/valid/path");
@@ -209,7 +235,10 @@ not_an_array: "this should be an array"
       // Second call - should use cache
       const result2 = await agentService.loadAgentsFromWorkspace("/valid/path");
       expect(mockFileSystemService.getFileContent).not.toHaveBeenCalled();
-      expect(mockLogger.debug).toHaveBeenCalledWith("Cache hit", expect.any(Object));
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        "Cache hit",
+        expect.any(Object)
+      );
 
       expect(result1).toEqual(result2);
     });
@@ -225,7 +254,9 @@ not_an_array: "this should be an array"
         mimeType: "text/yaml",
       };
 
-      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(validYamlContent);
+      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(
+        validYamlContent
+      );
 
       // First call - populates cache
       await agentService.loadAgentsFromWorkspace("/valid/path");
@@ -235,7 +266,9 @@ not_an_array: "this should be an array"
       agentService.invalidateCache("/valid/path");
       expect(mockLogger.info).toHaveBeenCalledWith(
         "Cache invalidated",
-        expect.objectContaining({ workspacePath: expect.stringContaining("/valid/path") })
+        expect.objectContaining({
+          workspacePath: expect.stringContaining("/valid/path"),
+        })
       );
 
       // Next call should hit filesystem again
@@ -261,9 +294,14 @@ not_an_array: "this should be an array"
         mimeType: "text/yaml",
       };
 
-      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(validYamlContent);
+      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(
+        validYamlContent
+      );
 
-      const agent = await agentService.getAgentByName("/valid/path", "code-reviewer");
+      const agent = await agentService.getAgentByName(
+        "/valid/path",
+        "code-reviewer"
+      );
 
       expect(agent).toEqual({
         name: "code-reviewer",
@@ -283,9 +321,14 @@ not_an_array: "this should be an array"
         mimeType: "text/yaml",
       };
 
-      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(validYamlContent);
+      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(
+        validYamlContent
+      );
 
-      const agent = await agentService.getAgentByName("/valid/path", "non-existent");
+      const agent = await agentService.getAgentByName(
+        "/valid/path",
+        "non-existent"
+      );
 
       expect(agent).toBeNull();
     });
@@ -303,7 +346,9 @@ not_an_array: "this should be an array"
         mimeType: "text/yaml",
       };
 
-      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(validYamlContent);
+      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(
+        validYamlContent
+      );
 
       const response = await agentService.getAgentsWithMetadata("/valid/path");
 
@@ -328,11 +373,13 @@ not_an_array: "this should be an array"
         mimeType: "text/yaml",
       };
 
-      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(validYamlContent);
+      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(
+        validYamlContent
+      );
 
       // First call
       await agentService.getAgentsWithMetadata("/valid/path");
-      
+
       // Second call should be from cache
       const response = await agentService.getAgentsWithMetadata("/valid/path");
 
@@ -378,7 +425,7 @@ not_an_array: "this should be an array"
     it("should evict the least recently used entry when cache is full", async () => {
       // Fill cache to maximum capacity
       const maxCacheSize = 100;
-      
+
       for (let i = 0; i < maxCacheSize; i++) {
         const yamlContent: FileContent = {
           path: ".claude-agents.yaml",
@@ -390,7 +437,9 @@ not_an_array: "this should be an array"
           mimeType: "text/yaml",
         };
 
-        vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(yamlContent);
+        vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(
+          yamlContent
+        );
         await agentService.loadAgentsFromWorkspace(`/path/${i}`);
       }
 
@@ -405,7 +454,9 @@ not_an_array: "this should be an array"
         mimeType: "text/yaml",
       };
 
-      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(newYamlContent);
+      vi.mocked(mockFileSystemService.getFileContent).mockResolvedValue(
+        newYamlContent
+      );
       await agentService.loadAgentsFromWorkspace("/path/new");
 
       // Verify the oldest entry was evicted by checking debug logs
@@ -414,7 +465,7 @@ not_an_array: "this should be an array"
         expect.objectContaining({
           key: expect.any(String),
           lastModified: expect.any(String),
-          cacheSize: expect.any(Number)
+          cacheSize: expect.any(Number),
         })
       );
     });

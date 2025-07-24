@@ -62,19 +62,21 @@ describe("CliService - Session Persistence Integration", () => {
     cliService = new CliService(mockSessionPersistence);
 
     // Mock process.kill to control which processes appear "active"
-    vi.spyOn(process, 'kill').mockImplementation((pid: number, signal?: string | number) => {
-      if (signal === 0) {
-        // Return true for active processes, throw for inactive
-        if (pid === 12345) {
-          return true; // Active process
-        } else {
-          const error = new Error('No such process') as NodeJS.ErrnoException;
-          error.code = 'ESRCH';
-          throw error;
+    vi.spyOn(process, "kill").mockImplementation(
+      (pid: number, signal?: string | number) => {
+        if (signal === 0) {
+          // Return true for active processes, throw for inactive
+          if (pid === 12345) {
+            return true; // Active process
+          } else {
+            const error = new Error("No such process") as NodeJS.ErrnoException;
+            error.code = "ESRCH";
+            throw error;
+          }
         }
+        return true;
       }
-      return true;
-    });
+    );
   });
 
   afterEach(() => {
@@ -86,7 +88,9 @@ describe("CliService - Session Persistence Integration", () => {
     it("should save session to persistence when process starts successfully", async () => {
       const mockProcess = new MockChildProcess(12345);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
       await cliService.startProcess(
         validWorkspacePath,
@@ -112,8 +116,10 @@ describe("CliService - Session Persistence Integration", () => {
     it("should not fail main operation if persistence save fails", async () => {
       const mockProcess = new MockChildProcess(12345);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
-      
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
+
       // Make persistence fail
       vi.mocked(mockSessionPersistence.saveSession).mockRejectedValue(
         new Error("Persistence failed")
@@ -139,7 +145,9 @@ describe("CliService - Session Persistence Integration", () => {
     it("should remove session from persistence when process stops", async () => {
       const mockProcess = new MockChildProcess(12345);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
       // Start process
       await cliService.startProcess(
@@ -153,13 +161,17 @@ describe("CliService - Session Persistence Integration", () => {
       const result = cliService.stopProcess("session-1");
 
       expect(result).toBe(true);
-      expect(mockSessionPersistence.removeSession).toHaveBeenCalledWith("session-1");
+      expect(mockSessionPersistence.removeSession).toHaveBeenCalledWith(
+        "session-1"
+      );
     });
 
     it("should remove session when process exits naturally", async () => {
       const mockProcess = new MockChildProcess(12345);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
       await cliService.startProcess(
         validWorkspacePath,
@@ -169,18 +181,22 @@ describe("CliService - Session Persistence Integration", () => {
       );
 
       // Simulate process exit
-      mockProcess.emit('exit', 0, null);
+      mockProcess.emit("exit", 0, null);
 
       // Give time for async removal
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      expect(mockSessionPersistence.removeSession).toHaveBeenCalledWith("session-1");
+      expect(mockSessionPersistence.removeSession).toHaveBeenCalledWith(
+        "session-1"
+      );
     });
 
     it("should remove session when process errors", async () => {
       const mockProcess = new MockChildProcess(12345);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
       await cliService.startProcess(
         validWorkspacePath,
@@ -190,12 +206,14 @@ describe("CliService - Session Persistence Integration", () => {
       );
 
       // Simulate process error
-      mockProcess.emit('error', new Error('Process failed'));
+      mockProcess.emit("error", new Error("Process failed"));
 
       // Give time for async removal
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      expect(mockSessionPersistence.removeSession).toHaveBeenCalledWith("session-1");
+      expect(mockSessionPersistence.removeSession).toHaveBeenCalledWith(
+        "session-1"
+      );
     });
   });
 
@@ -216,7 +234,9 @@ describe("CliService - Session Persistence Integration", () => {
       );
 
       // Should remove orphaned session
-      expect(mockSessionPersistence.removeSession).toHaveBeenCalledWith("session-2");
+      expect(mockSessionPersistence.removeSession).toHaveBeenCalledWith(
+        "session-2"
+      );
 
       // Should have one active process
       const activeProcesses = cliService.getAllActiveProcesses();
@@ -244,8 +264,10 @@ describe("CliService - Session Persistence Integration", () => {
         pid: 99999,
       };
 
-      vi.mocked(mockSessionPersistence.loadSessions).mockResolvedValue([problematicSession]);
-      
+      vi.mocked(mockSessionPersistence.loadSessions).mockResolvedValue([
+        problematicSession,
+      ]);
+
       // Make updateSession fail
       vi.mocked(mockSessionPersistence.updateSession).mockRejectedValue(
         new Error("Update failed")
@@ -254,7 +276,9 @@ describe("CliService - Session Persistence Integration", () => {
       await cliService.recoverSessions();
 
       // Should try to remove the problematic session
-      expect(mockSessionPersistence.removeSession).toHaveBeenCalledWith("problematic-session");
+      expect(mockSessionPersistence.removeSession).toHaveBeenCalledWith(
+        "problematic-session"
+      );
     });
 
     it("should handle process check errors gracefully", async () => {
@@ -263,20 +287,31 @@ describe("CliService - Session Persistence Integration", () => {
         pid: null as unknown as number, // Invalid PID
       };
 
-      vi.mocked(mockSessionPersistence.loadSessions).mockResolvedValue([sessionWithBadPid]);
+      vi.mocked(mockSessionPersistence.loadSessions).mockResolvedValue([
+        sessionWithBadPid,
+      ]);
 
       await cliService.recoverSessions();
 
       // Should remove the session with invalid PID
-      expect(mockSessionPersistence.removeSession).toHaveBeenCalledWith("session-1");
+      expect(mockSessionPersistence.removeSession).toHaveBeenCalledWith(
+        "session-1"
+      );
     });
 
     it("should continue recovery even if persistence operations fail", async () => {
-      vi.mocked(mockSessionPersistence.loadSessions).mockResolvedValue([mockSession1, mockSession2]);
-      
+      vi.mocked(mockSessionPersistence.loadSessions).mockResolvedValue([
+        mockSession1,
+        mockSession2,
+      ]);
+
       // Make all persistence operations fail
-      vi.mocked(mockSessionPersistence.updateSession).mockRejectedValue(new Error("Failed"));
-      vi.mocked(mockSessionPersistence.removeSession).mockRejectedValue(new Error("Failed"));
+      vi.mocked(mockSessionPersistence.updateSession).mockRejectedValue(
+        new Error("Failed")
+      );
+      vi.mocked(mockSessionPersistence.removeSession).mockRejectedValue(
+        new Error("Failed")
+      );
 
       // Should not throw
       await expect(cliService.recoverSessions()).resolves.not.toThrow();
@@ -293,12 +328,14 @@ describe("CliService - Session Persistence Integration", () => {
 
   describe("process info with new fields", () => {
     it("should return process info with all fields after recovery", async () => {
-      vi.mocked(mockSessionPersistence.loadSessions).mockResolvedValue([mockSession1]);
+      vi.mocked(mockSessionPersistence.loadSessions).mockResolvedValue([
+        mockSession1,
+      ]);
 
       await cliService.recoverSessions();
 
       const processInfo = cliService.getProcessInfo("session-1");
-      
+
       expect(processInfo).toEqual({
         pid: 12345,
         workspacePath: validWorkspacePath,
@@ -311,12 +348,14 @@ describe("CliService - Session Persistence Integration", () => {
     });
 
     it("should return all active processes with complete info", async () => {
-      vi.mocked(mockSessionPersistence.loadSessions).mockResolvedValue([mockSession1]);
+      vi.mocked(mockSessionPersistence.loadSessions).mockResolvedValue([
+        mockSession1,
+      ]);
 
       await cliService.recoverSessions();
 
       const activeProcesses = cliService.getAllActiveProcesses();
-      
+
       expect(activeProcesses[0]).toEqual({
         sessionId: "session-1",
         pid: 12345,

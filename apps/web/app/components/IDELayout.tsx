@@ -197,11 +197,11 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
                 className="bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col"
                 style={{ width: rightPanelWidth }}
               >
-                <CopilotPanel 
+                <CopilotPanel
                   workspaceName={workspace.name}
                   workspacePath={workspace.path}
                   userId={userId}
-                  className="h-full" 
+                  className="h-full"
                 />
               </div>
             )}
@@ -220,11 +220,11 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
           {isBottomPanelVisible && (
             <div
               className="bg-gray-900 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700"
-              style={{ 
+              style={{
                 height: bottomPanelHeight,
-                width: isRightPanelVisible 
-                  ? `calc(100% - ${rightPanelWidth}px)` 
-                  : "100%" 
+                width: isRightPanelVisible
+                  ? `calc(100% - ${rightPanelWidth}px)`
+                  : "100%",
               }}
             >
               <Terminal

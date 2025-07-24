@@ -96,7 +96,10 @@ export interface ILogger {
 
 export interface IAgentService {
   loadAgentsFromWorkspace(workspacePath: string): Promise<ClaudeAgent[]>;
-  getAgentByName(workspacePath: string, agentName: string): Promise<ClaudeAgent | null>;
+  getAgentByName(
+    workspacePath: string,
+    agentName: string
+  ): Promise<ClaudeAgent | null>;
   validateAgentCommand(command: string): boolean;
   invalidateCache(workspacePath: string): void;
   getAgentsWithMetadata(workspacePath: string): Promise<AgentListResponse>;
@@ -106,7 +109,10 @@ export interface ISessionPersistenceService {
   saveSession(session: PersistedSession): Promise<void>;
   removeSession(sessionId: string): Promise<void>;
   loadSessions(): Promise<PersistedSession[]>;
-  updateSession(sessionId: string, updates: Partial<PersistedSession>): Promise<void>;
+  updateSession(
+    sessionId: string,
+    updates: Partial<PersistedSession>
+  ): Promise<void>;
 }
 
 export interface ISessionTimeoutService {

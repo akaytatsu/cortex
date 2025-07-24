@@ -28,7 +28,13 @@ export class SessionPersistenceService implements ISessionPersistenceService {
         this.filePath = path.join(cwd, "config", "sessions.yaml");
       } else {
         // Running from project root
-        this.filePath = path.join(cwd, "apps", "web", "config", "sessions.yaml");
+        this.filePath = path.join(
+          cwd,
+          "apps",
+          "web",
+          "config",
+          "sessions.yaml"
+        );
       }
     } else {
       this.filePath = filePath;
@@ -73,7 +79,7 @@ export class SessionPersistenceService implements ISessionPersistenceService {
       this.logger.error("Failed to read sessions YAML file", error as Error, {
         filePath: this.filePath,
       });
-      
+
       // Fallback to empty array in case of corrupted file
       this.logger.warn("Returning empty sessions array due to read error");
       return [];
@@ -103,10 +109,7 @@ export class SessionPersistenceService implements ISessionPersistenceService {
         await fs.access(this.filePath);
       } catch {
         // File doesn't exist, create empty YAML structure
-        const emptyYaml = YAML.stringify(
-          { sessions: [] },
-          { indent: 2 }
-        );
+        const emptyYaml = YAML.stringify({ sessions: [] }, { indent: 2 });
         await fs.writeFile(this.filePath, emptyYaml, "utf8");
       }
 
@@ -151,7 +154,7 @@ export class SessionPersistenceService implements ISessionPersistenceService {
 
       // Check if session already exists
       const existingIndex = sessions.findIndex(s => s.id === session.id);
-      
+
       if (existingIndex !== -1) {
         // Update existing session
         sessions[existingIndex] = validatedSession;
@@ -179,7 +182,7 @@ export class SessionPersistenceService implements ISessionPersistenceService {
 
       const sessions = await this.loadSessions();
       const initialCount = sessions.length;
-      
+
       const filteredSessions = sessions.filter(s => s.id !== sessionId);
 
       if (filteredSessions.length === initialCount) {
@@ -196,7 +199,10 @@ export class SessionPersistenceService implements ISessionPersistenceService {
     }
   }
 
-  async updateSession(sessionId: string, updates: Partial<PersistedSession>): Promise<void> {
+  async updateSession(
+    sessionId: string,
+    updates: Partial<PersistedSession>
+  ): Promise<void> {
     const requestLogger = this.logger.withContext({ sessionId });
 
     try {

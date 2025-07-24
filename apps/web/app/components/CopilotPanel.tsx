@@ -21,10 +21,15 @@ interface MessageEntry {
   message: ClaudeCodeMessage;
 }
 
-export function CopilotPanel({ workspaceName, workspacePath, userId, className = "" }: CopilotPanelProps) {
+export function CopilotPanel({
+  workspaceName,
+  workspacePath,
+  userId,
+  className = "",
+}: CopilotPanelProps) {
   const [isNewSessionModalOpen, setIsNewSessionModalOpen] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  
+
   const {
     sessions,
     currentSessionId,
@@ -42,7 +47,7 @@ export function CopilotPanel({ workspaceName, workspacePath, userId, className =
   // Get current session data
   const currentSession = sessions.find(s => s.id === currentSessionId);
   const messages = currentSession?.messages || [];
-  const isProcessing = currentSession?.status === 'connecting';
+  const isProcessing = currentSession?.status === "connecting";
 
   // Handle new session creation
   const handleNewSession = useCallback(() => {
@@ -50,10 +55,13 @@ export function CopilotPanel({ workspaceName, workspacePath, userId, className =
     loadAgents();
   }, [loadAgents]);
 
-  const handleCreateSession = useCallback(async (agent?: ClaudeAgent) => {
-    await createSession(agent);
-    setIsNewSessionModalOpen(false);
-  }, [createSession]);
+  const handleCreateSession = useCallback(
+    async (agent?: ClaudeAgent) => {
+      await createSession(agent);
+      setIsNewSessionModalOpen(false);
+    },
+    [createSession]
+  );
 
   // Convert sessions for SessionManager component
   const terminalSessions = sessions.map(session => ({
@@ -61,18 +69,25 @@ export function CopilotPanel({ workspaceName, workspacePath, userId, className =
     workspaceName: session.workspaceName,
     workspacePath: session.workspacePath,
     userId,
-    status: session.status === 'active' ? 'active' as const : 
-            session.status === 'connecting' ? 'active' as const : 'inactive' as const,
+    status:
+      session.status === "active"
+        ? ("active" as const)
+        : session.status === "connecting"
+          ? ("active" as const)
+          : ("inactive" as const),
     createdAt: session.lastActivity,
   }));
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') 
-        || scrollAreaRef.current.querySelector('.overflow-auto')
-        || scrollAreaRef.current;
-      
+      const scrollContainer =
+        scrollAreaRef.current.querySelector(
+          "[data-radix-scroll-area-viewport]"
+        ) ||
+        scrollAreaRef.current.querySelector(".overflow-auto") ||
+        scrollAreaRef.current;
+
       if (scrollContainer) {
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
@@ -82,11 +97,11 @@ export function CopilotPanel({ workspaceName, workspacePath, userId, className =
   // Function to render message content based on type
   const renderMessageContent = (messageEntry: MessageEntry) => {
     const { message } = messageEntry;
-    
+
     if (!message.data) {
       return (
         <div className="text-xs text-gray-500 dark:text-gray-400 italic">
-          {message.type} - {message.status || 'No data'}
+          {message.type} - {message.status || "No data"}
         </div>
       );
     }
@@ -101,14 +116,19 @@ export function CopilotPanel({ workspaceName, workspacePath, userId, className =
   // Function to get message type badge color
   const getMessageTypeBadge = (type: string) => {
     const colors = {
-      'output': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-      'error': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-      'stdout': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      'stderr': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-      'input': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
+      output: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+      error: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+      stdout:
+        "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+      stderr:
+        "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+      input: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
     };
-    
-    return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+
+    return (
+      colors[type as keyof typeof colors] ||
+      "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+    );
   };
 
   return (
@@ -131,11 +151,9 @@ export function CopilotPanel({ workspaceName, workspacePath, userId, className =
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 min-w-0">
               <CardTitle className="text-sm md:text-base truncate">
-                {currentSession ? (
-                  `${currentSession.agentName || 'Sessão Padrão'} - ${workspaceName}`
-                ) : (
-                  'Copilot Panel'
-                )}
+                {currentSession
+                  ? `${currentSession.agentName || "Sessão Padrão"} - ${workspaceName}`
+                  : "Copilot Panel"}
               </CardTitle>
               {currentSessionId && (
                 <span className="text-xs text-gray-500 dark:text-gray-400 hidden md:inline">
@@ -166,27 +184,33 @@ export function CopilotPanel({ workspaceName, workspacePath, userId, className =
                 </div>
               </div>
             )}
-            
+
             {messages.length === 0 && !error ? (
               <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
                 <div className="text-center px-2">
                   <div className="text-2xl md:text-4xl mb-2">🤖</div>
-                  <p className="text-xs md:text-sm">Aguardando mensagens do copiloto...</p>
+                  <p className="text-xs md:text-sm">
+                    Aguardando mensagens do copiloto...
+                  </p>
                   <p className="text-xs mt-1 hidden sm:block">
-                    {currentSessionId ? 'Conectado, aguardando atividade...' : 'Selecione uma sessão ativa para começar'}
+                    {currentSessionId
+                      ? "Conectado, aguardando atividade..."
+                      : "Selecione uma sessão ativa para começar"}
                   </p>
                 </div>
               </div>
             ) : (
               <div className="space-y-2 pr-2 md:pr-4">
-                {messages.map((messageEntry) => (
+                {messages.map(messageEntry => (
                   <Card key={messageEntry.id} className="p-2 md:p-3">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center space-x-2">
-                        <span className={cn(
-                          "px-2 py-1 rounded text-xs font-medium",
-                          getMessageTypeBadge(messageEntry.message.type)
-                        )}>
+                        <span
+                          className={cn(
+                            "px-2 py-1 rounded text-xs font-medium",
+                            getMessageTypeBadge(messageEntry.message.type)
+                          )}
+                        >
                           {messageEntry.message.type}
                         </span>
                         <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -208,18 +232,26 @@ export function CopilotPanel({ workspaceName, workspacePath, userId, className =
         <div className="px-2 py-1 md:px-4 md:py-2 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 rounded-b-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-1 md:space-x-2 text-xs text-gray-600 dark:text-gray-400">
-              <div className={cn(
-                "w-2 h-2 rounded-full",
-                connectionStatus === 'open' ? 'bg-green-400' :
-                connectionStatus === 'connecting' ? 'bg-yellow-400 animate-pulse' :
-                connectionStatus === 'error' ? 'bg-red-400' :
-                'bg-gray-400'
-              )} />
+              <div
+                className={cn(
+                  "w-2 h-2 rounded-full",
+                  connectionStatus === "open"
+                    ? "bg-green-400"
+                    : connectionStatus === "connecting"
+                      ? "bg-yellow-400 animate-pulse"
+                      : connectionStatus === "error"
+                        ? "bg-red-400"
+                        : "bg-gray-400"
+                )}
+              />
               <span className="hidden sm:inline">
-                {connectionStatus === 'open' ? 'Conectado' :
-                 connectionStatus === 'connecting' ? 'Conectando...' :
-                 connectionStatus === 'error' ? 'Erro' :
-                 'Desconectado'}
+                {connectionStatus === "open"
+                  ? "Conectado"
+                  : connectionStatus === "connecting"
+                    ? "Conectando..."
+                    : connectionStatus === "error"
+                      ? "Erro"
+                      : "Desconectado"}
               </span>
               {currentSessionId && (
                 <span className="text-xs text-gray-500 dark:text-gray-400 hidden md:inline">
@@ -230,7 +262,8 @@ export function CopilotPanel({ workspaceName, workspacePath, userId, className =
             <div className="text-xs text-gray-500 dark:text-gray-400">
               {messages.length}
               <span className="hidden sm:inline">
-                {' '}mensagen{messages.length !== 1 ? 's' : ''}
+                {" "}
+                mensagen{messages.length !== 1 ? "s" : ""}
               </span>
             </div>
           </div>

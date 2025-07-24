@@ -35,7 +35,9 @@ describe("CliService", () => {
     it("should start Claude Code process with valid parameters", async () => {
       const mockProcess = new MockChildProcess(12345);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
       const result = await cliService.startProcess(
         process.cwd(),
@@ -50,7 +52,7 @@ describe("CliService", () => {
 
       expect(mockSpawn).toHaveBeenCalledWith("claude", [], {
         cwd: process.cwd(),
-        stdio: ['pipe', 'pipe', 'pipe'],
+        stdio: ["pipe", "pipe", "pipe"],
         env: expect.objectContaining({
           PWD: process.cwd(),
         }),
@@ -61,7 +63,9 @@ describe("CliService", () => {
     it("should start process with default command when no command provided", async () => {
       const mockProcess = new MockChildProcess(12346);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
       const result = await cliService.startProcess(
         process.cwd(),
@@ -78,7 +82,11 @@ describe("CliService", () => {
 
     it("should validate workspace path boundaries", async () => {
       await expect(
-        cliService.startProcess("/../../../etc/passwd", "test-session", "claude")
+        cliService.startProcess(
+          "/../../../etc/passwd",
+          "test-session",
+          "claude"
+        )
       ).rejects.toThrow(CliServiceError);
     });
 
@@ -90,7 +98,11 @@ describe("CliService", () => {
 
     it("should reject commands with dangerous characters", async () => {
       await expect(
-        cliService.startProcess(process.cwd(), "test-session", "claude; rm -rf /")
+        cliService.startProcess(
+          process.cwd(),
+          "test-session",
+          "claude; rm -rf /"
+        )
       ).rejects.toThrow(CliServiceError);
 
       await expect(
@@ -98,22 +110,36 @@ describe("CliService", () => {
       ).rejects.toThrow(CliServiceError);
 
       await expect(
-        cliService.startProcess(process.cwd(), "test-session", "claude | cat /etc/passwd")
+        cliService.startProcess(
+          process.cwd(),
+          "test-session",
+          "claude | cat /etc/passwd"
+        )
       ).rejects.toThrow(CliServiceError);
 
       await expect(
-        cliService.startProcess(process.cwd(), "test-session", "claude $(whoami)")
+        cliService.startProcess(
+          process.cwd(),
+          "test-session",
+          "claude $(whoami)"
+        )
       ).rejects.toThrow(CliServiceError);
 
       await expect(
-        cliService.startProcess(process.cwd(), "test-session", "claude `whoami`")
+        cliService.startProcess(
+          process.cwd(),
+          "test-session",
+          "claude `whoami`"
+        )
       ).rejects.toThrow(CliServiceError);
     });
 
     it("should sanitize command arguments", async () => {
       const mockProcess = new MockChildProcess(12347);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
       await cliService.startProcess(
         process.cwd(),
@@ -121,15 +147,25 @@ describe("CliService", () => {
         'claude "some-arg"'
       );
 
-      expect(mockSpawn).toHaveBeenCalledWith("claude", ["some-arg"], expect.any(Object));
+      expect(mockSpawn).toHaveBeenCalledWith(
+        "claude",
+        ["some-arg"],
+        expect.any(Object)
+      );
     });
 
     it("should reject if session already exists", async () => {
       const mockProcess = new MockChildProcess(12348);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
-      await cliService.startProcess(process.cwd(), "duplicate-session", "claude");
+      await cliService.startProcess(
+        process.cwd(),
+        "duplicate-session",
+        "claude"
+      );
 
       await expect(
         cliService.startProcess(process.cwd(), "duplicate-session", "claude")
@@ -140,7 +176,9 @@ describe("CliService", () => {
       const mockProcess = new MockChildProcess(0); // pid 0 indicates failure
       mockProcess.pid = undefined as unknown as number;
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
       await expect(
         cliService.startProcess(process.cwd(), "fail-session", "claude")
@@ -150,7 +188,9 @@ describe("CliService", () => {
     it("should setup process event handlers", async () => {
       const mockProcess = new MockChildProcess(12349);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
       await cliService.startProcess(process.cwd(), "event-session", "claude");
 
@@ -159,7 +199,7 @@ describe("CliService", () => {
       expect(storedProcess).toBe(mockProcess);
 
       // Simulate process exit
-      mockProcess.emit('exit', 0, null);
+      mockProcess.emit("exit", 0, null);
 
       // Process should be cleaned up
       expect(cliService.getProcess("event-session")).toBeNull();
@@ -170,14 +210,16 @@ describe("CliService", () => {
     it("should stop existing process", async () => {
       const mockProcess = new MockChildProcess(12350);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
       await cliService.startProcess(process.cwd(), "stop-session", "claude");
 
       const result = cliService.stopProcess("stop-session");
 
       expect(result).toBe(true);
-      expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
+      expect(mockProcess.kill).toHaveBeenCalledWith("SIGTERM");
     });
 
     it("should return false for non-existent session", () => {
@@ -187,10 +229,12 @@ describe("CliService", () => {
 
     it("should send SIGKILL after timeout", async () => {
       vi.useFakeTimers();
-      
+
       const mockProcess = new MockChildProcess(12351);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
       await cliService.startProcess(process.cwd(), "timeout-session", "claude");
 
@@ -202,7 +246,7 @@ describe("CliService", () => {
       // Fast-forward time to trigger SIGKILL (5 seconds timeout)
       vi.advanceTimersByTime(6000);
 
-      expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
+      expect(mockProcess.kill).toHaveBeenCalledWith("SIGTERM");
       // The timeout logic is in the implementation, but for testing we'll check it was called
       expect(mockProcess.kill).toHaveBeenCalledTimes(1);
 
@@ -214,7 +258,9 @@ describe("CliService", () => {
     it("should return process for existing session", async () => {
       const mockProcess = new MockChildProcess(12352);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
       await cliService.startProcess(process.cwd(), "get-session", "claude");
 
@@ -232,12 +278,14 @@ describe("CliService", () => {
     it("should return process info for existing session", async () => {
       const mockProcess = new MockChildProcess(12353);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
       await cliService.startProcess(process.cwd(), "info-session", "claude");
 
       const info = cliService.getProcessInfo("info-session");
-      
+
       expect(info).toMatchObject({
         pid: 12353,
         workspacePath: process.cwd(),
@@ -256,8 +304,12 @@ describe("CliService", () => {
       const mockProcess1 = new MockChildProcess(12354);
       const mockProcess2 = new MockChildProcess(12355);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValueOnce(mockProcess1 as unknown as ReturnType<typeof spawn>);
-      mockSpawn.mockReturnValueOnce(mockProcess2 as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValueOnce(
+        mockProcess1 as unknown as ReturnType<typeof spawn>
+      );
+      mockSpawn.mockReturnValueOnce(
+        mockProcess2 as unknown as ReturnType<typeof spawn>
+      );
 
       await cliService.startProcess(process.cwd(), "active-1", "claude");
       await cliService.startProcess(process.cwd(), "active-2", "claude");
@@ -288,16 +340,20 @@ describe("CliService", () => {
       const mockProcess1 = new MockChildProcess(12356);
       const mockProcess2 = new MockChildProcess(12357);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValueOnce(mockProcess1 as unknown as ReturnType<typeof spawn>);
-      mockSpawn.mockReturnValueOnce(mockProcess2 as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValueOnce(
+        mockProcess1 as unknown as ReturnType<typeof spawn>
+      );
+      mockSpawn.mockReturnValueOnce(
+        mockProcess2 as unknown as ReturnType<typeof spawn>
+      );
 
       await cliService.startProcess(process.cwd(), "cleanup-1", "claude");
       await cliService.startProcess(process.cwd(), "cleanup-2", "claude");
 
       cliService.cleanup();
 
-      expect(mockProcess1.kill).toHaveBeenCalledWith('SIGTERM');
-      expect(mockProcess2.kill).toHaveBeenCalledWith('SIGTERM');
+      expect(mockProcess1.kill).toHaveBeenCalledWith("SIGTERM");
+      expect(mockProcess2.kill).toHaveBeenCalledWith("SIGTERM");
     });
   });
 
@@ -305,7 +361,9 @@ describe("CliService", () => {
     it("should allow complex but safe Claude commands", async () => {
       const mockProcess = new MockChildProcess(12358);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
       await cliService.startProcess(
         process.cwd(),
@@ -323,7 +381,9 @@ describe("CliService", () => {
     it("should handle empty command string", async () => {
       const mockProcess = new MockChildProcess(12359);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
       await cliService.startProcess(process.cwd(), "empty-command", "");
 
@@ -333,7 +393,9 @@ describe("CliService", () => {
     it("should handle whitespace-only command", async () => {
       const mockProcess = new MockChildProcess(12360);
       const mockSpawn = vi.mocked(spawn);
-      mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
+      mockSpawn.mockReturnValue(
+        mockProcess as unknown as ReturnType<typeof spawn>
+      );
 
       await cliService.startProcess(process.cwd(), "whitespace-command", "   ");
 

@@ -20,7 +20,7 @@ export function NewSessionModal({
   agents,
   isLoading,
   error,
-  onCreateSession
+  onCreateSession,
 }: NewSessionModalProps) {
   const [selectedAgent, setSelectedAgent] = useState<ClaudeAgent | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -48,14 +48,14 @@ export function NewSessionModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black bg-opacity-50" 
+      <div
+        className="absolute inset-0 bg-black bg-opacity-50"
         onClick={handleClose}
-        onKeyDown={(e) => e.key === 'Escape' && handleClose()}
+        onKeyDown={e => e.key === "Escape" && handleClose()}
         role="button"
         tabIndex={0}
       />
-      
+
       {/* Modal */}
       <Card className="relative w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
         <CardHeader className="pb-2">
@@ -100,10 +100,11 @@ export function NewSessionModal({
               <ScrollArea className="max-h-64">
                 <div className="space-y-2">
                   {/* Default Session Option */}
-                  <Card 
+                  <Card
                     className={cn(
                       "p-3 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800",
-                      selectedAgent === null && "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                      selectedAgent === null &&
+                        "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
                     )}
                     onClick={() => setSelectedAgent(null)}
                   >
@@ -114,19 +115,21 @@ export function NewSessionModal({
                           Sessão Padrão
                         </h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          Inicia uma sessão Claude Code padrão sem agente específico
+                          Inicia uma sessão Claude Code padrão sem agente
+                          específico
                         </p>
                       </div>
                     </div>
                   </Card>
 
                   {/* Agent Options */}
-                  {agents.map((agent) => (
-                    <Card 
+                  {agents.map(agent => (
+                    <Card
                       key={agent.name}
                       className={cn(
                         "p-3 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800",
-                        selectedAgent?.name === agent.name && "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                        selectedAgent?.name === agent.name &&
+                          "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
                       )}
                       onClick={() => setSelectedAgent(agent)}
                     >
@@ -165,10 +168,7 @@ export function NewSessionModal({
                 >
                   Cancelar
                 </Button>
-                <Button
-                  onClick={handleCreateSession}
-                  disabled={isCreating}
-                >
+                <Button onClick={handleCreateSession} disabled={isCreating}>
                   {isCreating ? "Criando..." : "Criar Sessão"}
                 </Button>
               </div>

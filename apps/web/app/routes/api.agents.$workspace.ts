@@ -5,7 +5,7 @@ import { SessionService } from "../services/session.service";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const startTime = Date.now();
-  
+
   try {
     // Validate user authentication and get user ID
     const userId = await SessionService.requireUserId(request);
@@ -14,13 +14,13 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
     if (!workspace) {
       return json(
-        { 
-          error: { 
-            code: 'WORKSPACE_PARAMETER_MISSING', 
-            message: 'Workspace parameter is required',
-            context: { parameter: 'workspace' }
-          }
-        }, 
+        {
+          error: {
+            code: "WORKSPACE_PARAMETER_MISSING",
+            message: "Workspace parameter is required",
+            context: { parameter: "workspace" },
+          },
+        },
         { status: 400 }
       );
     }
@@ -31,13 +31,13 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
     if (!workspaceData) {
       return json(
-        { 
-          error: { 
-            code: 'WORKSPACE_NOT_FOUND', 
+        {
+          error: {
+            code: "WORKSPACE_NOT_FOUND",
             message: `Workspace '${workspace}' not found`,
-            context: { workspaceName: workspace }
-          }
-        }, 
+            context: { workspaceName: workspace },
+          },
+        },
         { status: 404 }
       );
     }
@@ -47,13 +47,13 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     // const hasPermission = await authService.checkPermission(userId, 'workspace:read', workspace);
     // if (!hasPermission) {
     //   return json(
-    //     { 
-    //       error: { 
-    //         code: 'PERMISSION_DENIED', 
+    //     {
+    //       error: {
+    //         code: 'PERMISSION_DENIED',
     //         message: 'Insufficient permissions to access workspace agents',
     //         requiredPermission: 'workspace:read'
     //       }
-    //     }, 
+    //     },
     //     { status: 403 }
     //   );
     // }
@@ -71,35 +71,37 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
     const store = (global as any).rateLimitStore as Map<string, number[]>;
     const userRequests = store.get(rateLimitKey) || [];
-    
+
     // Clean old requests (sliding window)
-    const recentRequests = userRequests.filter((timestamp: number) => now - timestamp < windowMs);
-    
+    const recentRequests = userRequests.filter(
+      (timestamp: number) => now - timestamp < windowMs
+    );
+
     if (recentRequests.length >= maxRequests) {
       const oldestRequest = Math.min(...recentRequests);
       const retryAfterMs = windowMs - (now - oldestRequest) + 1000; // Add 1s buffer
-      
+
       return json(
-        { 
-          error: { 
-            code: 'RATE_LIMIT_EXCEEDED', 
-            message: 'Too many requests. Please try again later.',
-            context: { 
-              maxRequests, 
-              windowMs, 
+        {
+          error: {
+            code: "RATE_LIMIT_EXCEEDED",
+            message: "Too many requests. Please try again later.",
+            context: {
+              maxRequests,
+              windowMs,
               currentRequests: recentRequests.length,
-              retryAfterMs 
-            }
-          }
-        }, 
-        { 
+              retryAfterMs,
+            },
+          },
+        },
+        {
           status: 429,
           headers: {
-            'Retry-After': Math.ceil(retryAfterMs / 1000).toString(),
-            'X-RateLimit-Limit': maxRequests.toString(),
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': new Date(now + retryAfterMs).toISOString()
-          }
+            "Retry-After": Math.ceil(retryAfterMs / 1000).toString(),
+            "X-RateLimit-Limit": maxRequests.toString(),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": new Date(now + retryAfterMs).toISOString(),
+          },
         }
       );
     }
@@ -113,19 +115,21 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
     // Get agents using the AgentService
     const agentService = serviceContainer.getAgentService();
-    const agentResponse = await agentService.getAgentsWithMetadata(workspaceData.path);
+    const agentResponse = await agentService.getAgentsWithMetadata(
+      workspaceData.path
+    );
 
     // Add performance metrics
     const responseTime = Date.now() - startTime;
-    
+
     const response = {
       ...agentResponse,
       metadata: {
         ...agentResponse.metadata,
         responseTimeMs: responseTime,
         requestId: `${userId}-${workspace}-${now}`,
-        userId
-      }
+        userId,
+      },
     };
 
     // Log metrics for monitoring
@@ -137,35 +141,34 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       agentCount: response.agents.length,
       responseTimeMs: responseTime,
       fromCache: response.metadata.fromCache,
-      requestId: response.metadata.requestId
+      requestId: response.metadata.requestId,
     });
 
     return json(response, {
       headers: {
-        'X-RateLimit-Limit': maxRequests.toString(),
-        'X-RateLimit-Remaining': remainingRequests.toString(),
-        'X-RateLimit-Reset': new Date(now + windowMs).toISOString()
-      }
+        "X-RateLimit-Limit": maxRequests.toString(),
+        "X-RateLimit-Remaining": remainingRequests.toString(),
+        "X-RateLimit-Reset": new Date(now + windowMs).toISOString(),
+      },
     });
-
   } catch (error) {
     const responseTime = Date.now() - startTime;
     const logger = serviceContainer.getLogger();
-    
+
     logger.error("Error loading agents via API", error as Error, {
       workspace: params.workspace,
       responseTimeMs: responseTime,
-      url: request.url
+      url: request.url,
     });
 
     return json(
-      { 
+      {
         error: {
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to load workspace agents',
-          context: { timestamp: new Date().toISOString() }
-        }
-      }, 
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to load workspace agents",
+          context: { timestamp: new Date().toISOString() },
+        },
+      },
       { status: 500 }
     );
   }

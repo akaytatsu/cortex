@@ -20,7 +20,7 @@ export function SessionManager({
   onSessionSelect,
   onSessionClose,
   onNewSession,
-  className = ""
+  className = "",
 }: SessionManagerProps) {
   const [isClosing, setIsClosing] = useState<string | null>(null);
 
@@ -39,16 +39,16 @@ export function SessionManager({
     return `${session.workspaceName} (${session.id.substring(0, 8)})`;
   };
 
-  const getStatusColor = (status: TerminalSession['status']) => {
+  const getStatusColor = (status: TerminalSession["status"]) => {
     switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'inactive':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'terminated':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case "active":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case "inactive":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+      case "terminated":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
     }
   };
 
@@ -57,9 +57,9 @@ export function SessionManager({
       <CardHeader className="pb-2 px-3 py-2 md:px-6 md:py-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm md:text-base">Sessões Ativas</CardTitle>
-          <Button 
+          <Button
             onClick={onNewSession}
-            size="sm" 
+            size="sm"
             className="text-xs md:text-sm"
           >
             Nova Sessão
@@ -74,17 +74,20 @@ export function SessionManager({
               <div className="text-center px-2">
                 <div className="text-2xl md:text-4xl mb-2">📋</div>
                 <p className="text-xs md:text-sm">Nenhuma sessão ativa</p>
-                <p className="text-xs mt-1">Clique em &quot;Nova Sessão&quot; para começar</p>
+                <p className="text-xs mt-1">
+                  Clique em &quot;Nova Sessão&quot; para começar
+                </p>
               </div>
             </div>
           ) : (
             <div className="space-y-2">
-              {sessions.map((session) => (
-                <Card 
-                  key={session.id} 
+              {sessions.map(session => (
+                <Card
+                  key={session.id}
                   className={cn(
                     "p-2 md:p-3 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800",
-                    currentSessionId === session.id && "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                    currentSessionId === session.id &&
+                      "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
                   )}
                   onClick={() => onSessionSelect(session.id)}
                 >
@@ -94,10 +97,12 @@ export function SessionManager({
                         <h3 className="text-sm font-medium truncate">
                           {formatSessionName(session)}
                         </h3>
-                        <span className={cn(
-                          "px-2 py-1 rounded text-xs font-medium flex-shrink-0",
-                          getStatusColor(session.status)
-                        )}>
+                        <span
+                          className={cn(
+                            "px-2 py-1 rounded text-xs font-medium flex-shrink-0",
+                            getStatusColor(session.status)
+                          )}
+                        >
                           {session.status}
                         </span>
                       </div>
@@ -113,7 +118,7 @@ export function SessionManager({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation();
                         handleCloseSession(session.id);
                       }}

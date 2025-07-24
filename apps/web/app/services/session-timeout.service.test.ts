@@ -5,7 +5,7 @@ import { SessionTimeoutService } from "./session-timeout.service";
 
 // Mock process.kill
 const mockProcessKill = vi.fn();
-vi.stubGlobal('process', {
+vi.stubGlobal("process", {
   ...process,
   kill: mockProcessKill,
 });
@@ -14,9 +14,9 @@ vi.stubGlobal('process', {
 const mockSetInterval = vi.fn();
 const mockClearInterval = vi.fn();
 const mockSetTimeout = vi.fn();
-vi.stubGlobal('setInterval', mockSetInterval);
-vi.stubGlobal('clearInterval', mockClearInterval);
-vi.stubGlobal('setTimeout', mockSetTimeout);
+vi.stubGlobal("setInterval", mockSetInterval);
+vi.stubGlobal("clearInterval", mockClearInterval);
+vi.stubGlobal("setTimeout", mockSetTimeout);
 
 describe("SessionTimeoutService", () => {
   let sessionTimeoutService: SessionTimeoutService;
@@ -76,14 +76,13 @@ describe("SessionTimeoutService", () => {
         userId: "user2",
       };
 
-      mockSessionPersistenceService.loadSessions = vi.fn().mockResolvedValue([
-        expiredSession,
-        recentSession,
-      ]);
+      mockSessionPersistenceService.loadSessions = vi
+        .fn()
+        .mockResolvedValue([expiredSession, recentSession]);
 
       // Mock process.kill to throw ESRCH (process not found) to avoid timeout issues
       const esrchError = new Error("No such process") as NodeJS.ErrnoException;
-      esrchError.code = 'ESRCH';
+      esrchError.code = "ESRCH";
       mockProcessKill.mockImplementation(() => {
         throw esrchError;
       });
@@ -93,11 +92,15 @@ describe("SessionTimeoutService", () => {
       // Should check the expired session process
       expect(mockProcessKill).toHaveBeenCalledWith(1234, 0);
       // Should remove expired session from persistence
-      expect(mockSessionPersistenceService.removeSession).toHaveBeenCalledWith("expired-session");
+      expect(mockSessionPersistenceService.removeSession).toHaveBeenCalledWith(
+        "expired-session"
+      );
 
       // Should not touch the recent session
       expect(mockProcessKill).not.toHaveBeenCalledWith(5678, expect.anything());
-      expect(mockSessionPersistenceService.removeSession).not.toHaveBeenCalledWith("recent-session");
+      expect(
+        mockSessionPersistenceService.removeSession
+      ).not.toHaveBeenCalledWith("recent-session");
     });
 
     it("should not cleanup sessions younger than 12 hours", async () => {
@@ -111,31 +114,36 @@ describe("SessionTimeoutService", () => {
         userId: "user1",
       };
 
-      mockSessionPersistenceService.loadSessions = vi.fn().mockResolvedValue([recentSession]);
+      mockSessionPersistenceService.loadSessions = vi
+        .fn()
+        .mockResolvedValue([recentSession]);
 
       await sessionTimeoutService.checkAndCleanupTimedOutSessions();
 
       expect(mockProcessKill).not.toHaveBeenCalled();
-      expect(mockSessionPersistenceService.removeSession).not.toHaveBeenCalled();
+      expect(
+        mockSessionPersistenceService.removeSession
+      ).not.toHaveBeenCalled();
     });
-
 
     it("should handle invalid PIDs gracefully", async () => {
       const now = Date.now();
       const expiredSession: PersistedSession = {
         id: "expired-session",
-        workspaceName: "test-workspace", 
+        workspaceName: "test-workspace",
         workspacePath: "/path/to/workspace",
         pid: 9999,
         startedAt: new Date(now - SESSION_TIMEOUT_MS - 1000).toISOString(),
         userId: "user1",
       };
 
-      mockSessionPersistenceService.loadSessions = vi.fn().mockResolvedValue([expiredSession]);
+      mockSessionPersistenceService.loadSessions = vi
+        .fn()
+        .mockResolvedValue([expiredSession]);
 
       // Mock process.kill to throw ESRCH error (process not found)
       const esrchError = new Error("No such process") as NodeJS.ErrnoException;
-      esrchError.code = 'ESRCH';
+      esrchError.code = "ESRCH";
       mockProcessKill.mockImplementation(() => {
         throw esrchError;
       });
@@ -143,8 +151,12 @@ describe("SessionTimeoutService", () => {
       await sessionTimeoutService.checkAndCleanupTimedOutSessions();
 
       // Should still remove the session even if process doesn't exist
-      expect(mockSessionPersistenceService.removeSession).toHaveBeenCalledWith("expired-session");
-      expect(mockLogger.debug).toHaveBeenCalledWith("Process already terminated or does not exist");
+      expect(mockSessionPersistenceService.removeSession).toHaveBeenCalledWith(
+        "expired-session"
+      );
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        "Process already terminated or does not exist"
+      );
     });
 
     it("should handle permission errors gracefully", async () => {
@@ -152,17 +164,21 @@ describe("SessionTimeoutService", () => {
       const expiredSession: PersistedSession = {
         id: "expired-session",
         workspaceName: "test-workspace",
-        workspacePath: "/path/to/workspace", 
+        workspacePath: "/path/to/workspace",
         pid: 1234,
         startedAt: new Date(now - SESSION_TIMEOUT_MS - 1000).toISOString(),
         userId: "user1",
       };
 
-      mockSessionPersistenceService.loadSessions = vi.fn().mockResolvedValue([expiredSession]);
+      mockSessionPersistenceService.loadSessions = vi
+        .fn()
+        .mockResolvedValue([expiredSession]);
 
       // Mock process.kill to throw EPERM error (permission denied)
-      const epermError = new Error("Operation not permitted") as NodeJS.ErrnoException;
-      epermError.code = 'EPERM';
+      const epermError = new Error(
+        "Operation not permitted"
+      ) as NodeJS.ErrnoException;
+      epermError.code = "EPERM";
       mockProcessKill.mockImplementation(() => {
         throw epermError;
       });
@@ -176,19 +192,27 @@ describe("SessionTimeoutService", () => {
           error: "Operation not permitted",
         })
       );
-      
+
       // Session should not be removed if process termination fails with permission error
-      expect(mockSessionPersistenceService.removeSession).not.toHaveBeenCalled();
+      expect(
+        mockSessionPersistenceService.removeSession
+      ).not.toHaveBeenCalled();
     });
 
     it("should handle empty sessions array", async () => {
-      mockSessionPersistenceService.loadSessions = vi.fn().mockResolvedValue([]);
+      mockSessionPersistenceService.loadSessions = vi
+        .fn()
+        .mockResolvedValue([]);
 
       await sessionTimeoutService.checkAndCleanupTimedOutSessions();
 
       expect(mockProcessKill).not.toHaveBeenCalled();
-      expect(mockSessionPersistenceService.removeSession).not.toHaveBeenCalled();
-      expect(mockLogger.debug).toHaveBeenCalledWith("No expired sessions found");
+      expect(
+        mockSessionPersistenceService.removeSession
+      ).not.toHaveBeenCalled();
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        "No expired sessions found"
+      );
     });
   });
 
@@ -236,7 +260,7 @@ describe("SessionTimeoutService", () => {
     it("should stop existing timer before starting new one (singleton pattern)", () => {
       const mockTimer1 = Symbol("timer1");
       const mockTimer2 = Symbol("timer2");
-      
+
       mockSetInterval
         .mockReturnValueOnce(mockTimer1 as unknown as NodeJS.Timeout)
         .mockReturnValueOnce(mockTimer2 as unknown as NodeJS.Timeout);
@@ -261,27 +285,32 @@ describe("SessionTimeoutService", () => {
       sessionTimeoutService.stopPeriodicCleanup();
 
       expect(mockClearInterval).toHaveBeenCalledWith(mockTimer);
-      expect(mockLogger.info).toHaveBeenCalledWith("Periodic session timeout cleanup stopped");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "Periodic session timeout cleanup stopped"
+      );
     });
 
     it("should handle stopping when no timer is active", () => {
       sessionTimeoutService.stopPeriodicCleanup();
 
       expect(mockClearInterval).not.toHaveBeenCalled();
-      expect(mockLogger.debug).toHaveBeenCalledWith("No periodic cleanup timer to stop");
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        "No periodic cleanup timer to stop"
+      );
     });
 
     it("should continue periodic cleanup even if individual cleanup fails", async () => {
       const mockTimer = Symbol("timer");
       let periodicCallback: () => Promise<void>;
 
-      mockSetInterval.mockImplementation((callback) => {
+      mockSetInterval.mockImplementation(callback => {
         periodicCallback = callback;
         return mockTimer as unknown as NodeJS.Timeout;
       });
 
       // Mock checkAndCleanupTimedOutSessions to throw error
-      const checkAndCleanupSpy = vi.spyOn(sessionTimeoutService, 'checkAndCleanupTimedOutSessions')
+      const checkAndCleanupSpy = vi
+        .spyOn(sessionTimeoutService, "checkAndCleanupTimedOutSessions")
         .mockRejectedValue(new Error("Cleanup failed"));
 
       sessionTimeoutService.startPeriodicCleanup();
@@ -294,7 +323,7 @@ describe("SessionTimeoutService", () => {
         "Error during periodic cleanup",
         expect.any(Error)
       );
-      
+
       // Timer should not be cleared
       expect(mockClearInterval).not.toHaveBeenCalled();
     });

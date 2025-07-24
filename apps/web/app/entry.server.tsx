@@ -21,7 +21,7 @@ import { serviceContainer } from "./lib/service-container";
 try {
   validateConfig();
   logger.info("Server startup configuration validation successful");
-  
+
   // Initialize session timeout service
   const sessionTimeoutService = serviceContainer.getSessionTimeoutService();
   sessionTimeoutService.startPeriodicCleanup();

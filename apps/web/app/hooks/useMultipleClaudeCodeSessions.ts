@@ -1,5 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { ClaudeCodeMessage, ClaudeAgent, TerminalSession, AgentListResponse } from "shared-types";
+import type {
+  ClaudeCodeMessage,
+  ClaudeAgent,
+  TerminalSession,
+  AgentListResponse,
+} from "shared-types";
 import { useFetcher } from "@remix-run/react";
 
 interface SessionData {
@@ -8,7 +13,7 @@ interface SessionData {
   workspacePath: string;
   agentName?: string;
   command?: string;
-  status: 'connecting' | 'active' | 'inactive' | 'error';
+  status: "connecting" | "active" | "inactive" | "error";
   messages: MessageEntry[];
   lastActivity: Date;
 }
@@ -29,14 +34,14 @@ interface UseMultipleClaudeCodeSessionsReturn {
   sessions: SessionData[];
   currentSessionId: string | null;
   isConnected: boolean;
-  connectionStatus: 'connecting' | 'open' | 'closed' | 'error';
+  connectionStatus: "connecting" | "open" | "closed" | "error";
   error: string | null;
-  
+
   // Session management
   selectSession: (sessionId: string) => void;
   createSession: (agent?: ClaudeAgent) => Promise<void>;
   closeSession: (sessionId: string) => Promise<void>;
-  
+
   // Agents
   loadAgents: () => void;
   agents: ClaudeAgent[];
@@ -47,22 +52,31 @@ interface UseMultipleClaudeCodeSessionsReturn {
 export function useMultipleClaudeCodeSessions({
   workspaceName,
   workspacePath,
-  userId
+  userId,
 }: UseMultipleClaudeCodeSessionsOptions): UseMultipleClaudeCodeSessionsReturn {
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [websocketPort, setWebsocketPort] = useState<number | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'open' | 'closed' | 'error'>('closed');
+  const [connectionStatus, setConnectionStatus] = useState<
+    "connecting" | "open" | "closed" | "error"
+  >("closed");
   const [error, setError] = useState<string | null>(null);
-  
+
   const wsRef = useRef<WebSocket | null>(null);
-  const agentsFetcher = useFetcher<AgentListResponse | { error: { message: string } }>();
+  const agentsFetcher = useFetcher<
+    AgentListResponse | { error: { message: string } }
+  >();
 
-  const isConnected = connectionStatus === 'open';
-  const agents = (agentsFetcher.data && 'agents' in agentsFetcher.data) ? agentsFetcher.data.agents : [];
-  const agentsLoading = agentsFetcher.state === 'loading';
-  const agentsError = (agentsFetcher.data && 'error' in agentsFetcher.data) ? agentsFetcher.data.error.message : null;
-
+  const isConnected = connectionStatus === "open";
+  const agents =
+    agentsFetcher.data && "agents" in agentsFetcher.data
+      ? agentsFetcher.data.agents
+      : [];
+  const agentsLoading = agentsFetcher.state === "loading";
+  const agentsError =
+    agentsFetcher.data && "error" in agentsFetcher.data
+      ? agentsFetcher.data.error.message
+      : null;
 
   // Function to get WebSocket port
   const getWebSocketPort = useCallback(async (): Promise<number> => {
@@ -77,7 +91,10 @@ export function useMultipleClaudeCodeSessions({
       }
       return data.port;
     } catch (err) {
-      console.error("[MultipleClaudeCodeSessions] Error getting WebSocket port:", err);
+      console.error(
+        "[MultipleClaudeCodeSessions] Error getting WebSocket port:",
+        err
+      );
       throw err;
     }
   }, []);
@@ -89,7 +106,7 @@ export function useMultipleClaudeCodeSessions({
     }
 
     try {
-      setConnectionStatus('connecting');
+      setConnectionStatus("connecting");
       setError(null);
 
       let port = websocketPort;
@@ -102,45 +119,47 @@ export function useMultipleClaudeCodeSessions({
       const getCookie = (name: string): string | null => {
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+        if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
         return null;
       };
 
-      const sessionCookie = getCookie('__session');
-      const wsUrl = `ws://localhost:${port}?type=claude-code&session=${encodeURIComponent(sessionCookie || '')}`;
+      const sessionCookie = getCookie("__session");
+      const wsUrl = `ws://localhost:${port}?type=claude-code&session=${encodeURIComponent(sessionCookie || "")}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
         console.debug("[MultipleClaudeCodeSessions] WebSocket connected");
-        setConnectionStatus('open');
+        setConnectionStatus("open");
         setError(null);
       };
 
-      ws.onmessage = (event) => {
+      ws.onmessage = event => {
         try {
           const message: ClaudeCodeMessage = JSON.parse(event.data);
           handleMessage(message);
         } catch (err) {
-          console.error("[MultipleClaudeCodeSessions] Error parsing message:", err);
+          console.error(
+            "[MultipleClaudeCodeSessions] Error parsing message:",
+            err
+          );
         }
       };
 
       ws.onclose = () => {
         console.debug("[MultipleClaudeCodeSessions] WebSocket disconnected");
-        setConnectionStatus('closed');
+        setConnectionStatus("closed");
         wsRef.current = null;
       };
 
-      ws.onerror = (event) => {
+      ws.onerror = event => {
         console.error("[MultipleClaudeCodeSessions] WebSocket error:", event);
-        setConnectionStatus('error');
+        setConnectionStatus("error");
         setError("WebSocket connection failed");
       };
-
     } catch (err) {
       console.error("[MultipleClaudeCodeSessions] Error connecting:", err);
-      setConnectionStatus('error');
+      setConnectionStatus("error");
       setError(err instanceof Error ? err.message : "Connection failed");
     }
   }, [websocketPort, getWebSocketPort]);
@@ -157,12 +176,12 @@ export function useMultipleClaudeCodeSessions({
           };
 
           let newStatus = session.status;
-          if (message.type === 'session_started') {
-            newStatus = message.status === 'success' ? 'active' : 'error';
-          } else if (message.type === 'session_stopped') {
-            newStatus = 'inactive';
-          } else if (message.type === 'error') {
-            newStatus = 'error';
+          if (message.type === "session_started") {
+            newStatus = message.status === "success" ? "active" : "error";
+          } else if (message.type === "session_stopped") {
+            newStatus = "inactive";
+          } else if (message.type === "error") {
+            newStatus = "error";
           }
 
           return {
@@ -190,52 +209,58 @@ export function useMultipleClaudeCodeSessions({
   }, []);
 
   // Create a new session
-  const createSession = useCallback(async (agent?: ClaudeAgent) => {
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    
-    const newSession: SessionData = {
-      id: sessionId,
-      workspaceName,
-      workspacePath,
-      agentName: agent?.name,
-      command: agent?.command,
-      status: 'connecting',
-      messages: [],
-      lastActivity: new Date(),
-    };
+  const createSession = useCallback(
+    async (agent?: ClaudeAgent) => {
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
-    setSessions(prev => [...prev, newSession]);
-    setCurrentSessionId(sessionId);
+      const newSession: SessionData = {
+        id: sessionId,
+        workspaceName,
+        workspacePath,
+        agentName: agent?.name,
+        command: agent?.command,
+        status: "connecting",
+        messages: [],
+        lastActivity: new Date(),
+      };
 
-    // Send start session message
-    const startMessage: ClaudeCodeMessage = {
-      type: 'start_session',
-      sessionId,
-      workspacePath,
-      command: agent?.command,
-    };
+      setSessions(prev => [...prev, newSession]);
+      setCurrentSessionId(sessionId);
 
-    sendMessage(startMessage);
-  }, [workspaceName, workspacePath, sendMessage]);
+      // Send start session message
+      const startMessage: ClaudeCodeMessage = {
+        type: "start_session",
+        sessionId,
+        workspacePath,
+        command: agent?.command,
+      };
+
+      sendMessage(startMessage);
+    },
+    [workspaceName, workspacePath, sendMessage]
+  );
 
   // Close a session
-  const closeSession = useCallback(async (sessionId: string) => {
-    // Send stop session message
-    const stopMessage: ClaudeCodeMessage = {
-      type: 'stop_session',
-      sessionId,
-    };
+  const closeSession = useCallback(
+    async (sessionId: string) => {
+      // Send stop session message
+      const stopMessage: ClaudeCodeMessage = {
+        type: "stop_session",
+        sessionId,
+      };
 
-    sendMessage(stopMessage);
+      sendMessage(stopMessage);
 
-    // Remove session from state
-    setSessions(prev => prev.filter(s => s.id !== sessionId));
+      // Remove session from state
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
 
-    // If this was the current session, clear selection
-    if (currentSessionId === sessionId) {
-      setCurrentSessionId(null);
-    }
-  }, [sendMessage, currentSessionId]);
+      // If this was the current session, clear selection
+      if (currentSessionId === sessionId) {
+        setCurrentSessionId(null);
+      }
+    },
+    [sendMessage, currentSessionId]
+  );
 
   // Load agents for the workspace
   const loadAgents = useCallback(() => {
@@ -252,7 +277,6 @@ export function useMultipleClaudeCodeSessions({
       }
     };
   }, [connectWebSocket]);
-
 
   return {
     sessions: sessions,

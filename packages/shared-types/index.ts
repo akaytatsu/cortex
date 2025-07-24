@@ -210,12 +210,24 @@ export interface ExternalChangeMessage extends WSFileMessage {
 
 // WebSocket messages for Claude Code communication
 export interface ClaudeCodeMessage {
-  type: 'input' | 'output' | 'error' | 'exit' | 'start_session' | 'session_started' | 'stop_session' | 'session_stopped' | 'stdout' | 'stderr' | 'start_processing' | 'end_processing';
+  type:
+    | "input"
+    | "output"
+    | "error"
+    | "exit"
+    | "start_session"
+    | "session_started"
+    | "stop_session"
+    | "session_stopped"
+    | "stdout"
+    | "stderr"
+    | "start_processing"
+    | "end_processing";
   data?: string;
   sessionId: string;
   workspacePath?: string;
   command?: string;
-  status?: 'success' | 'error';
+  status?: "success" | "error";
   message?: string;
   exitCode?: number;
 }

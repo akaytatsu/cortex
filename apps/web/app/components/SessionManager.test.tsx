@@ -42,11 +42,11 @@ describe("SessionManager", () => {
 
     expect(screen.getByText("Sessões Ativas")).toBeInTheDocument();
     expect(screen.getByText("Nova Sessão")).toBeInTheDocument();
-    
+
     // Check if sessions are displayed (using partial text match due to truncation)
     const sessionElements = screen.getAllByText(/test-workspace \(session-/);
     expect(sessionElements).toHaveLength(2);
-    
+
     // Check status badges
     expect(screen.getByText("active")).toBeInTheDocument();
     expect(screen.getByText("inactive")).toBeInTheDocument();
@@ -56,7 +56,9 @@ describe("SessionManager", () => {
     render(<SessionManager {...defaultProps} />);
 
     const sessionElements = screen.getAllByText(/test-workspace \(session-/);
-    const currentSessionCard = sessionElements[0].closest("div[class*='ring-2']");
+    const currentSessionCard = sessionElements[0].closest(
+      "div[class*='ring-2']"
+    );
     expect(currentSessionCard).toHaveClass("ring-2", "ring-blue-500");
   });
 
@@ -81,7 +83,9 @@ describe("SessionManager", () => {
 
   it("calls onSessionClose when 'Fechar' button is clicked", async () => {
     const mockOnSessionClose = vi.fn().mockResolvedValue(undefined);
-    render(<SessionManager {...defaultProps} onSessionClose={mockOnSessionClose} />);
+    render(
+      <SessionManager {...defaultProps} onSessionClose={mockOnSessionClose} />
+    );
 
     const closeButtons = screen.getAllByText("Fechar");
     fireEvent.click(closeButtons[0]);
@@ -90,8 +94,14 @@ describe("SessionManager", () => {
   });
 
   it("shows loading state when closing a session", async () => {
-    const mockOnSessionClose = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
-    render(<SessionManager {...defaultProps} onSessionClose={mockOnSessionClose} />);
+    const mockOnSessionClose = vi
+      .fn()
+      .mockImplementation(
+        () => new Promise(resolve => setTimeout(resolve, 100))
+      );
+    render(
+      <SessionManager {...defaultProps} onSessionClose={mockOnSessionClose} />
+    );
 
     const closeButtons = screen.getAllByText("Fechar");
     fireEvent.click(closeButtons[0]);
@@ -105,16 +115,18 @@ describe("SessionManager", () => {
     render(<SessionManager {...defaultProps} sessions={[]} />);
 
     expect(screen.getByText("Nenhuma sessão ativa")).toBeInTheDocument();
-    expect(screen.getByText("Clique em \"Nova Sessão\" para começar")).toBeInTheDocument();
+    expect(
+      screen.getByText('Clique em "Nova Sessão" para começar')
+    ).toBeInTheDocument();
   });
 
   it("prevents event propagation when close button is clicked", () => {
     const mockOnSessionSelect = vi.fn();
     const mockOnSessionClose = vi.fn().mockResolvedValue(undefined);
-    
+
     render(
-      <SessionManager 
-        {...defaultProps} 
+      <SessionManager
+        {...defaultProps}
         onSessionSelect={mockOnSessionSelect}
         onSessionClose={mockOnSessionClose}
       />
