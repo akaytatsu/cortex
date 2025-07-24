@@ -29,7 +29,6 @@ const logger = createServiceLogger("TerminalWebSocketServer");
 // Configuration constants with environment variable support
 const PING_INTERVAL = parseInt(process.env.WS_PING_INTERVAL || "5000", 10);
 const HEARTBEAT_INTERVAL = parseInt(process.env.WS_HEARTBEAT_INTERVAL || "15000", 10);
-const COMMAND_TIMEOUT = parseInt(process.env.WS_COMMAND_TIMEOUT || "300000", 10);
 const DEBUG_ENABLED = process.env.WS_DEBUG === "true" || process.env.NODE_ENV === "development";
 
 // Global singleton instance to prevent multiple server starts
@@ -522,17 +521,17 @@ class TerminalWebSocketServer {
       ws.sessionId = message.sessionId;
 
       // Setup output redirection
-      const process = cliService.getProcess(message.sessionId);
+      const childProcess = cliService.getProcess(message.sessionId);
       logger.info("Setting up output redirection", {
         sessionId: message.sessionId,
-        processFound: !!process,
-        pid: process?.pid
+        processFound: !!childProcess,
+        pid: childProcess?.pid
       });
-      if (process) {
+      if (childProcess) {
         // Create a buffer to avoid spam of small messages
         let outputBuffer = "";
         let errorBuffer = "";
-        let baseBufferDelay = parseInt(process.env.WS_BUFFER_DELAY || "10", 10); // 10ms buffer (configurable)
+        const baseBufferDelay = parseInt(process.env.WS_BUFFER_DELAY || "10", 10); // 10ms buffer (configurable)
         
         // Adaptive buffer based on connection quality (simplified)
         const getAdaptiveBufferDelay = () => {
@@ -567,7 +566,7 @@ class TerminalWebSocketServer {
           }
         };
 
-        process.stdout?.on("data", (data: Buffer) => {
+        childProcess.stdout?.on("data", (data: Buffer) => {
           logger.info("STDOUT data received", {
             sessionId: message.sessionId,
             dataLength: data.length,
@@ -577,7 +576,7 @@ class TerminalWebSocketServer {
           setTimeout(flushOutputBuffer, bufferDelay);
         });
 
-        process.stderr?.on("data", (data: Buffer) => {
+        childProcess.stderr?.on("data", (data: Buffer) => {
           logger.info("STDERR data received", {
             sessionId: message.sessionId,
             dataLength: data.length,
@@ -587,7 +586,7 @@ class TerminalWebSocketServer {
           setTimeout(flushErrorBuffer, bufferDelay);
         });
 
-        process.on("exit", code => {
+        childProcess.on("exit", code => {
           logger.info("Process exit detected", {
             sessionId: message.sessionId,
             exitCode: code
@@ -599,7 +598,7 @@ class TerminalWebSocketServer {
           this.sendClaudeCodeMessage(ws, {
             type: "session_stopped",
             sessionId: message.sessionId,
-            exitCode: code || undefined,
+            exitCode: code ?? undefined,
           });
 
           this.activeSessions.delete(message.sessionId);
@@ -611,8 +610,8 @@ class TerminalWebSocketServer {
           logger.info("Sending initial newline to trigger startup", {
             sessionId: message.sessionId
           });
-          if (process.stdin && !process.stdin.destroyed) {
-            process.stdin.write('\n');
+          if (childProcess.stdin && !childProcess.stdin.destroyed) {
+            childProcess.stdin.write('\n');
           }
         }, 1000);
       }
