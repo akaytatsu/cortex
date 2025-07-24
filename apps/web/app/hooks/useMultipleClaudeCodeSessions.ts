@@ -41,6 +41,9 @@ interface UseMultipleClaudeCodeSessionsReturn {
   createSession: (agent?: ClaudeAgent) => Promise<void>;
   closeSession: (sessionId: string) => Promise<void>;
 
+  // Command sending
+  sendCommand: (sessionId: string, command: string) => void;
+
   // Agents
   loadAgents: () => void;
   agents: ClaudeAgent[];
@@ -260,6 +263,24 @@ export function useMultipleClaudeCodeSessions({
     [sendMessage, currentSessionId]
   );
 
+  // Send command to a specific session
+  const sendCommand = useCallback(
+    (sessionId: string, command: string) => {
+      const inputMessage: ClaudeCodeMessage = {
+        type: "input",
+        data: command,
+        sessionId,
+      };
+
+      // Add the user input message to the session immediately for UI feedback
+      handleMessage(inputMessage);
+
+      // Send the message to the WebSocket
+      sendMessage(inputMessage);
+    },
+    [sendMessage, handleMessage]
+  );
+
   // Load agents for the workspace
   const loadAgents = useCallback(() => {
     agentsFetcher.load(`/api/agents/${encodeURIComponent(workspaceName)}`);
@@ -285,6 +306,7 @@ export function useMultipleClaudeCodeSessions({
     selectSession,
     createSession,
     closeSession,
+    sendCommand,
     loadAgents,
     agents,
     agentsLoading,

@@ -7,6 +7,7 @@ import { cn } from "../lib/utils";
 import { useMultipleClaudeCodeSessions } from "../hooks/useMultipleClaudeCodeSessions";
 import { SessionManager } from "./SessionManager";
 import { NewSessionModal } from "./NewSessionModal";
+import { CommandInput } from "./CommandInput";
 
 interface CopilotPanelProps {
   workspaceName: string;
@@ -38,6 +39,7 @@ export function CopilotPanel({
     selectSession,
     createSession,
     closeSession,
+    sendCommand,
     loadAgents,
     agents,
     agentsLoading,
@@ -67,6 +69,16 @@ export function CopilotPanel({
       setIsNewSessionModalOpen(false);
     },
     [createSession]
+  );
+
+  // Handle command input
+  const handleSendCommand = useCallback(
+    (command: string) => {
+      if (currentSessionId) {
+        sendCommand(currentSessionId, command);
+      }
+    },
+    [currentSessionId, sendCommand]
   );
 
   // Convert sessions for SessionManager component
@@ -112,6 +124,16 @@ export function CopilotPanel({
       );
     }
 
+    // Special formatting for user input commands
+    if (message.type === "input") {
+      return (
+        <div className="font-mono text-sm">
+          <span className="text-blue-600 dark:text-blue-400 font-semibold">{">"} </span>
+          <span className="text-gray-900 dark:text-gray-100">{message.data}</span>
+        </div>
+      );
+    }
+
     return (
       <div className="prose prose-sm dark:prose-invert max-w-none">
         <ReactMarkdown>{message.data}</ReactMarkdown>
@@ -128,7 +150,7 @@ export function CopilotPanel({
         "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
       stderr:
         "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
-      input: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
+      input: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
     };
 
     return (
@@ -235,7 +257,7 @@ export function CopilotPanel({
         </CardContent>
 
         {/* Status Bar */}
-        <div className="px-2 py-1 md:px-4 md:py-2 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 rounded-b-lg">
+        <div className="px-2 py-1 md:px-4 md:py-2 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-1 md:space-x-2 text-xs text-gray-600 dark:text-gray-400">
               <div
@@ -274,6 +296,16 @@ export function CopilotPanel({
             </div>
           </div>
         </div>
+
+        {/* Command Input */}
+        {currentSessionId && (
+          <CommandInput
+            onSendCommand={handleSendCommand}
+            isDisabled={connectionStatus !== "open" || isProcessing}
+            placeholder="Digite um comando para enviar ao copiloto..."
+            className="border-0 rounded-none rounded-b-lg"
+          />
+        )}
       </Card>
 
       {/* New Session Modal */}
