@@ -103,10 +103,19 @@ export class CliService {
     });
 
     try {
-      sessionLogger.info("Starting Claude Code process");
+      sessionLogger.info("Starting Claude Code process", {
+        command,
+        commandType: typeof command
+      });
 
       const validatedPath = this.validateWorkspacePath(workspacePath);
       const sanitizedCommand = this.validateAndSanitizeCommand(command);
+      
+      sessionLogger.info("Sanitized command", {
+        sanitizedCommand,
+        executable: sanitizedCommand[0],
+        args: sanitizedCommand.slice(1)
+      });
 
       if (this.activeProcesses.has(sessionId)) {
         throw new CliServiceError(

@@ -261,12 +261,15 @@ export function useMultipleClaudeCodeSessions({
     async (agent?: ClaudeAgent) => {
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
+      // Use the first available agent as default if none specified
+      const selectedAgent = agent || agents[0];
+
       const newSession: SessionData = {
         id: sessionId,
         workspaceName,
         workspacePath,
-        agentName: agent?.name,
-        command: agent?.command,
+        agentName: selectedAgent?.name,
+        command: selectedAgent?.command,
         status: "connecting",
         messages: [],
         lastActivity: new Date(),
@@ -280,12 +283,12 @@ export function useMultipleClaudeCodeSessions({
         type: "start_session",
         sessionId,
         workspacePath,
-        command: agent?.command,
+        command: selectedAgent?.command,
       };
 
       sendMessage(startMessage);
     },
-    [workspaceName, workspacePath, sendMessage]
+    [workspaceName, workspacePath, sendMessage, agents]
   );
 
   // Close a session

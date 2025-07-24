@@ -400,6 +400,7 @@ class TerminalWebSocketServer {
         sessionId: message.sessionId,
         workspacePath: message.workspacePath,
         command: message.command,
+        commandType: typeof message.command,
         userId: ws.userId,
       });
 
@@ -429,6 +430,11 @@ class TerminalWebSocketServer {
 
       // Setup output redirection
       const process = cliService.getProcess(message.sessionId);
+      logger.info("Setting up output redirection", {
+        sessionId: message.sessionId,
+        processFound: !!process,
+        pid: process?.pid
+      });
       if (process) {
         // Create a buffer to avoid spam of small messages
         let outputBuffer = "";
@@ -458,16 +464,30 @@ class TerminalWebSocketServer {
         };
 
         process.stdout?.on("data", (data: Buffer) => {
+          logger.info("STDOUT data received", {
+            sessionId: message.sessionId,
+            dataLength: data.length,
+            data: data.toString().substring(0, 100)
+          });
           outputBuffer += data.toString();
           setTimeout(flushOutputBuffer, bufferDelay);
         });
 
         process.stderr?.on("data", (data: Buffer) => {
+          logger.info("STDERR data received", {
+            sessionId: message.sessionId,
+            dataLength: data.length,
+            data: data.toString().substring(0, 100)
+          });
           errorBuffer += data.toString();
           setTimeout(flushErrorBuffer, bufferDelay);
         });
 
         process.on("exit", code => {
+          logger.info("Process exit detected", {
+            sessionId: message.sessionId,
+            exitCode: code
+          });
           // Flush any remaining buffered output
           flushOutputBuffer();
           flushErrorBuffer();
@@ -481,6 +501,16 @@ class TerminalWebSocketServer {
           this.activeSessions.delete(message.sessionId);
           this.claudeCodeClients.delete(message.sessionId);
         });
+
+        // Send an initial newline to trigger any startup messages
+        setTimeout(() => {
+          logger.info("Sending initial newline to trigger startup", {
+            sessionId: message.sessionId
+          });
+          if (process.stdin && !process.stdin.destroyed) {
+            process.stdin.write('\n');
+          }
+        }, 1000);
       }
 
       // Send success response
@@ -570,7 +600,14 @@ class TerminalWebSocketServer {
       }
 
       // Write input to the Claude Code process
-      process.stdin.write(message.data);
+      logger.info("Writing input to Claude process", {
+        sessionId: message.sessionId,
+        dataLength: message.data.length,
+        data: message.data.substring(0, 100)
+      });
+      // Add newline to execute the command
+      const inputWithNewline = message.data + '\n';
+      process.stdin.write(inputWithNewline);
     } catch (error) {
       logger.error(
         "Failed to send input to Claude Code session",
