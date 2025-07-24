@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import type {
   ClaudeCodeMessage,
   ClaudeAgent,
-  TerminalSession,
   AgentListResponse,
 } from "shared-types";
 import { useFetcher } from "@remix-run/react";
@@ -52,7 +51,6 @@ interface UseMultipleClaudeCodeSessionsReturn {
 export function useMultipleClaudeCodeSessions({
   workspaceName,
   workspacePath,
-  userId,
 }: UseMultipleClaudeCodeSessionsOptions): UseMultipleClaudeCodeSessionsReturn {
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -97,6 +95,38 @@ export function useMultipleClaudeCodeSessions({
       );
       throw err;
     }
+  }, []);
+
+  // Handle incoming WebSocket messages
+  const handleMessage = useCallback((message: ClaudeCodeMessage) => {
+    setSessions(prevSessions => {
+      return prevSessions.map(session => {
+        if (session.id === message.sessionId) {
+          const messageEntry: MessageEntry = {
+            id: `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+            timestamp: new Date(),
+            message,
+          };
+
+          let newStatus = session.status;
+          if (message.type === "session_started") {
+            newStatus = message.status === "success" ? "active" : "error";
+          } else if (message.type === "session_stopped") {
+            newStatus = "inactive";
+          } else if (message.type === "error") {
+            newStatus = "error";
+          }
+
+          return {
+            ...session,
+            status: newStatus,
+            messages: [...session.messages, messageEntry],
+            lastActivity: new Date(),
+          };
+        }
+        return session;
+      });
+    });
   }, []);
 
   // Function to connect to WebSocket
@@ -162,39 +192,7 @@ export function useMultipleClaudeCodeSessions({
       setConnectionStatus("error");
       setError(err instanceof Error ? err.message : "Connection failed");
     }
-  }, [websocketPort, getWebSocketPort]);
-
-  // Handle incoming WebSocket messages
-  const handleMessage = useCallback((message: ClaudeCodeMessage) => {
-    setSessions(prevSessions => {
-      return prevSessions.map(session => {
-        if (session.id === message.sessionId) {
-          const messageEntry: MessageEntry = {
-            id: `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-            timestamp: new Date(),
-            message,
-          };
-
-          let newStatus = session.status;
-          if (message.type === "session_started") {
-            newStatus = message.status === "success" ? "active" : "error";
-          } else if (message.type === "session_stopped") {
-            newStatus = "inactive";
-          } else if (message.type === "error") {
-            newStatus = "error";
-          }
-
-          return {
-            ...session,
-            status: newStatus,
-            messages: [...session.messages, messageEntry],
-            lastActivity: new Date(),
-          };
-        }
-        return session;
-      });
-    });
-  }, []);
+  }, [websocketPort, getWebSocketPort, handleMessage]);
 
   // Send message to WebSocket
   const sendMessage = useCallback((message: ClaudeCodeMessage) => {

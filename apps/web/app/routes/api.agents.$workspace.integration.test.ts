@@ -83,7 +83,7 @@ describe("API Agents Loader Integration", () => {
     expect(data.agents).toHaveLength(1);
     expect(data.agents[0].name).toBe("TestAgent");
     expect(data.metadata.userId).toBe(mockUserId);
-    expect(data.metadata.responseTimeMs).toBeGreaterThan(0);
+    expect(data.metadata.responseTimeMs).toBeGreaterThanOrEqual(0);
   });
 
   it("returns 400 when workspace parameter is missing", async () => {

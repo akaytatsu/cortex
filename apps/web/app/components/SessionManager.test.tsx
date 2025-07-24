@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { SessionManager } from "./SessionManager";
 import type { TerminalSession } from "shared-types";
@@ -88,7 +88,10 @@ describe("SessionManager", () => {
     );
 
     const closeButtons = screen.getAllByText("Fechar");
-    fireEvent.click(closeButtons[0]);
+    
+    await act(async () => {
+      fireEvent.click(closeButtons[0]);
+    });
 
     expect(mockOnSessionClose).toHaveBeenCalledWith("session-1");
   });
@@ -120,7 +123,7 @@ describe("SessionManager", () => {
     ).toBeInTheDocument();
   });
 
-  it("prevents event propagation when close button is clicked", () => {
+  it("prevents event propagation when close button is clicked", async () => {
     const mockOnSessionSelect = vi.fn();
     const mockOnSessionClose = vi.fn().mockResolvedValue(undefined);
 
@@ -133,7 +136,10 @@ describe("SessionManager", () => {
     );
 
     const closeButtons = screen.getAllByText("Fechar");
-    fireEvent.click(closeButtons[0]);
+    
+    await act(async () => {
+      fireEvent.click(closeButtons[0]);
+    });
 
     // Session select should not be called when close button is clicked
     expect(mockOnSessionSelect).not.toHaveBeenCalled();

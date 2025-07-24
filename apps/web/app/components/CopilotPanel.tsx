@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import type { ClaudeCodeMessage, ClaudeAgent } from "shared-types";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/Card";
@@ -44,9 +44,15 @@ export function CopilotPanel({
     agentsError,
   } = useMultipleClaudeCodeSessions({ workspaceName, workspacePath, userId });
 
-  // Get current session data
-  const currentSession = sessions.find(s => s.id === currentSessionId);
-  const messages = currentSession?.messages || [];
+  // Get current session data (memoized to prevent dependency issues)
+  const currentSession = useMemo(
+    () => sessions.find(s => s.id === currentSessionId),
+    [sessions, currentSessionId]
+  );
+  const messages = useMemo(
+    () => currentSession?.messages || [],
+    [currentSession?.messages]
+  );
   const isProcessing = currentSession?.status === "connecting";
 
   // Handle new session creation
@@ -137,7 +143,7 @@ export function CopilotPanel({
       <div className="w-80 flex-shrink-0">
         <SessionManager
           sessions={terminalSessions}
-          currentSessionId={currentSessionId}
+          currentSessionId={currentSessionId || undefined}
           onSessionSelect={selectSession}
           onSessionClose={closeSession}
           onNewSession={handleNewSession}
@@ -276,7 +282,7 @@ export function CopilotPanel({
         onClose={() => setIsNewSessionModalOpen(false)}
         agents={agents}
         isLoading={agentsLoading}
-        error={agentsError}
+        error={agentsError || undefined}
         onCreateSession={handleCreateSession}
       />
     </div>
