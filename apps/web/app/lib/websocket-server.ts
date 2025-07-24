@@ -240,8 +240,17 @@ class TerminalWebSocketServer {
 
   private async authenticateClaudeCodeConnection(request: IncomingMessage): Promise<string | null> {
     try {
-      // Extract session from cookie in the request headers
-      const cookie = request.headers.cookie;
+      let cookie = request.headers.cookie;
+      
+      // If no cookie in headers, try to get it from query string (fallback for WebSocket connections)
+      if (!cookie && request.url) {
+        const url = new URL(request.url, 'http://localhost');
+        const sessionFromQuery = url.searchParams.get('session');
+        if (sessionFromQuery) {
+          cookie = `__session=${decodeURIComponent(sessionFromQuery)}`;
+        }
+      }
+      
       if (!cookie) {
         return null;
       }

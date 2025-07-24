@@ -98,7 +98,16 @@ export function useMultipleClaudeCodeSessions({
         setWebsocketPort(port);
       }
 
-      const wsUrl = `ws://localhost:${port}?type=claude-code`;
+      // Get authentication token from cookie for WebSocket connection
+      const getCookie = (name: string): string | null => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+        return null;
+      };
+
+      const sessionCookie = getCookie('__session');
+      const wsUrl = `ws://localhost:${port}?type=claude-code&session=${encodeURIComponent(sessionCookie || '')}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -142,7 +151,7 @@ export function useMultipleClaudeCodeSessions({
       return prevSessions.map(session => {
         if (session.id === message.sessionId) {
           const messageEntry: MessageEntry = {
-            id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
             timestamp: new Date(),
             message,
           };
@@ -182,7 +191,7 @@ export function useMultipleClaudeCodeSessions({
 
   // Create a new session
   const createSession = useCallback(async (agent?: ClaudeAgent) => {
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     
     const newSession: SessionData = {
       id: sessionId,
