@@ -25,7 +25,8 @@
       "Bash(true)",
       "Bash(cp:*)",
       "Bash(DATABASE_URL:*)",
-      "WebFetch(domain:docs.anthropic.com)"
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(git clone:*)"
     ],
     "deny": []
   }
