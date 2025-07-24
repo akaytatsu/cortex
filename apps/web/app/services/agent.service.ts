@@ -28,11 +28,7 @@ export class AgentService implements IAgentService {
   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
   private readonly MAX_CACHE_SIZE = 100;
   private readonly ALLOWED_COMMAND_PREFIXES = [
-    "claude code",
-    "claude test",
-    "claude review",
-    "claude analyze",
-    "claude help",
+    "claude",
   ];
 
   constructor(
