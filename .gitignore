@@ -16,3 +16,6 @@ node_modules/
 
 **/users.yaml.*
 **/users-test.*
+
+# Claude agents configuration
+.claude-agents.yaml
