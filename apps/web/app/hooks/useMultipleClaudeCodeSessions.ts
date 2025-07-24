@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { ClaudeCodeMessage, ClaudeAgent, TerminalSession } from "shared-types";
+import type { ClaudeCodeMessage, ClaudeAgent, TerminalSession, AgentListResponse } from "shared-types";
 import { useFetcher } from "@remix-run/react";
 
 interface SessionData {
@@ -56,12 +56,13 @@ export function useMultipleClaudeCodeSessions({
   const [error, setError] = useState<string | null>(null);
   
   const wsRef = useRef<WebSocket | null>(null);
-  const agentsFetcher = useFetcher<{ agents: ClaudeAgent[]; error?: { message: string } }>();
+  const agentsFetcher = useFetcher<AgentListResponse | { error: { message: string } }>();
 
   const isConnected = connectionStatus === 'open';
-  const agents = agentsFetcher.data?.agents || [];
+  const agents = (agentsFetcher.data && 'agents' in agentsFetcher.data) ? agentsFetcher.data.agents : [];
   const agentsLoading = agentsFetcher.state === 'loading';
-  const agentsError = agentsFetcher.data?.error?.message || null;
+  const agentsError = (agentsFetcher.data && 'error' in agentsFetcher.data) ? agentsFetcher.data.error.message : null;
+
 
   // Function to get WebSocket port
   const getWebSocketPort = useCallback(async (): Promise<number> => {
