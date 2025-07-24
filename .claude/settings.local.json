@@ -24,7 +24,8 @@
       "Bash(npm:*)",
       "Bash(true)",
       "Bash(cp:*)",
-      "Bash(DATABASE_URL:*)"
+      "Bash(DATABASE_URL:*)",
+      "WebFetch(domain:docs.anthropic.com)"
     ],
     "deny": []
   }
