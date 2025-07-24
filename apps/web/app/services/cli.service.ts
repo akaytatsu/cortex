@@ -2,7 +2,7 @@ import { spawn, ChildProcess } from "child_process";
 import * as path from "path";
 import { createServiceLogger } from "../lib/logger";
 import { SessionPersistenceService } from "./session-persistence.service";
-import type { ISessionPersistenceService } from "../types/services";
+import type { ISessionPersistenceService, ILogger } from "../types/services";
 import type { PersistedSession } from "shared-types";
 
 export class CliServiceError extends Error {
@@ -93,11 +93,8 @@ export class CliService {
 
   async startProcess(
     workspacePath: string,
-    workspaceName: string,
     sessionId: string,
-    userId: string,
-    command?: string,
-    agentName?: string
+    command?: string
   ): Promise<{ pid: number; sessionId: string }> {
     const sessionLogger = logger.withContext({
       sessionId,
@@ -143,9 +140,9 @@ export class CliService {
         pid: childProcess.pid,
         process: childProcess,
         workspacePath: validatedPath,
-        workspaceName,
-        userId,
-        agentName,
+        workspaceName: "default-workspace",
+        userId: "system-user",
+        agentName: undefined,
         command,
         startTime: new Date(),
       };
@@ -156,13 +153,13 @@ export class CliService {
       try {
         const persistedSession: PersistedSession = {
           id: sessionId,
-          workspaceName,
+          workspaceName: "default-workspace",
           workspacePath: validatedPath,
           pid: childProcess.pid,
           startedAt: claudeProcess.startTime.toISOString(),
-          agentName,
+          agentName: undefined,
           command,
-          userId,
+          userId: "system-user",
         };
 
         await this.sessionPersistence.saveSession(persistedSession);

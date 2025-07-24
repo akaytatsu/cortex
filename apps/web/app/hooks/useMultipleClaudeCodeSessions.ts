@@ -150,14 +150,61 @@ export function useMultipleClaudeCodeSessions({
 
       // Get authentication token from cookie for WebSocket connection
       const getCookie = (name: string): string | null => {
+        // Method 1: Standard approach
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
-        return null;
+        if (parts.length === 2) {
+          const cookieValue = parts.pop()?.split(";").shift();
+          if (cookieValue) return cookieValue;
+        }
+        
+        // Method 2: Direct parsing
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+          const trimmed = cookie.trim();
+          if (trimmed.startsWith(`${name}=`)) {
+            return trimmed.substring(name.length + 1);
+          }
+        }
+        
+        // Method 3: Regex approach for encoded cookies
+        const regex = new RegExp(`(?:^|; )${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}=([^;]*)`);
+        const match = document.cookie.match(regex);
+        return match ? decodeURIComponent(match[1]) : null;
       };
 
-      const sessionCookie = getCookie("__session");
-      const wsUrl = `ws://localhost:${port}?type=claude-code&session=${encodeURIComponent(sessionCookie || "")}`;
+      // Get user authentication via API (since cookie is httpOnly)
+      console.log("=== AUTH DEBUG START ===");
+      
+      let userId: string | null = null;
+      try {
+        const authResponse = await fetch("/api/current-user", {
+          credentials: "include", // Include httpOnly cookies
+        });
+        
+        if (authResponse.ok) {
+          const authData = await authResponse.json();
+          userId = authData.authenticated ? authData.userId : null;
+          console.log("Authentication result:", authData);
+        } else {
+          console.warn("Authentication failed:", authResponse.status);
+        }
+      } catch (error) {
+        console.error("Error checking authentication:", error);
+      }
+      
+      if (!userId) {
+        console.warn("[MultipleClaudeCodeSessions] User not authenticated");
+        setConnectionStatus("error");
+        setError("User not authenticated. Please login.");
+        return;
+      }
+      
+      console.log("=== AUTH DEBUG END ===");
+      
+      // Connect WebSocket with user authentication confirmed
+      const wsUrl = `ws://localhost:${port}?type=claude-code&userId=${encodeURIComponent(userId)}`;
+      console.debug("[MultipleClaudeCodeSessions] Connecting to:", wsUrl);
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 

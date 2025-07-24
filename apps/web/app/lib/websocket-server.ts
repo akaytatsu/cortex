@@ -192,7 +192,11 @@ class TerminalWebSocketServer {
     ws: ClaudeCodeWebSocket,
     request: IncomingMessage
   ) {
-    logger.info("Accepted Claude Code connection");
+    logger.info("Accepted Claude Code connection", {
+      url: request.url,
+      headers: request.headers,
+      remoteAddress: request.socket.remoteAddress
+    });
 
     ws.connectionType = "claude-code";
     ws.isAlive = true;
@@ -202,17 +206,29 @@ class TerminalWebSocketServer {
 
     // Authentication for Claude Code connections
     try {
+      logger.debug("Starting Claude Code authentication");
       const userId = await this.authenticateClaudeCodeConnection(request);
       if (!userId) {
-        logger.warn("Unauthenticated Claude Code connection rejected");
+        logger.warn("Unauthenticated Claude Code connection rejected", {
+          url: request.url,
+          headers: request.headers
+        });
         ws.close(1008, "Authentication required");
         return;
       }
+      logger.info("Claude Code connection authenticated successfully", {
+        userId,
+        url: request.url
+      });
       ws.userId = userId;
     } catch (error) {
       logger.error(
         "Authentication error for Claude Code connection",
-        error as Error
+        error as Error,
+        {
+          url: request.url,
+          headers: request.headers
+        }
       );
       ws.close(1008, "Authentication failed");
       return;
@@ -265,17 +281,37 @@ class TerminalWebSocketServer {
   ): Promise<string | null> {
     try {
       let cookie = request.headers.cookie;
+      logger.debug("Claude Code authentication attempt", {
+        hasCookieHeader: !!cookie,
+        cookieHeader: cookie,
+        url: request.url
+      });
 
-      // If no cookie in headers, try to get it from query string (fallback for WebSocket connections)
+      // Check for userId directly in query params (new method)
       if (!cookie && request.url) {
         const url = new URL(request.url, "http://localhost");
+        const userIdFromQuery = url.searchParams.get("userId");
+        
+        if (userIdFromQuery) {
+          logger.debug("Found userId in query params", { userIdFromQuery });
+          // For userId from query, we can return it directly since it's already validated
+          return decodeURIComponent(userIdFromQuery);
+        }
+        
+        // Fallback: try to get session from query string (old method)
         const sessionFromQuery = url.searchParams.get("session");
+        logger.debug("Extracting session from query", {
+          sessionFromQuery,
+          hasSessionFromQuery: !!sessionFromQuery
+        });
         if (sessionFromQuery) {
           cookie = `__session=${decodeURIComponent(sessionFromQuery)}`;
+          logger.debug("Created cookie from query", { cookie });
         }
       }
 
       if (!cookie) {
+        logger.warn("No cookie found for Claude Code authentication");
         return null;
       }
 
@@ -285,6 +321,10 @@ class TerminalWebSocketServer {
       });
 
       const userId = await SessionService.getUserId(mockRequest);
+      logger.debug("SessionService.getUserId result", {
+        userId,
+        hasUserId: !!userId
+      });
       return userId || null;
     } catch (error) {
       logger.error(

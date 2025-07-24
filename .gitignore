@@ -19,3 +19,5 @@ node_modules/
 
 # Claude agents configuration
 .claude-agents.yaml
+
+**/sessions.yaml**
