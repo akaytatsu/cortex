@@ -137,39 +137,6 @@ export function useMultipleClaudeCodeSessions({
     }, HEARTBEAT_INTERVAL);
   }, [clearHeartbeatInterval, HEARTBEAT_INTERVAL]);
 
-  // Reconnection function with exponential backoff
-  const attemptReconnection = useCallback(async () => {
-    if (reconnectionAttempts >= MAX_RECONNECTION_ATTEMPTS) {
-      console.error("[MultipleClaudeCodeSessions] Max reconnection attempts reached");
-      setIsReconnecting(false);
-      setConnectionStatus("error");
-      setError("Máximo de tentativas de reconexão atingido. Verifique sua conexão.");
-      return;
-    }
-
-    const delay = getReconnectionDelay(reconnectionAttempts);
-    console.log(`[MultipleClaudeCodeSessions] Attempting reconnection ${reconnectionAttempts + 1}/${MAX_RECONNECTION_ATTEMPTS} in ${delay}ms`);
-    
-    setIsReconnecting(true);
-    setConnectionStatus("connecting");
-    
-    reconnectionTimeoutRef.current = setTimeout(async () => {
-      try {
-        setReconnectionAttempts(prev => prev + 1);
-        await connectWebSocket();
-      } catch (error) {
-        console.error("[MultipleClaudeCodeSessions] Reconnection failed:", error);
-        if (reconnectionAttempts + 1 < MAX_RECONNECTION_ATTEMPTS) {
-          attemptReconnection();
-        } else {
-          setIsReconnecting(false);
-          setConnectionStatus("error");
-          setError("Falha na reconexão após múltiplas tentativas");
-        }
-      }
-    }, delay);
-  }, [reconnectionAttempts, MAX_RECONNECTION_ATTEMPTS, getReconnectionDelay, connectWebSocket]);
-
   // Function to get WebSocket port
   const getWebSocketPort = useCallback(async (): Promise<number> => {
     try {
@@ -335,7 +302,40 @@ export function useMultipleClaudeCodeSessions({
       setConnectionStatus("error");
       setError(err instanceof Error ? err.message : "Connection failed");
     }
-  }, [websocketPort, getWebSocketPort, handleMessage]);
+  }, [websocketPort, getWebSocketPort, handleMessage, pendingMessages, clearReconnectionTimeout, startHeartbeat, clearHeartbeatInterval, isReconnecting, reconnectionAttempts]);
+
+  // Reconnection function with exponential backoff
+  const attemptReconnection = useCallback(async () => {
+    if (reconnectionAttempts >= MAX_RECONNECTION_ATTEMPTS) {
+      console.error("[MultipleClaudeCodeSessions] Max reconnection attempts reached");
+      setIsReconnecting(false);
+      setConnectionStatus("error");
+      setError("Máximo de tentativas de reconexão atingido. Verifique sua conexão.");
+      return;
+    }
+
+    const delay = getReconnectionDelay(reconnectionAttempts);
+    console.log(`[MultipleClaudeCodeSessions] Attempting reconnection ${reconnectionAttempts + 1}/${MAX_RECONNECTION_ATTEMPTS} in ${delay}ms`);
+    
+    setIsReconnecting(true);
+    setConnectionStatus("connecting");
+    
+    reconnectionTimeoutRef.current = setTimeout(async () => {
+      try {
+        setReconnectionAttempts(prev => prev + 1);
+        await connectWebSocket();
+      } catch (error) {
+        console.error("[MultipleClaudeCodeSessions] Reconnection failed:", error);
+        if (reconnectionAttempts + 1 < MAX_RECONNECTION_ATTEMPTS) {
+          attemptReconnection();
+        } else {
+          setIsReconnecting(false);
+          setConnectionStatus("error");
+          setError("Falha na reconexão após múltiplas tentativas");
+        }
+      }
+    }, delay);
+  }, [reconnectionAttempts, MAX_RECONNECTION_ATTEMPTS, getReconnectionDelay, connectWebSocket]);
 
   // Send message to WebSocket with queuing for offline scenarios
   const sendMessage = useCallback((message: ClaudeCodeMessage) => {
