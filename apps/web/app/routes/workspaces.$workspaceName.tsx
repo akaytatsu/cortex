@@ -6,7 +6,7 @@ import { SessionService } from "../services/session.service";
 import { IDELayout } from "../components/IDELayout";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
-  await SessionService.requireUserId(request);
+  const userId = await SessionService.requireUserId(request);
 
   const { workspaceName } = params;
 
@@ -22,14 +22,14 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       throw redirect("/workspaces");
     }
 
-    return json({ workspace });
+    return json({ workspace, userId });
   } catch (error) {
     throw redirect("/workspaces");
   }
 };
 
 export default function WorkspacePage() {
-  const { workspace } = useLoaderData<typeof loader>();
+  const { workspace, userId } = useLoaderData<typeof loader>();
 
-  return <IDELayout workspace={workspace} />;
+  return <IDELayout workspace={workspace} userId={userId} />;
 }

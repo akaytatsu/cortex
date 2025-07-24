@@ -9,9 +9,10 @@ import { FileWebSocketProvider } from "../contexts/FileWebSocketContext";
 
 interface IDELayoutProps {
   workspace: Workspace;
+  userId: string;
 }
 
-export function IDELayout({ workspace }: IDELayoutProps) {
+export function IDELayout({ workspace, userId }: IDELayoutProps) {
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [bottomPanelHeight, setBottomPanelHeight] = useState(200);
   const [isBottomPanelVisible, setIsBottomPanelVisible] = useState(false);
@@ -196,7 +197,12 @@ export function IDELayout({ workspace }: IDELayoutProps) {
                 className="bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col"
                 style={{ width: rightPanelWidth }}
               >
-                <CopilotPanel className="h-full" />
+                <CopilotPanel 
+                  workspaceName={workspace.name}
+                  workspacePath={workspace.path}
+                  userId={userId}
+                  className="h-full" 
+                />
               </div>
             )}
           </div>

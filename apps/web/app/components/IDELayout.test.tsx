@@ -29,10 +29,10 @@ const mockWorkspace: Workspace = {
   path: "/path/to/test-workspace",
 };
 
-const renderIDELayout = (workspace: Workspace = mockWorkspace) => {
+const renderIDELayout = (workspace: Workspace = mockWorkspace, userId: string = "test-user-id") => {
   return render(
     <BrowserRouter>
-      <IDELayout workspace={workspace} />
+      <IDELayout workspace={workspace} userId={userId} />
     </BrowserRouter>
   );
 };

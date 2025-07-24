@@ -1,0 +1,7 @@
+agents:
+  - name: "Desenvolvedor"
+    description: "Agente desenvolvedor para codificação e implementação"
+    command: "/dev"
+  - name: "Analista"
+    description: "Agente analista para análise de código"
+    command: "/analyst"
