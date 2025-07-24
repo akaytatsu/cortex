@@ -34,7 +34,7 @@ export class CliService {
   private sessionPersistence: ISessionPersistenceService;
   private readonly ALLOWED_COMMANDS = ["claude"];
   private readonly DANGEROUS_CHARS_REGEX = /[;&|$`\\<>]/;
-  private readonly COMMAND_TIMEOUT = 30000; // 30 seconds
+  private readonly COMMAND_TIMEOUT = parseInt(process.env.CLI_COMMAND_TIMEOUT || "300000", 10); // 5 minutes (300,000ms)
 
   constructor(sessionPersistence?: ISessionPersistenceService) {
     this.sessionPersistence =
@@ -91,21 +91,49 @@ export class CliService {
     return sanitizedParts;
   }
 
+  private getAdaptiveTimeout(command?: string): number {
+    if (!command) {
+      return this.COMMAND_TIMEOUT;
+    }
+
+    const trimmedCommand = command.trim().toLowerCase();
+    
+    // Longer timeout for complex operations
+    if (trimmedCommand.includes("--help") || trimmedCommand.includes("-h")) {
+      return 30000; // 30 seconds for help commands
+    }
+    
+    if (trimmedCommand.includes("--print") || trimmedCommand.includes("-p")) {
+      return 120000; // 2 minutes for print operations
+    }
+    
+    if (trimmedCommand.includes("--continue") || trimmedCommand.includes("-c")) {
+      return 180000; // 3 minutes for continue operations
+    }
+    
+    // Default timeout for interactive sessions
+    return this.COMMAND_TIMEOUT;
+  }
+
   async startProcess(
     workspacePath: string,
     sessionId: string,
-    command?: string
+    command?: string,
+    customTimeout?: number
   ): Promise<{ pid: number; sessionId: string }> {
+    const timeoutToUse = customTimeout || this.getAdaptiveTimeout(command);
     const sessionLogger = logger.withContext({
       sessionId,
       workspacePath,
       command,
+      timeout: timeoutToUse,
     });
 
     try {
       sessionLogger.info("Starting Claude Code process", {
         command,
-        commandType: typeof command
+        commandType: typeof command,
+        timeout: timeoutToUse
       });
 
       const validatedPath = this.validateWorkspacePath(workspacePath);
@@ -134,7 +162,7 @@ export class CliService {
             ...process.env,
             PWD: validatedPath,
           },
-          timeout: this.COMMAND_TIMEOUT,
+          timeout: timeoutToUse,
         }
       );
 

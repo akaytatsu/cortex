@@ -35,6 +35,11 @@ interface UseMultipleClaudeCodeSessionsReturn {
   isConnected: boolean;
   connectionStatus: "connecting" | "open" | "closed" | "error";
   error: string | null;
+  
+  // Reconnection state
+  isReconnecting: boolean;
+  reconnectionAttempts: number;
+  pendingMessagesCount: number;
 
   // Session management
   selectSession: (sessionId: string) => void;
@@ -62,6 +67,19 @@ export function useMultipleClaudeCodeSessions({
     "connecting" | "open" | "closed" | "error"
   >("closed");
   const [error, setError] = useState<string | null>(null);
+  
+  // Reconnection state management
+  const [reconnectionAttempts, setReconnectionAttempts] = useState(0);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [pendingMessages, setPendingMessages] = useState<ClaudeCodeMessage[]>([]);
+  
+  const reconnectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Reconnection configuration
+  const MAX_RECONNECTION_ATTEMPTS = 10;
+  const RECONNECTION_DELAYS = [3000, 6000, 12000, 24000, 30000]; // Backoff exponencial
+  const HEARTBEAT_INTERVAL = 15000; // 15 segundos
 
   const wsRef = useRef<WebSocket | null>(null);
   const agentsFetcher = useFetcher<
@@ -78,6 +96,79 @@ export function useMultipleClaudeCodeSessions({
     agentsFetcher.data && "error" in agentsFetcher.data
       ? agentsFetcher.data.error.message
       : null;
+
+  // Function to get reconnection delay with exponential backoff
+  const getReconnectionDelay = useCallback((attemptNumber: number): number => {
+    const delayIndex = Math.min(attemptNumber, RECONNECTION_DELAYS.length - 1);
+    return RECONNECTION_DELAYS[delayIndex];
+  }, []);
+
+  // Clear reconnection timeout
+  const clearReconnectionTimeout = useCallback(() => {
+    if (reconnectionTimeoutRef.current) {
+      clearTimeout(reconnectionTimeoutRef.current);
+      reconnectionTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Clear heartbeat interval
+  const clearHeartbeatInterval = useCallback(() => {
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
+  }, []);
+
+  // Start heartbeat to keep connection alive
+  const startHeartbeat = useCallback(() => {
+    clearHeartbeatInterval(); // Clear any existing heartbeat
+    
+    heartbeatIntervalRef.current = setInterval(() => {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        const heartbeatMessage: ClaudeCodeMessage = {
+          type: "heartbeat",
+          sessionId: "system",
+          timestamp: Date.now(),
+        };
+        
+        console.debug("[MultipleClaudeCodeSessions] Sending heartbeat");
+        wsRef.current.send(JSON.stringify(heartbeatMessage));
+      }
+    }, HEARTBEAT_INTERVAL);
+  }, [clearHeartbeatInterval, HEARTBEAT_INTERVAL]);
+
+  // Reconnection function with exponential backoff
+  const attemptReconnection = useCallback(async () => {
+    if (reconnectionAttempts >= MAX_RECONNECTION_ATTEMPTS) {
+      console.error("[MultipleClaudeCodeSessions] Max reconnection attempts reached");
+      setIsReconnecting(false);
+      setConnectionStatus("error");
+      setError("Máximo de tentativas de reconexão atingido. Verifique sua conexão.");
+      return;
+    }
+
+    const delay = getReconnectionDelay(reconnectionAttempts);
+    console.log(`[MultipleClaudeCodeSessions] Attempting reconnection ${reconnectionAttempts + 1}/${MAX_RECONNECTION_ATTEMPTS} in ${delay}ms`);
+    
+    setIsReconnecting(true);
+    setConnectionStatus("connecting");
+    
+    reconnectionTimeoutRef.current = setTimeout(async () => {
+      try {
+        setReconnectionAttempts(prev => prev + 1);
+        await connectWebSocket();
+      } catch (error) {
+        console.error("[MultipleClaudeCodeSessions] Reconnection failed:", error);
+        if (reconnectionAttempts + 1 < MAX_RECONNECTION_ATTEMPTS) {
+          attemptReconnection();
+        } else {
+          setIsReconnecting(false);
+          setConnectionStatus("error");
+          setError("Falha na reconexão após múltiplas tentativas");
+        }
+      }
+    }, delay);
+  }, [reconnectionAttempts, MAX_RECONNECTION_ATTEMPTS, getReconnectionDelay, connectWebSocket]);
 
   // Function to get WebSocket port
   const getWebSocketPort = useCallback(async (): Promise<number> => {
@@ -148,30 +239,6 @@ export function useMultipleClaudeCodeSessions({
         setWebsocketPort(port);
       }
 
-      // Get authentication token from cookie for WebSocket connection
-      const getCookie = (name: string): string | null => {
-        // Method 1: Standard approach
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) {
-          const cookieValue = parts.pop()?.split(";").shift();
-          if (cookieValue) return cookieValue;
-        }
-        
-        // Method 2: Direct parsing
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-          const trimmed = cookie.trim();
-          if (trimmed.startsWith(`${name}=`)) {
-            return trimmed.substring(name.length + 1);
-          }
-        }
-        
-        // Method 3: Regex approach for encoded cookies
-        const regex = new RegExp(`(?:^|; )${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}=([^;]*)`);
-        const match = document.cookie.match(regex);
-        return match ? decodeURIComponent(match[1]) : null;
-      };
 
       // Get user authentication via API (since cookie is httpOnly)
       console.log("=== AUTH DEBUG START ===");
@@ -212,6 +279,23 @@ export function useMultipleClaudeCodeSessions({
         console.debug("[MultipleClaudeCodeSessions] WebSocket connected");
         setConnectionStatus("open");
         setError(null);
+        setIsReconnecting(false);
+        setReconnectionAttempts(0);
+        clearReconnectionTimeout();
+        
+        // Start heartbeat to keep connection alive
+        startHeartbeat();
+        
+        // Process pending messages after successful connection
+        if (pendingMessages.length > 0) {
+          console.log(`[MultipleClaudeCodeSessions] Processing ${pendingMessages.length} pending messages`);
+          pendingMessages.forEach(message => {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify(message));
+            }
+          });
+          setPendingMessages([]);
+        }
       };
 
       ws.onmessage = event => {
@@ -230,6 +314,15 @@ export function useMultipleClaudeCodeSessions({
         console.debug("[MultipleClaudeCodeSessions] WebSocket disconnected");
         setConnectionStatus("closed");
         wsRef.current = null;
+        
+        // Stop heartbeat
+        clearHeartbeatInterval();
+        
+        // Start reconnection if not manually disconnected and not already reconnecting
+        if (!isReconnecting && reconnectionAttempts < MAX_RECONNECTION_ATTEMPTS) {
+          console.log("[MultipleClaudeCodeSessions] Starting automatic reconnection");
+          attemptReconnection();
+        }
       };
 
       ws.onerror = event => {
@@ -244,12 +337,21 @@ export function useMultipleClaudeCodeSessions({
     }
   }, [websocketPort, getWebSocketPort, handleMessage]);
 
-  // Send message to WebSocket
+  // Send message to WebSocket with queuing for offline scenarios
   const sendMessage = useCallback((message: ClaudeCodeMessage) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
+    } else {
+      // Queue message if WebSocket is not connected
+      console.log("[MultipleClaudeCodeSessions] WebSocket not connected, queuing message");
+      setPendingMessages(prev => [...prev, message]);
+      
+      // Attempt to reconnect if not already doing so
+      if (!isReconnecting && connectionStatus !== "connecting") {
+        attemptReconnection();
+      }
     }
-  }, []);
+  }, [isReconnecting, connectionStatus, attemptReconnection]);
 
   // Select a session
   const selectSession = useCallback((sessionId: string) => {
@@ -341,11 +443,13 @@ export function useMultipleClaudeCodeSessions({
     connectWebSocket();
 
     return () => {
+      clearReconnectionTimeout();
+      clearHeartbeatInterval();
       if (wsRef.current) {
         wsRef.current.close();
       }
     };
-  }, [connectWebSocket]);
+  }, [connectWebSocket, clearReconnectionTimeout, clearHeartbeatInterval]);
 
   return {
     sessions: sessions,
@@ -353,6 +457,9 @@ export function useMultipleClaudeCodeSessions({
     isConnected,
     connectionStatus,
     error,
+    isReconnecting,
+    reconnectionAttempts,
+    pendingMessagesCount: pendingMessages.length,
     selectSession,
     createSession,
     closeSession,

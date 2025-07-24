@@ -36,6 +36,9 @@ export function CopilotPanel({
     currentSessionId,
     connectionStatus,
     error,
+    isReconnecting,
+    reconnectionAttempts,
+    pendingMessagesCount,
     selectSession,
     createSession,
     closeSession,
@@ -189,7 +192,15 @@ export function CopilotPanel({
                 </span>
               )}
             </div>
-            {isProcessing && (
+            {isReconnecting && (
+              <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+                <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">
+                  Reconectando... ({reconnectionAttempts}/10)
+                </span>
+              </div>
+            )}
+            {!isReconnecting && isProcessing && (
               <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
                 <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">
@@ -208,6 +219,20 @@ export function CopilotPanel({
                   <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
                   <div className="text-sm text-red-700 dark:text-red-300">
                     <strong>Erro de Conexão:</strong> {error}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isReconnecting && (
+              <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse flex-shrink-0" />
+                  <div className="text-sm text-yellow-700 dark:text-yellow-300">
+                    <strong>Reconectando:</strong> Tentativa {reconnectionAttempts}/10...
+                    {pendingMessagesCount > 0 && (
+                      <span className="ml-2">({pendingMessagesCount} mensagens pendentes)</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -273,13 +298,15 @@ export function CopilotPanel({
                 )}
               />
               <span className="hidden sm:inline">
-                {connectionStatus === "open"
-                  ? "Conectado"
-                  : connectionStatus === "connecting"
-                    ? "Conectando..."
-                    : connectionStatus === "error"
-                      ? "Erro"
-                      : "Desconectado"}
+                {isReconnecting
+                  ? `Reconectando (${reconnectionAttempts}/10)`
+                  : connectionStatus === "open"
+                    ? "Conectado"
+                    : connectionStatus === "connecting"
+                      ? "Conectando..."
+                      : connectionStatus === "error"
+                        ? "Erro"
+                        : "Desconectado"}
               </span>
               {currentSessionId && (
                 <span className="text-xs text-gray-500 dark:text-gray-400 hidden md:inline">
@@ -287,12 +314,19 @@ export function CopilotPanel({
                 </span>
               )}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              {messages.length}
-              <span className="hidden sm:inline">
-                {" "}
-                mensagen{messages.length !== 1 ? "s" : ""}
+            <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
+              <span>
+                {messages.length}
+                <span className="hidden sm:inline">
+                  {" "}
+                  mensagen{messages.length !== 1 ? "s" : ""}
+                </span>
               </span>
+              {pendingMessagesCount > 0 && (
+                <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-full text-xs">
+                  {pendingMessagesCount} pendente{pendingMessagesCount !== 1 ? "s" : ""}
+                </span>
+              )}
             </div>
           </div>
         </div>

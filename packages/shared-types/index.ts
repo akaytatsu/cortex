@@ -222,7 +222,8 @@ export interface ClaudeCodeMessage {
     | "stdout"
     | "stderr"
     | "start_processing"
-    | "end_processing";
+    | "end_processing"
+    | "heartbeat";
   data?: string;
   sessionId: string;
   workspacePath?: string;
@@ -230,6 +231,7 @@ export interface ClaudeCodeMessage {
   status?: "success" | "error";
   message?: string;
   exitCode?: number;
+  timestamp?: number; // For heartbeat messages
 }
 
 // Session mapping for Claude Code processes

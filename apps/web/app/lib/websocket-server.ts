@@ -21,9 +21,16 @@ interface ClaudeCodeWebSocket extends WebSocket {
   userId?: string;
   connectionType: "claude-code";
   isAlive?: boolean;
+  lastHeartbeat?: number;
 }
 
 const logger = createServiceLogger("TerminalWebSocketServer");
+
+// Configuration constants with environment variable support
+const PING_INTERVAL = parseInt(process.env.WS_PING_INTERVAL || "5000", 10);
+const HEARTBEAT_INTERVAL = parseInt(process.env.WS_HEARTBEAT_INTERVAL || "15000", 10);
+const COMMAND_TIMEOUT = parseInt(process.env.WS_COMMAND_TIMEOUT || "300000", 10);
+const DEBUG_ENABLED = process.env.WS_DEBUG === "true" || process.env.NODE_ENV === "development";
 
 // Global singleton instance to prevent multiple server starts
 let globalInstance: TerminalWebSocketServer | null = null;
@@ -114,14 +121,49 @@ class TerminalWebSocketServer {
 
     const pingInterval = setInterval(() => {
       if (this.wss) {
+        if (DEBUG_ENABLED) {
+          logger.debug("Starting ping interval check", { 
+            activeClients: this.wss.clients.size,
+            pingInterval: PING_INTERVAL 
+          });
+        }
+        
+        const now = Date.now();
+        const heartbeatTimeout = HEARTBEAT_INTERVAL * 2; // Allow 2 missed heartbeats
+        
         this.wss.clients.forEach(
           (ws: TerminalWebSocket | ClaudeCodeWebSocket) => {
+            const isClaudeCodeClient = "connectionType" in ws && ws.connectionType === "claude-code";
+            
+            // For Claude Code clients, check both ping/pong and heartbeat
+            if (isClaudeCodeClient) {
+              const claudeWs = ws as ClaudeCodeWebSocket;
+              
+              // Check if heartbeat is overdue
+              if (claudeWs.lastHeartbeat && (now - claudeWs.lastHeartbeat) > heartbeatTimeout) {
+                logger.warn("Terminating Claude Code client due to missing heartbeat", {
+                  sessionId: ws.sessionId,
+                  lastHeartbeat: claudeWs.lastHeartbeat,
+                  timeSinceLastHeartbeat: now - claudeWs.lastHeartbeat,
+                  heartbeatTimeout
+                });
+                
+                if (claudeWs.sessionId) {
+                  this.claudeCodeClients.delete(claudeWs.sessionId);
+                }
+                return claudeWs.terminate();
+              }
+            }
+            
+            // Standard ping/pong check for all clients
             if (ws.isAlive === false) {
+              logger.warn("Terminating unresponsive client", {
+                sessionId: ws.sessionId,
+                connectionType: isClaudeCodeClient ? "claude-code" : "terminal"
+              });
+              
               if (ws.sessionId) {
-                if (
-                  "connectionType" in ws &&
-                  ws.connectionType === "claude-code"
-                ) {
+                if (isClaudeCodeClient) {
                   this.claudeCodeClients.delete(ws.sessionId);
                 } else {
                   terminalService.terminateSession(ws.sessionId);
@@ -130,12 +172,20 @@ class TerminalWebSocketServer {
               }
               return ws.terminate();
             }
+            
+            if (DEBUG_ENABLED) {
+              logger.debug("Sending ping to client", {
+                sessionId: ws.sessionId,
+                connectionType: isClaudeCodeClient ? "claude-code" : "terminal"
+              });
+            }
+            
             ws.isAlive = false;
             ws.ping();
           }
         );
       }
-    }, 30000);
+    }, PING_INTERVAL);
 
     this.wss.on("close", () => {
       clearInterval(pingInterval);
@@ -150,6 +200,10 @@ class TerminalWebSocketServer {
 
     ws.isAlive = true;
     ws.on("pong", () => {
+      logger.debug("Received pong from terminal client", {
+        sessionId: ws.sessionId,
+        timestamp: new Date().toISOString()
+      });
       ws.isAlive = true;
     });
 
@@ -200,7 +254,14 @@ class TerminalWebSocketServer {
 
     ws.connectionType = "claude-code";
     ws.isAlive = true;
+    ws.lastHeartbeat = Date.now(); // Initialize heartbeat timestamp
+    
     ws.on("pong", () => {
+      logger.debug("Received pong from Claude Code client", {
+        sessionId: ws.sessionId,
+        userId: ws.userId,
+        timestamp: new Date().toISOString()
+      });
       ws.isAlive = true;
     });
 
@@ -342,6 +403,9 @@ class TerminalWebSocketServer {
     try {
       // Process message based on type
       switch (message.type) {
+        case "heartbeat":
+          await this.handleHeartbeat(ws, message);
+          break;
         case "start_session":
           await this.handleStartSession(ws, message);
           break;
@@ -381,6 +445,35 @@ class TerminalWebSocketServer {
         type: "error",
         data: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
         sessionId: message.sessionId,
+      });
+    }
+  }
+
+  private async handleHeartbeat(
+    ws: ClaudeCodeWebSocket,
+    message: ClaudeCodeMessage
+  ) {
+    try {
+      logger.debug("Received heartbeat from Claude Code client", {
+        sessionId: message.sessionId,
+        userId: ws.userId,
+        timestamp: message.timestamp
+      });
+      
+      // Update client's last heartbeat timestamp
+      ws.lastHeartbeat = Date.now();
+      ws.isAlive = true;
+      
+      // Optional: Send heartbeat acknowledgment
+      this.sendClaudeCodeMessage(ws, {
+        type: "heartbeat",
+        sessionId: message.sessionId,
+        timestamp: Date.now(),
+      });
+    } catch (error) {
+      logger.error("Error handling heartbeat", error as Error, {
+        sessionId: message.sessionId,
+        userId: ws.userId,
       });
     }
   }
@@ -439,7 +532,18 @@ class TerminalWebSocketServer {
         // Create a buffer to avoid spam of small messages
         let outputBuffer = "";
         let errorBuffer = "";
-        const bufferDelay = 50; // 50ms buffer
+        let baseBufferDelay = parseInt(process.env.WS_BUFFER_DELAY || "10", 10); // 10ms buffer (configurable)
+        
+        // Adaptive buffer based on connection quality (simplified)
+        const getAdaptiveBufferDelay = () => {
+          // In development mode, disable buffer for faster response
+          if (process.env.NODE_ENV === "development") {
+            return parseInt(process.env.WS_BUFFER_DELAY_DEV || "0", 10);
+          }
+          return baseBufferDelay;
+        };
+        
+        const bufferDelay = getAdaptiveBufferDelay();
 
         const flushOutputBuffer = () => {
           if (outputBuffer.length > 0) {
