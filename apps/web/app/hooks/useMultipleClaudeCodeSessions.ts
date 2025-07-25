@@ -133,7 +133,15 @@ export function useMultipleClaudeCodeSessions({
         };
         
         console.debug("[MultipleClaudeCodeSessions] Sending heartbeat");
-        wsRef.current.send(JSON.stringify(heartbeatMessage));
+        try {
+          wsRef.current.send(JSON.stringify(heartbeatMessage));
+        } catch (error) {
+          console.error("[MultipleClaudeCodeSessions] Failed to send heartbeat:", error);
+          clearHeartbeatInterval();
+        }
+      } else {
+        console.debug("[MultipleClaudeCodeSessions] WebSocket not ready for heartbeat, clearing interval");
+        clearHeartbeatInterval();
       }
     }, HEARTBEAT_INTERVAL);
   }, [clearHeartbeatInterval, HEARTBEAT_INTERVAL]);
@@ -259,6 +267,10 @@ export function useMultipleClaudeCodeSessions({
             newStatus = message.status === "success" ? "active" : "error";
           } else if (message.type === "session_stopped" || message.type === "process_exit") {
             newStatus = "inactive";
+            // If this is the current session and it ended normally, don't trigger unnecessary reconnections
+            if (session.id === currentSessionId && message.type === "process_exit") {
+              console.log("[MultipleClaudeCodeSessions] Current session process exited normally");
+            }
           } else if (message.type === "error") {
             newStatus = "error";
           }
@@ -362,18 +374,29 @@ export function useMultipleClaudeCodeSessions({
         }
       };
 
-      ws.onclose = () => {
-        console.debug("[MultipleClaudeCodeSessions] WebSocket disconnected");
+      ws.onclose = (event) => {
+        console.debug("[MultipleClaudeCodeSessions] WebSocket disconnected", { code: event.code, reason: event.reason });
         setConnectionStatus("closed");
         wsRef.current = null;
         
         // Stop heartbeat
         clearHeartbeatInterval();
         
-        // Start reconnection if not manually disconnected and not already reconnecting
-        if (!isReconnecting && reconnectionAttempts < MAX_RECONNECTION_ATTEMPTS) {
-          console.log("[MultipleClaudeCodeSessions] Starting automatic reconnection");
+        // Only reconnect if it was an unexpected disconnect (not code 1000 which is normal closure)
+        // and we're not already reconnecting, and we have active sessions
+        const hasActiveSessions = sessions.some(s => s.status === "active" || s.status === "connecting");
+        
+        if (event.code !== 1000 && !isReconnecting && reconnectionAttempts < MAX_RECONNECTION_ATTEMPTS && hasActiveSessions) {
+          console.log("[MultipleClaudeCodeSessions] Starting automatic reconnection for unexpected disconnect");
           attemptReconnection();
+        } else if (event.code === 1000) {
+          console.log("[MultipleClaudeCodeSessions] Normal WebSocket closure, not reconnecting");
+          setIsReconnecting(false);
+          setReconnectionAttempts(0);
+        } else if (!hasActiveSessions) {
+          console.log("[MultipleClaudeCodeSessions] No active sessions, skipping reconnection");
+          setIsReconnecting(false);
+          setReconnectionAttempts(0);
         }
       };
 
@@ -387,7 +410,7 @@ export function useMultipleClaudeCodeSessions({
       setConnectionStatus("error");
       setError(err instanceof Error ? err.message : "Connection failed");
     }
-  }, [websocketPort, getWebSocketPort, handleMessage, pendingMessages, clearReconnectionTimeout, startHeartbeat, clearHeartbeatInterval, isReconnecting, reconnectionAttempts]);
+  }, [websocketPort, getWebSocketPort, handleMessage, pendingMessages, clearReconnectionTimeout, startHeartbeat, clearHeartbeatInterval, isReconnecting, reconnectionAttempts, sessions, currentSessionId]);
 
   // Reconnection function with exponential backoff
   const attemptReconnection = useCallback(async () => {
