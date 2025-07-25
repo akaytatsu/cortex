@@ -815,8 +815,8 @@ class TerminalWebSocketServer {
       // Get the existing Claude session ID for resume
       const claudeSessionId = cliService.getClaudeSessionId(message.sessionId);
       
-      // Generate unique process ID for each command (like claudecodeui does)
-      const processId = `${message.sessionId}_${Date.now()}`;
+      // Use original sessionId for process mapping to maintain Claude session continuity
+      const processId = message.sessionId;
       
       logger.info("Starting new Claude process for command", {
         sessionId: message.sessionId,
@@ -828,14 +828,14 @@ class TerminalWebSocketServer {
       // Start new process with print command and resume session if available
       const result = await cliService.startProcess(
         message.workspacePath || process.cwd(),
-        processId, // Use unique process ID
+        processId, // Use original sessionId to maintain Claude session continuity
         message.data,
         undefined,
         claudeSessionId || undefined,
         message.imageIds
       );
       
-      // Update or create the session mapping using the unique processId
+      // Update or create the session mapping using the original sessionId
       const sessionMapping: SessionMapping = {
         pid: result.pid,
         websocketConnection: ws as any,

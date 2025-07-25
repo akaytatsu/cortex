@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import type { ClaudeCodeMessage, ClaudeAgent } from "shared-types";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/Card";
-import { ScrollArea } from "./ui/ScrollArea";
 import { cn } from "../lib/utils";
 import { useMultipleClaudeCodeSessions } from "../hooks/useMultipleClaudeCodeSessions";
 import { SessionManager } from "./SessionManager";
@@ -59,6 +58,7 @@ export function CopilotPanel({
     [currentSession?.messages]
   );
   const isProcessing = currentSession?.status === "connecting";
+  const [isLoading, setIsLoading] = useState(false);
 
   // Handle new session creation
   const handleNewSession = useCallback(() => {
@@ -78,6 +78,7 @@ export function CopilotPanel({
   const handleSendCommand = useCallback(
     (command: string) => {
       if (currentSessionId) {
+        setIsLoading(true);
         sendCommand(currentSessionId, command);
       }
     },
@@ -115,8 +116,53 @@ export function CopilotPanel({
     }
   }, [messages]);
 
+  // Manage loading state based on message types
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.message.type === "claude_response") {
+        setIsLoading(false);
+      }
+    }
+  }, [messages]);
+
+  // Function to parse Claude response JSON safely
+  const parseClaudeResponse = useCallback((data: string) => {
+    try {
+      const response = JSON.parse(data);
+
+      // Extract text from various response formats
+      if (response.message?.content) {
+        return response.message.content
+          .filter((item: { type: string }) => item.type === "text")
+          .map((item: { text?: string }) => item.text || "")
+          .join("");
+      }
+
+      if (Array.isArray(response.content)) {
+        return response.content
+          .filter((item: { type: string }) => item.type === "text")
+          .map((item: { text?: string }) => item.text || "")
+          .join("");
+      }
+
+      if (typeof response.content === "string") {
+        return response.content;
+      }
+
+      if (response.result) {
+        return response.result;
+      }
+
+      return JSON.stringify(response);
+    } catch {
+      return data;
+    }
+  }, []);
+
   // Function to render message content based on type
   const renderMessageContent = (messageEntry: MessageEntry) => {
+    console.log("[CopilotPanel] Rendering message:", messageEntry);
     const { message } = messageEntry;
 
     if (!message.data) {
@@ -131,18 +177,33 @@ export function CopilotPanel({
     if (message.type === "input") {
       return (
         <div className="font-mono text-sm">
-          <span className="text-blue-600 dark:text-blue-400 font-semibold">{">"} </span>
-          <span className="text-gray-900 dark:text-gray-100">{message.data}</span>
+          <span className="text-blue-600 dark:text-blue-400 font-semibold">
+            {">"}{" "}
+          </span>
+          <span className="text-gray-900 dark:text-gray-100">
+            {message.data}
+          </span>
+        </div>
+      );
+    }
+
+    // Special formatting for Claude responses
+    if (message.type === "claude_response") {
+      const parsedContent = parseClaudeResponse(message.data);
+      return (
+        <div className="prose prose-sm dark:prose-invert max-w-none">
+          <ReactMarkdown>{parsedContent}</ReactMarkdown>
         </div>
       );
     }
 
     // Ensure we have a string for ReactMarkdown
-    const content = typeof message.data === 'string' 
-      ? message.data 
-      : message.data 
-        ? JSON.stringify(message.data) 
-        : '';
+    const content =
+      typeof message.data === "string"
+        ? message.data
+        : message.data
+          ? JSON.stringify(message.data)
+          : "";
 
     return (
       <div className="prose prose-sm dark:prose-invert max-w-none">
@@ -161,6 +222,8 @@ export function CopilotPanel({
       stderr:
         "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
       input: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+      claude_response:
+        "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
     };
 
     return (
@@ -184,7 +247,7 @@ export function CopilotPanel({
       </div>
 
       {/* Main Chat Panel */}
-      <Card className="flex flex-col h-full min-w-0 flex-1">
+      <Card className="flex flex-col h-full min-w-0 flex-1 max-h-screen">
         <CardHeader className="pb-2 px-3 py-2 md:px-6 md:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 min-w-0">
@@ -218,8 +281,8 @@ export function CopilotPanel({
           </div>
         </CardHeader>
 
-        <CardContent className="flex-1 p-2 md:p-4">
-          <ScrollArea className="h-full" ref={scrollAreaRef}>
+        <CardContent className="flex-1 p-2 md:p-4 overflow-hidden">
+          <div className="h-full overflow-y-scroll" ref={scrollAreaRef}>
             {error && (
               <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                 <div className="flex items-center space-x-2">
@@ -236,9 +299,12 @@ export function CopilotPanel({
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse flex-shrink-0" />
                   <div className="text-sm text-yellow-700 dark:text-yellow-300">
-                    <strong>Reconectando:</strong> Tentativa {reconnectionAttempts}/10...
+                    <strong>Reconectando:</strong> Tentativa{" "}
+                    {reconnectionAttempts}/10...
                     {pendingMessagesCount > 0 && (
-                      <span className="ml-2">({pendingMessagesCount} mensagens pendentes)</span>
+                      <span className="ml-2">
+                        ({pendingMessagesCount} mensagens pendentes)
+                      </span>
                     )}
                   </div>
                 </div>
@@ -261,31 +327,48 @@ export function CopilotPanel({
               </div>
             ) : (
               <div className="space-y-2 pr-2 md:pr-4">
-                {messages.map(messageEntry => (
-                  <Card key={messageEntry.id} className="p-2 md:p-3">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center space-x-2">
-                        <span
-                          className={cn(
-                            "px-2 py-1 rounded text-xs font-medium",
-                            getMessageTypeBadge(messageEntry.message.type)
-                          )}
-                        >
-                          {messageEntry.message.type}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {messageEntry.timestamp.toLocaleTimeString()}
-                        </span>
+                {messages
+                  // .filter(messageEntry =>
+                  //   messageEntry.message.type === "input" ||
+                  //   messageEntry.message.type === "claude_response"
+                  // )
+                  .map(messageEntry => (
+                    <Card key={messageEntry.id} className="p-2 md:p-3">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <span
+                            className={cn(
+                              "px-2 py-1 rounded text-xs font-medium",
+                              getMessageTypeBadge(messageEntry.message.type)
+                            )}
+                          >
+                            {messageEntry.message.type === "claude_response"
+                              ? "Claude"
+                              : messageEntry.message.type}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {messageEntry.timestamp.toLocaleTimeString()}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-xs md:text-sm">
-                      {renderMessageContent(messageEntry)}
+                      <div className="text-xs md:text-sm">
+                        {renderMessageContent(messageEntry)}
+                      </div>
+                    </Card>
+                  ))}
+                {isLoading && (
+                  <Card className="p-2 md:p-3">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin"></div>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Aguardando resposta...
+                      </span>
                     </div>
                   </Card>
-                ))}
+                )}
               </div>
             )}
-          </ScrollArea>
+          </div>
         </CardContent>
 
         {/* Status Bar */}
@@ -331,7 +414,8 @@ export function CopilotPanel({
               </span>
               {pendingMessagesCount > 0 && (
                 <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-full text-xs">
-                  {pendingMessagesCount} pendente{pendingMessagesCount !== 1 ? "s" : ""}
+                  {pendingMessagesCount} pendente
+                  {pendingMessagesCount !== 1 ? "s" : ""}
                 </span>
               )}
             </div>
