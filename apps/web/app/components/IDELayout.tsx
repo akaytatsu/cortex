@@ -16,8 +16,8 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [bottomPanelHeight, setBottomPanelHeight] = useState(200);
   const [isBottomPanelVisible, setIsBottomPanelVisible] = useState(false);
-  const [rightPanelWidth, setRightPanelWidth] = useState(300);
-  const [isRightPanelVisible, setIsRightPanelVisible] = useState(false);
+  const [rightPanelWidth, setRightPanelWidth] = useState(600);
+  const [isRightPanelVisible, setIsRightPanelVisible] = useState(true);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
   const handleSidebarResize = (e: React.MouseEvent) => {
