@@ -2,6 +2,7 @@ import { spawn, ChildProcess } from "child_process";
 import * as path from "path";
 import { createServiceLogger } from "../lib/logger";
 import { SessionPersistenceService } from "./session-persistence.service";
+import { imageService } from "./image.service";
 import type { ISessionPersistenceService, ILogger } from "../types/services";
 import type { PersistedSession } from "shared-types";
 
@@ -15,6 +16,21 @@ export class CliServiceError extends Error {
   }
 }
 
+interface ClaudeStreamResponse {
+  type: 'system' | 'message' | 'tool_use' | 'tool_result' | 'error' | 'assistant' | 'result';
+  subtype?: string;
+  session_id?: string;
+  role?: 'user' | 'assistant';
+  content?: Array<{type: string; text?: string}> | string;
+  name?: string;
+  input?: any;
+  message?: {
+    content: Array<{type: string; text?: string}>;
+    role?: string;
+  };
+  result?: string;
+}
+
 interface ClaudeProcess {
   pid: number;
   process: ChildProcess;
@@ -25,6 +41,9 @@ interface ClaudeProcess {
   command?: string;
   startTime: Date;
   forceKillTimeout?: NodeJS.Timeout;
+  sessionId?: string;
+  resumeSessionId?: string;
+  claudeSessionId?: string;
 }
 
 const logger = createServiceLogger("CliService");
@@ -32,6 +51,7 @@ const logger = createServiceLogger("CliService");
 export class CliService {
   private activeProcesses = new Map<string, ClaudeProcess>();
   private sessionPersistence: ISessionPersistenceService;
+  private claudeSessions = new Map<string, string>(); // sessionId -> claudeSessionId
   private readonly ALLOWED_COMMANDS = ["claude"];
   private readonly DANGEROUS_CHARS_REGEX = /[;&|$`\\<>]/;
   private readonly COMMAND_TIMEOUT = parseInt(process.env.CLI_COMMAND_TIMEOUT || "300000", 10); // 5 minutes (300,000ms)
@@ -55,40 +75,116 @@ export class CliService {
     return normalizedPath;
   }
 
-  private validateAndSanitizeCommand(command?: string): string[] {
-    if (!command || command.trim() === "") {
-      return ["claude"];
+  private validateAndSanitizeCommand(
+    command?: string, 
+    resumeSessionId?: string,
+    imageIds?: string[]
+  ): { executable: string; args: string[] } {
+    const baseArgs = ["--output-format", "stream-json", "--verbose"];
+    
+    // Handle resume session case
+    if (resumeSessionId) {
+      const args = [...baseArgs, "--resume", resumeSessionId, "--print", command || "Continue"];
+      
+      // Add image paths if provided
+      if (imageIds && imageIds.length > 0) {
+        for (const imageId of imageIds) {
+          const imagePath = imageService.getTempImagePath(imageId);
+          if (imagePath) {
+            args.push(imagePath);
+          } else {
+            logger.warn("Image not found for ID", { imageId });
+          }
+        }
+      }
+      
+      return {
+        executable: "claude",
+        args
+      };
     }
+    
+    // Handle new session with command
+    if (command && command.trim() !== "") {
+      const trimmedCommand = command.trim();
+      const parts = trimmedCommand.split(/\s+/);
+      const baseCommand = parts[0];
 
-    const trimmedCommand = command.trim();
-    const parts = trimmedCommand.split(/\s+/);
-    const baseCommand = parts[0];
-
-    if (!this.ALLOWED_COMMANDS.includes(baseCommand)) {
-      logger.warn("Attempted to use disallowed command", {
-        command: baseCommand,
-      });
-      throw new CliServiceError(
-        `Command '${baseCommand}' is not allowed. Only 'claude' is permitted.`,
-        "INVALID_COMMAND"
-      );
+      // Only validate if it starts with a command, otherwise treat as message
+      if (this.ALLOWED_COMMANDS.includes(baseCommand)) {
+        // This is a claude command
+        if (this.DANGEROUS_CHARS_REGEX.test(trimmedCommand)) {
+          logger.warn("Attempted to use dangerous characters in command", {
+            command: trimmedCommand,
+          });
+          throw new CliServiceError(
+            "Command contains dangerous characters",
+            "DANGEROUS_COMMAND"
+          );
+        }
+        
+        // Extract the message part after 'claude'
+        const message = parts.slice(1).join(' ') || "Hello, Claude!";
+        const args = [...baseArgs, "--print", message];
+        
+        // Add image paths if provided
+        if (imageIds && imageIds.length > 0) {
+          for (const imageId of imageIds) {
+            const imagePath = imageService.getTempImagePath(imageId);
+            if (imagePath) {
+              args.push(imagePath);
+            } else {
+              logger.warn("Image not found for ID", { imageId });
+            }
+          }
+        }
+        
+        return {
+          executable: "claude",
+          args
+        };
+      } else {
+        // This is a user message, not a command - treat as Claude message
+        const args = [...baseArgs, "--print", trimmedCommand];
+        
+        // Add image paths if provided
+        if (imageIds && imageIds.length > 0) {
+          for (const imageId of imageIds) {
+            const imagePath = imageService.getTempImagePath(imageId);
+            if (imagePath) {
+              args.push(imagePath);
+            } else {
+              logger.warn("Image not found for ID", { imageId });
+            }
+          }
+        }
+        
+        return {
+          executable: "claude",
+          args
+        };
+      }
     }
-
-    if (this.DANGEROUS_CHARS_REGEX.test(trimmedCommand)) {
-      logger.warn("Attempted to use dangerous characters in command", {
-        command: trimmedCommand,
-      });
-      throw new CliServiceError(
-        "Command contains dangerous characters",
-        "DANGEROUS_COMMAND"
-      );
+    
+    // Default interactive claude session  
+    const args = [...baseArgs];
+    
+    // Add image paths if provided
+    if (imageIds && imageIds.length > 0) {
+      for (const imageId of imageIds) {
+        const imagePath = imageService.getTempImagePath(imageId);
+        if (imagePath) {
+          args.push(imagePath);
+        } else {
+          logger.warn("Image not found for ID", { imageId });
+        }
+      }
     }
-
-    const sanitizedParts = parts.map(part => {
-      return part.replace(/["'\\]/g, "");
-    });
-
-    return sanitizedParts;
+    
+    return {
+      executable: "claude",
+      args
+    };
   }
 
   private getAdaptiveTimeout(command?: string): number {
@@ -119,8 +215,10 @@ export class CliService {
     workspacePath: string,
     sessionId: string,
     command?: string,
-    customTimeout?: number
-  ): Promise<{ pid: number; sessionId: string }> {
+    customTimeout?: number,
+    resumeSessionId?: string,
+    imageIds?: string[]
+  ): Promise<{ pid: number; sessionId: string; claudeSessionId?: string }> {
     const timeoutToUse = customTimeout || this.getAdaptiveTimeout(command);
     const sessionLogger = logger.withContext({
       sessionId,
@@ -137,31 +235,44 @@ export class CliService {
       });
 
       const validatedPath = this.validateWorkspacePath(workspacePath);
-      const sanitizedCommand = this.validateAndSanitizeCommand(command);
+      const { executable, args } = this.validateAndSanitizeCommand(command, resumeSessionId, imageIds);
       
       sessionLogger.info("Sanitized command", {
-        sanitizedCommand,
-        executable: sanitizedCommand[0],
-        args: sanitizedCommand.slice(1)
+        executable,
+        args: args.join(' '),
+        resumeSessionId,
+        imageCount: (imageIds?.length || 0).toString()
       });
 
       if (this.activeProcesses.has(sessionId)) {
-        throw new CliServiceError(
-          "Process already exists for this session",
-          "PROCESS_EXISTS"
-        );
+        // Try to clean up zombie process first
+        const existingProcess = this.activeProcesses.get(sessionId);
+        if (existingProcess) {
+          logger.warn("Found existing process, attempting cleanup", {
+            sessionId,
+            pid: existingProcess.pid
+          });
+          this.stopProcess(sessionId);
+          // Give it a moment to clean up
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
+          // Check again
+          if (this.activeProcesses.has(sessionId)) {
+            throw new CliServiceError(
+              "Process already exists for this session and cleanup failed",
+              "PROCESS_EXISTS"
+            );
+          }
+        }
       }
 
       const childProcess = spawn(
-        sanitizedCommand[0],
-        sanitizedCommand.slice(1),
+        executable,
+        args,
         {
           cwd: validatedPath,
-          stdio: ["pipe", "pipe", "pipe"],
-          env: {
-            ...process.env,
-            PWD: validatedPath,
-          },
+          stdio: ['pipe', 'pipe', 'pipe'],
+          env: { ...process.env },
           timeout: timeoutToUse,
         }
       );
@@ -182,6 +293,8 @@ export class CliService {
         agentName: undefined,
         command,
         startTime: new Date(),
+        sessionId,
+        resumeSessionId,
       };
 
       this.activeProcesses.set(sessionId, claudeProcess);
@@ -214,8 +327,8 @@ export class CliService {
 
       childProcess.on("exit", (code, signal) => {
         sessionLogger.info("Claude Code process exited", {
-          exitCode: code,
-          signal,
+          exitCode: code?.toString() || "null",
+          signal: signal || "none",
         });
         const process = this.activeProcesses.get(sessionId);
         if (process?.forceKillTimeout) {
@@ -467,6 +580,16 @@ export class CliService {
     }
   }
 
+
+  getClaudeSessionId(sessionId: string): string | null {
+    return this.claudeSessions.get(sessionId) || null;
+  }
+
+  setClaudeSessionId(sessionId: string, claudeSessionId: string): void {
+    this.claudeSessions.set(sessionId, claudeSessionId);
+    logger.info("Claude session ID stored", { sessionId, claudeSessionId });
+  }
+
   cleanup(): void {
     logger.info("Cleaning up all Claude Code processes", {
       count: this.activeProcesses.size,
@@ -479,6 +602,8 @@ export class CliService {
       }
       this.stopProcess(sessionId);
     }
+    
+    this.claudeSessions.clear();
   }
 }
 

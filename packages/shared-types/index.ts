@@ -223,7 +223,13 @@ export interface ClaudeCodeMessage {
     | "stderr"
     | "start_processing"
     | "end_processing"
-    | "heartbeat";
+    | "heartbeat"
+    | "message"
+    | "tool_use"
+    | "tool_result"
+    | "system"
+    | "session_init"
+    | "upload_image";
   data?: string;
   sessionId: string;
   workspacePath?: string;
@@ -232,6 +238,12 @@ export interface ClaudeCodeMessage {
   message?: string;
   exitCode?: number;
   timestamp?: number; // For heartbeat messages
+  imageIds?: string[]; // For image attachments
+  imageData?: {
+    filename: string;
+    mimeType: string;
+    data: string; // base64 encoded
+  };
 }
 
 // Session mapping for Claude Code processes
@@ -264,6 +276,19 @@ export interface AgentListResponse {
     version: string;
     fromCache: boolean;
   };
+}
+
+// Image handling interfaces
+export interface ImageUploadRequest {
+  filename: string;
+  mimeType: string;
+  data: string; // base64 encoded
+}
+
+export interface ImageUploadResponse {
+  success: boolean;
+  imageId?: string;
+  message?: string;
 }
 
 // Session persistence interface
