@@ -63,17 +63,21 @@ export class CliService {
     claudeSessionId?: string,
     imageIds?: string[]
   ): string[] {
-    const args = ["--output-format", "stream-json", "--verbose"];
+    // Build Claude CLI command following claudecodeui pattern (line 22-85)
+    const args = [];
     
-    // Handle resume session
-    if (claudeSessionId) {
-      args.push("--resume", claudeSessionId);
-    }
-    
-    // Add print command if provided
+    // Add print flag with command if we have a command (claudecodeui line 25-27)
     if (command && command.trim()) {
-      args.push("--print", command.trim());
+      args.push('--print', command.trim());
     }
+    
+    // Add resume flag if resuming (claudecodeui line 80-82)
+    if (claudeSessionId) {
+      args.push('--resume', claudeSessionId);
+    }
+    
+    // Add basic flags (claudecodeui line 85)
+    args.push('--output-format', 'stream-json', '--verbose');
     
     // Add image paths if provided
     if (imageIds && imageIds.length > 0) {
