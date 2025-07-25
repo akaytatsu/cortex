@@ -535,7 +535,7 @@ class TerminalWebSocketServer {
       // Store session mapping
       const sessionMapping: SessionMapping = {
         pid: result.pid,
-        websocketConnection: ws,
+        websocketConnection: ws as any,
         startTime: new Date(),
         workspacePath: message.workspacePath,
       };
@@ -590,173 +590,57 @@ class TerminalWebSocketServer {
     // Track Claude session ID for resume operations
     let claudeSessionId: string | null = null;
 
-    const processJsonResponse = (response: ClaudeStreamResponse) => {
-      logger.debug("Processing Claude stream response", {
-        sessionId,
-        responseType: response.type,
-        responseSubtype: response.subtype,
-        hasContent: !!response.content,
-        contentLength: typeof response.content === 'string' ? response.content.length : 
-                      Array.isArray(response.content) ? response.content.length : 0
-      });
-      
-      // Capture Claude session ID for future resume operations
-      if (response.type === 'system' && response.subtype === 'init' && response.session_id) {
-        claudeSessionId = response.session_id;
-        cliService.setClaudeSessionId(sessionId, claudeSessionId);
-        logger.info("Claude session ID captured", { 
-          sessionId, 
-          claudeSessionId 
-        });
-      }
-      
-      // Convert Claude stream response to WebSocket message format
-      let messageType: string;
-      let messageData: string;
-      
-      switch (response.type) {
-        case 'system':
-          if (response.subtype === 'init') {
-            messageType = 'session_init';
-            messageData = JSON.stringify({ session_id: response.session_id });
-          } else {
-            messageType = 'system';
-            messageData = JSON.stringify(response);
-          }
-          break;
-        case 'assistant':
-          messageType = 'message';
-          if (response.message && Array.isArray(response.message.content)) {
-            messageData = response.message.content
-              .filter(item => item.type === 'text')
-              .map(item => item.text || '')
-              .join('');
-          } else {
-            messageData = JSON.stringify(response);
-          }
-          break;
-        case 'result':
-          messageType = 'message';
-          messageData = response.result || JSON.stringify(response);
-          break;
-        case 'message':
-          messageType = 'message';
-          if (Array.isArray(response.content)) {
-            messageData = response.content
-              .filter(item => item.type === 'text')
-              .map(item => item.text || '')
-              .join('');
-          } else {
-            messageData = response.content || '';
-          }
-          break;
-        case 'tool_use':
-          messageType = 'tool_use';
-          messageData = JSON.stringify({
-            name: response.name,
-            input: response.input
-          });
-          break;
-        case 'tool_result':
-          messageType = 'tool_result';
-          messageData = typeof response.content === 'string' 
-            ? response.content 
-            : JSON.stringify(response.content);
-          break;
-        case 'error':
-          messageType = 'error';
-          messageData = typeof response.content === 'string' 
-            ? response.content 
-            : JSON.stringify(response);
-          break;
-        default:
-          messageType = 'stdout';
-          messageData = JSON.stringify(response);
-      }
-      
-      logger.debug("Sending WebSocket message", {
-        sessionId,
-        messageType,
-        dataLength: messageData.length,
-        claudeSessionId
-      });
-      
-      this.sendClaudeCodeMessage(ws, {
-        type: messageType as any,
-        data: messageData,
-        sessionId,
-      });
-    };
-
-    logger.info("Setting up STDOUT/STDERR handlers", {
+    logger.info("Setting up process output handlers", {
       sessionId,
-      hasStdout: !!childProcess.stdout,
-      hasStderr: !!childProcess.stderr,
-      processType: typeof childProcess,
-      processKilled: childProcess.killed,
-      processPid: childProcess.pid
-    });
-
-    // Add error handler for stdout
-    childProcess.stdout?.on("error", (error) => {
-      logger.error("STDOUT stream error", error, { sessionId });
-    });
-
-    // Add error handler for stderr  
-    childProcess.stderr?.on("error", (error) => {
-      logger.error("STDERR stream error", error, { sessionId });
+      pid: childProcess.pid
     });
 
     childProcess.stdout?.on("data", (data: Buffer) => {
       const rawOutput = data.toString();
-      logger.info("STDOUT data received", {
+      logger.debug("STDOUT data received", {
         sessionId,
         dataLength: rawOutput.length,
-        data: rawOutput.substring(0, 100)
+        preview: rawOutput.substring(0, 100)
       });
       
       // Split by lines and filter empty lines (like claudecodeui)
       const lines = rawOutput.split('\n').filter(line => line.trim());
       
-      logger.debug("Processing output lines", {
-        sessionId,
-        totalLines: lines.length
-      });
-      
       for (const line of lines) {
         try {
-          // Try to parse as JSON first
-          const response = JSON.parse(line) as ClaudeStreamResponse;
+          // Try to parse as JSON
+          const response = JSON.parse(line) as any;
+          logger.debug("Parsed JSON response", { sessionId, type: response.type });
           
           // Capture Claude session ID for future resume operations
           if (response.type === 'system' && response.subtype === 'init' && response.session_id) {
             claudeSessionId = response.session_id;
-            cliService.setClaudeSessionId(sessionId, claudeSessionId);
+            if (claudeSessionId) {
+              cliService.setClaudeSessionId(sessionId, claudeSessionId);
+            }
             logger.info("Claude session ID captured", { 
               sessionId, 
-              claudeSessionId 
+              claudeSessionId: claudeSessionId || undefined
             });
           }
           
-          // Send as claude-response (JSON válido)
+          // Send raw response to client for processing
           this.sendClaudeCodeMessage(ws, {
-            type: "message" as any,
-            data: JSON.stringify(response),
+            type: "claude_response" as any,
+            data: response,
             sessionId,
           });
-          
-          // Also process for UI formatting
-          processJsonResponse(response);
           
         } catch (parseError) {
-          // Send non-JSON text as claude-output (texto bruto)
-          logger.debug("Non-JSON output received", { sessionId, line });
-          
-          this.sendClaudeCodeMessage(ws, {
-            type: "stdout" as any,
-            data: line,
-            sessionId,
-          });
+          // Send non-JSON as plain text output
+          if (line.trim()) {
+            logger.debug("Non-JSON output", { sessionId, line });
+            this.sendClaudeCodeMessage(ws, {
+              type: "stdout" as any,
+              data: line,
+              sessionId,
+            });
+          }
         }
       }
     });
@@ -777,26 +661,32 @@ class TerminalWebSocketServer {
       });
     });
 
-    childProcess.on("exit", (code, signal) => {
+    childProcess.on("exit", (code: number | null, signal: string | null) => {
       logger.info("Process exit detected", {
         sessionId,
-        exitCode: code,
-        signal: signal,
-        claudeSessionId,
+        exitCode: code ?? undefined,
+        signal: signal ?? undefined,
+        claudeSessionId: claudeSessionId || undefined,
         killed: childProcess.killed,
         pid: childProcess.pid
       });
       
-      // No buffer processing needed with line-by-line approach
-
-      // For print mode, we expect the process to exit after completing
-      // Don't close the WebSocket session - keep it alive for next message
-      logger.info("Print command completed, keeping WebSocket session alive", {
+      // Send completion message
+      this.sendClaudeCodeMessage(ws, {
+        type: "process_exit" as any,
+        data: JSON.stringify({ 
+          code: code ?? undefined, 
+          signal: signal ?? undefined, 
+          claudeSessionId: claudeSessionId || undefined 
+        }),
         sessionId,
-        claudeSessionId
       });
       
-      // Clean up the active process tracking so next command can run
+      logger.info("Claude process completed", {
+        sessionId,
+        claudeSessionId: claudeSessionId || undefined,
+        exitCode: code ?? undefined
+      });
       // Find which session this process belongs to
       let ownerSessionId: string | null = null;
       for (const [sessId, procId] of this.activeClaudeProcesses.entries()) {
@@ -932,7 +822,7 @@ class TerminalWebSocketServer {
         sessionId: message.sessionId,
         processId,
         command: message.data,
-        claudeSessionId
+        claudeSessionId: claudeSessionId || undefined
       });
       
       // Start new process with print command and resume session if available
@@ -948,7 +838,7 @@ class TerminalWebSocketServer {
       // Update or create the session mapping using the unique processId
       const sessionMapping: SessionMapping = {
         pid: result.pid,
-        websocketConnection: ws,
+        websocketConnection: ws as any,
         startTime: new Date(),
         workspacePath: message.workspacePath || process.cwd(),
       };

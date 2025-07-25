@@ -15,6 +15,7 @@ interface SessionData {
   status: "connecting" | "active" | "inactive" | "error";
   messages: MessageEntry[];
   lastActivity: Date;
+  claudeSessionId?: string;
 }
 
 interface MessageEntry {
@@ -160,6 +161,89 @@ export function useMultipleClaudeCodeSessions({
 
   // Handle incoming WebSocket messages
   const handleMessage = useCallback((message: ClaudeCodeMessage) => {
+    // Special handling for claude_response type
+    if (message.type === "claude_response" && message.data) {
+      const response = message.data as any;
+      
+      // Convert to standard message format
+      let convertedMessage: ClaudeCodeMessage;
+      
+      switch (response.type) {
+        case 'system':
+          if (response.subtype === 'init' && response.session_id) {
+            // Store Claude session ID for resume
+            setSessions(prev => prev.map(s => 
+              s.id === message.sessionId 
+                ? { ...s, claudeSessionId: response.session_id }
+                : s
+            ));
+          }
+          convertedMessage = {
+            type: "stdout",
+            data: `[System] ${JSON.stringify(response)}`,
+            sessionId: message.sessionId
+          };
+          break;
+          
+        case 'message':
+        case 'assistant':
+        case 'result':
+          let text = '';
+          if (response.message?.content) {
+            text = response.message.content
+              .filter((item: any) => item.type === 'text')
+              .map((item: any) => item.text || '')
+              .join('');
+          } else if (Array.isArray(response.content)) {
+            text = response.content
+              .filter((item: any) => item.type === 'text')
+              .map((item: any) => item.text || '')
+              .join('');
+          } else if (typeof response.content === 'string') {
+            text = response.content;
+          } else if (response.result) {
+            text = response.result;
+          }
+          
+          convertedMessage = {
+            type: "stdout",
+            data: text,
+            sessionId: message.sessionId
+          };
+          break;
+          
+        case 'tool_use':
+          convertedMessage = {
+            type: "stdout",
+            data: `\n🛠️ Using tool: ${response.name}\n`,
+            sessionId: message.sessionId
+          };
+          break;
+          
+        case 'tool_result':
+          convertedMessage = {
+            type: "stdout",
+            data: `✅ Tool result received\n`,
+            sessionId: message.sessionId
+          };
+          break;
+          
+        case 'error':
+          convertedMessage = {
+            type: "error",
+            data: response.content || JSON.stringify(response),
+            sessionId: message.sessionId
+          };
+          break;
+          
+        default:
+          convertedMessage = message;
+      }
+      
+      // Process the converted message
+      message = convertedMessage;
+    }
+    
     setSessions(prevSessions => {
       return prevSessions.map(session => {
         if (session.id === message.sessionId) {
@@ -172,7 +256,7 @@ export function useMultipleClaudeCodeSessions({
           let newStatus = session.status;
           if (message.type === "session_started") {
             newStatus = message.status === "success" ? "active" : "error";
-          } else if (message.type === "session_stopped") {
+          } else if (message.type === "session_stopped" || message.type === "process_exit") {
             newStatus = "inactive";
           } else if (message.type === "error") {
             newStatus = "error";
@@ -417,11 +501,18 @@ export function useMultipleClaudeCodeSessions({
 
   // Send command to a specific session
   const sendCommand = useCallback(
-    (sessionId: string, command: string) => {
+    (sessionId: string, command: string, imageIds?: string[]) => {
+      // Find session to get Claude session ID if available
+      const session = sessions.find(s => s.id === sessionId);
+      
       const inputMessage: ClaudeCodeMessage = {
         type: "input",
         data: command,
         sessionId,
+        workspacePath,
+        imageIds,
+        // Include Claude session ID for resume if available
+        ...(session?.claudeSessionId ? { claudeSessionId: session.claudeSessionId } : {})
       };
 
       // Add the user input message to the session immediately for UI feedback
@@ -430,7 +521,7 @@ export function useMultipleClaudeCodeSessions({
       // Send the message to the WebSocket
       sendMessage(inputMessage);
     },
-    [sendMessage, handleMessage]
+    [sendMessage, handleMessage, sessions, workspacePath]
   );
 
   // Load agents for the workspace
