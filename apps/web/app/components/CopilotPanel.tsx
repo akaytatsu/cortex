@@ -328,10 +328,53 @@ export function CopilotPanel({
             ) : (
               <div className="space-y-2 pr-2 md:pr-4">
                 {messages
-                  // .filter(messageEntry =>
-                  //   messageEntry.message.type === "input" ||
-                  //   messageEntry.message.type === "claude_response"
-                  // )
+                  .filter(
+                    messageEntry => {
+                      // Só mostrar input e stdout
+                      if (messageEntry.message.type !== "input" && messageEntry.message.type !== "stdout") {
+                        return false;
+                      }
+                      
+                      // Pular se não tem dados
+                      if (!messageEntry.message.data) {
+                        return false;
+                      }
+                      
+                      // Para stdout, pular se for JSON de sistema ou vazio
+                      if (messageEntry.message.type === "stdout") {
+                        const data = messageEntry.message.data;
+                        
+                        // Pular se for "stdout - No data"
+                        if (data === "stdout - No data") {
+                          return false;
+                        }
+                        
+                        // Pular se for JSON de sistema (contém "type":"system")
+                        if (typeof data === "string" && data.includes('"type":"system"')) {
+                          return false;
+                        }
+                        
+                        // Pular se começar com [System]
+                        if (typeof data === "string" && data.trim().startsWith("[System]")) {
+                          return false;
+                        }
+                      }
+                      
+                      return true;
+                    }
+                  )
+                  .filter((messageEntry, index, filteredArray) => {
+                    // Evitar mensagens duplicadas consecutivas
+                    if (index === 0) return true;
+                    
+                    const current = messageEntry.message;
+                    const previous = filteredArray[index - 1].message;
+                    
+                    return !(
+                      current.type === previous.type &&
+                      current.data === previous.data
+                    );
+                  })
                   .map(messageEntry => (
                     <Card key={messageEntry.id} className="p-2 md:p-3">
                       <div className="flex items-start justify-between mb-2">
