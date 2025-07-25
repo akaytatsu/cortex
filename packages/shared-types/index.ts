@@ -229,7 +229,9 @@ export interface ClaudeCodeMessage {
     | "tool_result"
     | "system"
     | "session_init"
-    | "upload_image";
+    | "upload_image"
+    | "claude_response"
+    | "process_exit";
   data?: string;
   sessionId: string;
   workspacePath?: string;

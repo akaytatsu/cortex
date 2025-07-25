@@ -627,7 +627,7 @@ class TerminalWebSocketServer {
           // Send raw response to client for processing
           this.sendClaudeCodeMessage(ws, {
             type: "claude_response" as any,
-            data: response,
+            data: JSON.stringify(response), // Convert object to string like claudecodeui
             sessionId,
           });
           

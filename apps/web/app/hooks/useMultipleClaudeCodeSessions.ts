@@ -163,7 +163,8 @@ export function useMultipleClaudeCodeSessions({
   const handleMessage = useCallback((message: ClaudeCodeMessage) => {
     // Special handling for claude_response type
     if (message.type === "claude_response" && message.data) {
-      const response = message.data as any;
+      // Parse the JSON string
+      const response = typeof message.data === 'string' ? JSON.parse(message.data) : message.data;
       
       // Convert to standard message format
       let convertedMessage: ClaudeCodeMessage;

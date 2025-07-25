@@ -137,9 +137,16 @@ export function CopilotPanel({
       );
     }
 
+    // Ensure we have a string for ReactMarkdown
+    const content = typeof message.data === 'string' 
+      ? message.data 
+      : message.data 
+        ? JSON.stringify(message.data) 
+        : '';
+
     return (
       <div className="prose prose-sm dark:prose-invert max-w-none">
-        <ReactMarkdown>{message.data}</ReactMarkdown>
+        <ReactMarkdown>{content}</ReactMarkdown>
       </div>
     );
   };
