@@ -173,11 +173,11 @@ export function useMultipleClaudeCodeSessions({
   const handleMessage = useCallback((message: ClaudeCodeMessage) => {
     console.debug("[MultipleClaudeCodeSessions] handleMessage received:", { type: message.type, sessionId: message.sessionId, hasData: !!message.data });
     
-    // Special handling for claude_response type
-    if (message.type === "claude_response" && message.data) {
-      // Parse the JSON string
-      const response = typeof message.data === 'string' ? JSON.parse(message.data) : message.data;
-      console.debug("[MultipleClaudeCodeSessions] Parsed claude_response:", { responseType: response.type, hasContent: !!response.content });
+    // Special handling for claude-response type (aligned with claudecodeui)
+    if (message.type === "claude-response" && message.data) {
+      // Data is already an object from server (not stringified)
+      const response = message.data;
+      console.debug("[MultipleClaudeCodeSessions] Parsed claude-response:", { responseType: response.type, hasContent: !!response.content });
       
       // Convert to standard message format
       let convertedMessage: ClaudeCodeMessage;
@@ -253,6 +253,38 @@ export function useMultipleClaudeCodeSessions({
       // Process the converted message
       message = convertedMessage;
       console.debug("[MultipleClaudeCodeSessions] Converted message:", { type: message.type, data: message.data?.substring(0, 100) });
+    }
+    
+    // Handle new message types from claudecodeui alignment
+    if (message.type === "claude-output") {
+      // Convert to stdout for consistency
+      message = {
+        type: "stdout",
+        data: message.data,
+        sessionId: message.sessionId
+      };
+    } else if (message.type === "claude-error") {
+      // Convert to error for consistency
+      message = {
+        type: "error",
+        data: message.data,
+        sessionId: message.sessionId
+      };
+    } else if (message.type === "claude-complete") {
+      // Handle completion
+      message = {
+        type: "process_exit",
+        data: JSON.stringify({ code: message.exitCode || 0 }),
+        sessionId: message.sessionId
+      };
+    } else if (message.type === "session-created") {
+      // Store Claude session ID
+      setSessions(prev => prev.map(s => 
+        s.id === message.sessionId 
+          ? { ...s, claudeSessionId: message.data?.claudeSessionId || message.sessionId }
+          : s
+      ));
+      return; // Don't add this as a message
     }
     
     setSessions(prevSessions => {

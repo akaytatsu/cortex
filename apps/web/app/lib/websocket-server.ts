@@ -543,6 +543,10 @@ class TerminalWebSocketServer {
       this.activeSessions.set(message.sessionId, sessionMapping);
       this.claudeCodeClients.set(message.sessionId, ws);
       ws.sessionId = message.sessionId;
+      
+      // Update lastHeartbeat when session starts
+      ws.lastHeartbeat = Date.now();
+      ws.isAlive = true;
 
       // Setup output redirection
       const childProcess = cliService.getProcess(message.sessionId);
@@ -617,6 +621,13 @@ class TerminalWebSocketServer {
             claudeSessionId = response.session_id;
             if (claudeSessionId) {
               cliService.setClaudeSessionId(sessionId, claudeSessionId);
+              
+              // Send session-created event to client (like claudecodeui)
+              this.sendClaudeCodeMessage(ws, {
+                type: "session-created" as any,
+                sessionId: claudeSessionId,
+                data: { claudeSessionId }
+              });
             }
             logger.info("Claude session ID captured", { 
               sessionId, 
@@ -626,8 +637,8 @@ class TerminalWebSocketServer {
           
           // Send raw response to client for processing
           this.sendClaudeCodeMessage(ws, {
-            type: "claude_response" as any,
-            data: JSON.stringify(response), // Convert object to string like claudecodeui
+            type: "claude-response" as any,
+            data: response, // Send object directly like claudecodeui
             sessionId,
           });
           
@@ -636,7 +647,7 @@ class TerminalWebSocketServer {
           if (line.trim()) {
             logger.debug("Non-JSON output", { sessionId, line });
             this.sendClaudeCodeMessage(ws, {
-              type: "stdout" as any,
+              type: "claude-output" as any,
               data: line,
               sessionId,
             });
@@ -655,7 +666,7 @@ class TerminalWebSocketServer {
       
       // Send stderr as error message
       this.sendClaudeCodeMessage(ws, {
-        type: "error",
+        type: "claude-error" as any,
         data: chunk,
         sessionId,
       });
@@ -705,8 +716,8 @@ class TerminalWebSocketServer {
         
         // Send completion signal to indicate command is done
         this.sendClaudeCodeMessage(ws, {
-          type: "message" as any,
-          data: "claude-complete", // Like claudecodeui does
+          type: "claude-complete" as any,
+          exitCode: code ?? undefined,
           sessionId: ownerSessionId,
         });
       }
@@ -846,6 +857,10 @@ class TerminalWebSocketServer {
       this.activeSessions.set(processId, sessionMapping);
       this.claudeCodeClients.set(message.sessionId, ws); // Keep WebSocket mapping with original sessionId
       this.activeClaudeProcesses.set(message.sessionId, processId); // Track active process for sequential blocking
+      
+      // Update heartbeat when sending new commands
+      ws.lastHeartbeat = Date.now();
+      ws.isAlive = true;
       
       logger.info("Process mapping created for new print command", {
         sessionId: message.sessionId,
