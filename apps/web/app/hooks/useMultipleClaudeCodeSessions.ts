@@ -126,13 +126,15 @@ export function useMultipleClaudeCodeSessions({
     
     heartbeatIntervalRef.current = setInterval(() => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        // Use the current session ID or a generic one
+        const activeSession = sessions.find(s => s.status === "active" || s.status === "connecting");
         const heartbeatMessage: ClaudeCodeMessage = {
           type: "heartbeat",
-          sessionId: "system",
+          sessionId: activeSession?.id || "heartbeat", // Use active session ID or "heartbeat"
           timestamp: Date.now(),
         };
         
-        console.debug("[MultipleClaudeCodeSessions] Sending heartbeat");
+        console.debug("[MultipleClaudeCodeSessions] Sending heartbeat", { sessionId: heartbeatMessage.sessionId });
         try {
           wsRef.current.send(JSON.stringify(heartbeatMessage));
         } catch (error) {
@@ -144,7 +146,7 @@ export function useMultipleClaudeCodeSessions({
         clearHeartbeatInterval();
       }
     }, HEARTBEAT_INTERVAL);
-  }, [clearHeartbeatInterval, HEARTBEAT_INTERVAL]);
+  }, [clearHeartbeatInterval, HEARTBEAT_INTERVAL, sessions]);
 
   // Function to get WebSocket port
   const getWebSocketPort = useCallback(async (): Promise<number> => {
@@ -169,10 +171,13 @@ export function useMultipleClaudeCodeSessions({
 
   // Handle incoming WebSocket messages
   const handleMessage = useCallback((message: ClaudeCodeMessage) => {
+    console.debug("[MultipleClaudeCodeSessions] handleMessage received:", { type: message.type, sessionId: message.sessionId, hasData: !!message.data });
+    
     // Special handling for claude_response type
     if (message.type === "claude_response" && message.data) {
       // Parse the JSON string
       const response = typeof message.data === 'string' ? JSON.parse(message.data) : message.data;
+      console.debug("[MultipleClaudeCodeSessions] Parsed claude_response:", { responseType: response.type, hasContent: !!response.content });
       
       // Convert to standard message format
       let convertedMessage: ClaudeCodeMessage;
@@ -187,12 +192,8 @@ export function useMultipleClaudeCodeSessions({
                 : s
             ));
           }
-          convertedMessage = {
-            type: "stdout",
-            data: `[System] ${JSON.stringify(response)}`,
-            sessionId: message.sessionId
-          };
-          break;
+          // Skip system messages - they are internal only
+          return; // Don't process system messages as visible output
           
         case 'message':
         case 'assistant':
@@ -251,6 +252,7 @@ export function useMultipleClaudeCodeSessions({
       
       // Process the converted message
       message = convertedMessage;
+      console.debug("[MultipleClaudeCodeSessions] Converted message:", { type: message.type, data: message.data?.substring(0, 100) });
     }
     
     setSessions(prevSessions => {
