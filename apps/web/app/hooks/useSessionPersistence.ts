@@ -43,7 +43,7 @@ export function useSessionPersistence(): UseSessionPersistenceReturn {
     }
   }, []);
 
-  const loadSessions = useCallback(async () => {
+  const loadSessions = useCallback(async (): Promise<PersistedSession[]> => {
     try {
       const response = await fetch('/api/sessions');
 
