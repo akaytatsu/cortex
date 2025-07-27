@@ -83,6 +83,7 @@ export function useMultipleClaudeCodeSessions({
   const wsRef = useRef<WebSocket | null>(null);
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const sessionsRef = useRef<SessionData[]>([]);
   
   // Fetcher for agents
   const agentsFetcher = useFetcher<
@@ -397,7 +398,17 @@ export function useMultipleClaudeCodeSessions({
         clearHeartbeatInterval();
         
         // Only reconnect on unexpected disconnect with active sessions
-        const hasActiveSessions = sessions.some(s => s.status === "active" || s.status === "connecting");
+        const hasActiveSessions = sessionsRef.current.some(s => s.status === "active" || s.status === "connecting");
+        
+        console.debug("[MultipleClaudeCodeSessions] Reconnection check:", {
+          eventCode: event.code,
+          isReconnecting,
+          reconnectionAttempts,
+          maxAttempts: MAX_RECONNECTION_ATTEMPTS,
+          hasActiveSessions,
+          sessionsCount: sessionsRef.current.length,
+          activeSessions: sessionsRef.current.filter(s => s.status === "active").length
+        });
         
         if (event.code !== 1000 && !isReconnecting && reconnectionAttempts < MAX_RECONNECTION_ATTEMPTS && hasActiveSessions && attemptReconnectionRef.current) {
           console.log("[MultipleClaudeCodeSessions] Starting automatic reconnection");
@@ -461,6 +472,11 @@ export function useMultipleClaudeCodeSessions({
 
   // Assign the ref after declaration
   attemptReconnectionRef.current = attemptReconnection;
+
+  // Keep sessions ref updated
+  useEffect(() => {
+    sessionsRef.current = sessions;
+  }, [sessions]);
 
   // Public API methods
   const selectSession = useCallback((sessionId: string) => {
