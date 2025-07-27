@@ -3,8 +3,11 @@ import type {
   ClaudeCodeMessage,
   ClaudeAgent,
   AgentListResponse,
+  PersistedSession,
 } from "shared-types";
 import { useFetcher } from "@remix-run/react";
+import { useSessionPersistence } from "./useSessionPersistence";
+import { useToast } from "./useToast";
 
 interface SessionData {
   id: string;
@@ -55,6 +58,11 @@ interface UseMultipleClaudeCodeSessionsReturn {
   agents: ClaudeAgent[];
   agentsLoading: boolean;
   agentsError: string | null;
+
+  // Toast notifications
+  toasts: import("./useToast").ToastMessage[];
+  showToast: (toast: Omit<import("./useToast").ToastMessage, 'id'>) => void;
+  removeToast: (id: string) => void;
 }
 
 // Configuration constants
@@ -65,6 +73,7 @@ const MAX_RECONNECTION_ATTEMPTS = 10;
 export function useMultipleClaudeCodeSessions({
   workspaceName,
   workspacePath,
+  userId,
 }: UseMultipleClaudeCodeSessionsOptions): UseMultipleClaudeCodeSessionsReturn {
   // State management
   const [sessions, setSessions] = useState<SessionData[]>([]);
@@ -89,6 +98,10 @@ export function useMultipleClaudeCodeSessions({
   const agentsFetcher = useFetcher<
     AgentListResponse | { error: { message: string } }
   >();
+
+  // Session persistence and toast hooks
+  const sessionPersistence = useSessionPersistence();
+  const { toasts, showToast, removeToast } = useToast();
 
   // Computed values
   const isConnected = connectionStatus === "open";
@@ -478,6 +491,39 @@ export function useMultipleClaudeCodeSessions({
     sessionsRef.current = sessions;
   }, [sessions]);
 
+  // Load persisted sessions on mount
+  useEffect(() => {
+    const loadPersistedSessions = async () => {
+      try {
+        const persistedSessions = await sessionPersistence.loadSessions();
+        
+        // Convert persisted sessions to SessionData format
+        const sessionDataList: SessionData[] = persistedSessions
+          .filter(ps => ps.workspaceName === workspaceName && ps.userId === userId)
+          .map(ps => ({
+            id: ps.id,
+            workspaceName: ps.workspaceName,
+            workspacePath: ps.workspacePath,
+            agentName: ps.agentName,
+            command: ps.command,
+            status: "inactive" as const, // Start as inactive, will be updated via WebSocket
+            messages: [],
+            lastActivity: new Date(ps.startedAt),
+          }));
+
+        if (sessionDataList.length > 0) {
+          setSessions(prev => [...sessionDataList, ...prev]);
+          console.debug(`[MultipleClaudeCodeSessions] Loaded ${sessionDataList.length} persisted sessions`);
+        }
+      } catch (error) {
+        console.error('[MultipleClaudeCodeSessions] Failed to load persisted sessions:', error);
+        // Don't show error toast for load failures - graceful degradation
+      }
+    };
+
+    loadPersistedSessions();
+  }, [workspaceName, userId]);
+
   // Public API methods
   const selectSession = useCallback((sessionId: string) => {
     setCurrentSessionId(sessionId);
@@ -501,6 +547,38 @@ export function useMultipleClaudeCodeSessions({
     setSessions(prev => [...prev, newSession]);
     setCurrentSessionId(sessionId);
 
+    // Persist session
+    try {
+      const persistedSession: PersistedSession = {
+        id: sessionId,
+        workspaceName,
+        workspacePath,
+        userId,
+        pid: Date.now(), // Use timestamp as PID placeholder for frontend-created sessions
+        startedAt: new Date().toISOString(),
+        agentName: selectedAgent?.name,
+        command: selectedAgent?.command,
+      };
+
+      await sessionPersistence.saveSession(persistedSession);
+      console.debug(`[MultipleClaudeCodeSessions] Session ${sessionId} persisted successfully`);
+      
+      showToast({
+        type: 'success',
+        title: 'Sessão criada',
+        message: `Sessão ${selectedAgent?.name || 'padrão'} criada e salva com sucesso`,
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error(`[MultipleClaudeCodeSessions] Failed to persist session ${sessionId}:`, error);
+      showToast({
+        type: 'error',
+        title: 'Erro ao salvar sessão',
+        message: 'A sessão foi criada mas não pôde ser salva. Funcionalidade básica mantida.',
+        duration: 5000,
+      });
+    }
+
     const startMessage: ClaudeCodeMessage = {
       type: "start_session",
       sessionId,
@@ -509,7 +587,7 @@ export function useMultipleClaudeCodeSessions({
     };
 
     sendMessage(startMessage);
-  }, [workspaceName, workspacePath, sendMessage, agents]);
+  }, [workspaceName, workspacePath, userId, sendMessage, agents, sessionPersistence, showToast]);
 
   const closeSession = useCallback(async (sessionId: string) => {
     const stopMessage: ClaudeCodeMessage = {
@@ -523,7 +601,28 @@ export function useMultipleClaudeCodeSessions({
     if (currentSessionId === sessionId) {
       setCurrentSessionId(null);
     }
-  }, [sendMessage, currentSessionId]);
+
+    // Remove from persistence
+    try {
+      await sessionPersistence.removeSession(sessionId);
+      console.debug(`[MultipleClaudeCodeSessions] Session ${sessionId} removed from persistence`);
+      
+      showToast({
+        type: 'info',
+        title: 'Sessão encerrada',
+        message: 'Sessão encerrada e removida com sucesso',
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error(`[MultipleClaudeCodeSessions] Failed to remove session ${sessionId} from persistence:`, error);
+      showToast({
+        type: 'warning',
+        title: 'Aviso',
+        message: 'Sessão encerrada mas pode não ter sido removida do arquivo. Verifique se há sessões órfãs.',
+        duration: 5000,
+      });
+    }
+  }, [sendMessage, currentSessionId, sessionPersistence, showToast]);
 
   const sendCommand = useCallback((sessionId: string, command: string, imageIds?: string[]) => {
     const session = sessions.find(s => s.id === sessionId);
@@ -579,5 +678,8 @@ export function useMultipleClaudeCodeSessions({
     agents,
     agentsLoading,
     agentsError,
+    toasts,
+    showToast,
+    removeToast,
   };
 }

@@ -7,6 +7,7 @@ import { useMultipleClaudeCodeSessions } from "../hooks/useMultipleClaudeCodeSes
 import { SessionManager } from "./SessionManager";
 import { NewSessionModal } from "./NewSessionModal";
 import { CommandInput } from "./CommandInput";
+import { ToastContainer } from "./Toast";
 
 interface CopilotPanelProps {
   workspaceName: string;
@@ -46,6 +47,8 @@ export function CopilotPanel({
     agents,
     agentsLoading,
     agentsError,
+    toasts,
+    removeToast,
   } = useMultipleClaudeCodeSessions({ workspaceName, workspacePath, userId });
 
   // Get current session data (memoized to prevent dependency issues)
@@ -233,18 +236,19 @@ export function CopilotPanel({
   };
 
   return (
-    <div className={cn("flex h-full min-w-0 space-x-4", className)}>
-      {/* Session Manager Sidebar */}
-      <div className="w-80 flex-shrink-0">
-        <SessionManager
-          sessions={terminalSessions}
-          currentSessionId={currentSessionId || undefined}
-          onSessionSelect={selectSession}
-          onSessionClose={closeSession}
-          onNewSession={handleNewSession}
-          className="h-full"
-        />
-      </div>
+    <>
+      <div className={cn("flex h-full min-w-0 space-x-4", className)} data-testid="copilot-panel">
+        {/* Session Manager Sidebar */}
+        <div className="w-80 flex-shrink-0">
+          <SessionManager
+            sessions={terminalSessions}
+            currentSessionId={currentSessionId || undefined}
+            onSessionSelect={selectSession}
+            onSessionClose={closeSession}
+            onNewSession={handleNewSession}
+            className="h-full"
+          />
+        </div>
 
       {/* Main Chat Panel */}
       <Card className="flex flex-col h-full min-w-0 flex-1 max-h-screen">
@@ -492,6 +496,10 @@ export function CopilotPanel({
         error={agentsError || undefined}
         onCreateSession={handleCreateSession}
       />
+
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
+    </>
   );
 }

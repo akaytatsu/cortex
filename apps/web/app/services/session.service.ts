@@ -1,5 +1,7 @@
 import { createCookieSessionStorage, redirect } from "@remix-run/node";
 import { config } from "../lib/config";
+import { serviceContainer } from "../lib/service-container";
+import type { UserPublic } from "shared-types";
 
 export const sessionStorage = createCookieSessionStorage({
   cookie: {
@@ -64,4 +66,29 @@ export class SessionService {
       },
     });
   }
+
+  static async requireCurrentUser(request: Request): Promise<UserPublic> {
+    const userId = await this.requireUserId(request);
+    
+    // Get user from the UserService through service container
+    const userService = serviceContainer.getUserService();
+    const user = await userService.getUserById(userId);
+    
+    if (!user) {
+      throw redirect("/login");
+    }
+
+    // Convert to UserPublic format (excluding password)
+    return {
+      id: user.id,
+      email: user.email,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
+}
+
+// Export convenience function for backward compatibility
+export async function requireCurrentUser(request: Request): Promise<UserPublic> {
+  return await SessionService.requireCurrentUser(request);
 }
