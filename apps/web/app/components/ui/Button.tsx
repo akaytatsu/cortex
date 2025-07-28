@@ -3,40 +3,138 @@ import { cn } from "../../lib/utils";
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "outline" | "ghost" | "destructive";
-  size?: "default" | "sm" | "lg";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "destructive" | "success" | "warning";
+  size?: "sm" | "md" | "lg";
+  density?: "compact" | "comfortable" | "spacious";
+  loading?: boolean;
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "default", ...props }, ref) => {
+  ({ 
+    className, 
+    variant = "primary", 
+    size = "md", 
+    density = "comfortable",
+    loading = false, 
+    disabled,
+    children,
+    ...props 
+  }, ref) => {
     const variants = {
-      default:
-        "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 dark:bg-blue-600 dark:hover:bg-blue-700",
-      outline:
-        "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700",
-      ghost:
-        "text-gray-700 hover:bg-gray-100 focus:ring-blue-500 dark:text-gray-300 dark:hover:bg-gray-800",
-      destructive:
-        "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 dark:bg-red-600 dark:hover:bg-red-700",
+      primary: [
+        "bg-primary-600 text-text-inverse border-primary-600",
+        "hover:bg-primary-700 hover:border-primary-700",
+        "active:bg-primary-800 active:border-primary-800",
+        "focus:border-primary-700 focus:shadow-focus",
+        "disabled:bg-primary-300 disabled:border-primary-300 disabled:text-primary-100",
+      ].join(" "),
+      secondary: [
+        "bg-secondary-100 text-text-primary border-secondary-200",
+        "hover:bg-secondary-200 hover:border-secondary-300",
+        "active:bg-secondary-300 active:border-secondary-400",
+        "focus:border-secondary-400 focus:shadow-focus",
+        "disabled:bg-secondary-50 disabled:border-secondary-100 disabled:text-text-disabled",
+      ].join(" "),
+      outline: [
+        "bg-surface-primary text-text-primary border-border-primary",
+        "hover:bg-surface-hover hover:border-border-secondary",
+        "active:bg-surface-pressed active:border-border-secondary",
+        "focus:border-border-focus focus:shadow-focus",
+        "disabled:bg-surface-primary disabled:border-border-tertiary disabled:text-text-disabled",
+      ].join(" "),
+      ghost: [
+        "bg-transparent text-text-primary border-transparent",
+        "hover:bg-surface-hover hover:border-transparent",
+        "active:bg-surface-pressed active:border-transparent",
+        "focus:bg-surface-hover focus:shadow-focus",
+        "disabled:bg-transparent disabled:border-transparent disabled:text-text-disabled",
+      ].join(" "),
+      destructive: [
+        "bg-error-600 text-text-inverse border-error-600",
+        "hover:bg-error-700 hover:border-error-700",
+        "active:bg-error-800 active:border-error-800",
+        "focus:border-error-700 focus:shadow-focus",
+        "disabled:bg-error-300 disabled:border-error-300 disabled:text-error-100",
+      ].join(" "),
+      success: [
+        "bg-success-600 text-text-inverse border-success-600",
+        "hover:bg-success-700 hover:border-success-700",
+        "active:bg-success-800 active:border-success-800",
+        "focus:border-success-700 focus:shadow-focus",
+        "disabled:bg-success-300 disabled:border-success-300 disabled:text-success-100",
+      ].join(" "),
+      warning: [
+        "bg-warning-600 text-text-inverse border-warning-600",
+        "hover:bg-warning-700 hover:border-warning-700",
+        "active:bg-warning-800 active:border-warning-800",
+        "focus:border-warning-700 focus:shadow-focus",
+        "disabled:bg-warning-300 disabled:border-warning-300 disabled:text-warning-100",
+      ].join(" "),
     };
 
     const sizes = {
-      default: "h-10 px-4 py-2",
-      sm: "h-8 px-3 py-1.5 text-sm",
-      lg: "h-12 px-6 py-3",
+      sm: "px-3 py-1.5 text-body-small",
+      md: "px-4 py-2 text-body-medium",
+      lg: "px-6 py-3 text-body-large",
     };
+
+    const densityClasses = {
+      compact: "h-8",
+      comfortable: "h-10",
+      spacious: "h-12",
+    };
+
+    const isDisabled = disabled || loading;
 
     return (
       <button
         className={cn(
-          "inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none",
+          // Base styles using design system
+          "btn-base",
+          "elevation-button",
+          "font-medium",
+          "border",
+          "transition-fast",
+          "focus:outline-none",
+          "focus:ring-0",
+          // Variant styles
           variants[variant],
+          // Size styles
           sizes[size],
+          // Density styles
+          densityClasses[density],
+          // Loading state
+          loading && "cursor-wait",
           className
         )}
         ref={ref}
+        disabled={isDisabled}
         {...props}
-      />
+      >
+        {loading && (
+          <svg 
+            className="animate-spin -ml-1 mr-2 h-4 w-4" 
+            xmlns="http://www.w3.org/2000/svg" 
+            fill="none" 
+            viewBox="0 0 24 24"
+          >
+            <circle 
+              className="opacity-25" 
+              cx="12" 
+              cy="12" 
+              r="10" 
+              stroke="currentColor" 
+              strokeWidth="4"
+            />
+            <path 
+              className="opacity-75" 
+              fill="currentColor" 
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+        )}
+        {children}
+      </button>
     );
   }
 );
