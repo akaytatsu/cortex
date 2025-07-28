@@ -8,7 +8,9 @@
     - **Meta:** Entregar a interface principal e funcional da IDE, incluindo o navegador de arquivos, o editor de código e o terminal.
 4.  **Epic 4: AI Integration**
     - **Meta:** Integrar a CLI do Claude Code diretamente no workspace do usuário, transformando a IDE em uma interface gráfica inteligente para esta poderosa ferramenta.
-5.  **Epic 5: Git Integration**
+5.  **Epic 5: Design System & UI/UX Modernization**
+    - **Meta:** Transformar completamente a experiência visual e de usuário do Cortex, criando uma interface moderna, limpa e mobile-first que proporcione uma experiência profissional e agradável.
+6.  **Epic 6: Git Integration**
     - **Meta:** Implementar um fluxo de trabalho de versionamento Git completo e assistido por IA dentro da IDE.
-6.  **Epic 6: Productivity & Environment Management**
+7.  **Epic 7: Productivity & Environment Management**
     - **Meta:** Entregar aprimoramentos avançados de fluxo de trabalho para completar o conjunto de funcionalidades do MVP.

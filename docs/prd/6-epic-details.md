@@ -175,72 +175,122 @@
     2. Os comandos enviados pelo usuário são visíveis no histórico da conversa.
     3. A caixa de input permite navegar pelo histórico de comandos com as setas (cima/baixo).
 
-- **História 4.9: Frontend - Notificações de Eventos de Sessão**
-  - **Como um(a)** Usuário(a), **eu quero** ser notificado sobre eventos importantes da sessão, **para que** eu esteja ciente do que está acontecendo em segundo plano.
-  - **Critérios de Aceitação:**
-    1. Uma notificação (toast) sutil aparece quando uma sessão é encerrada automaticamente por timeout.
-    2. A UI indica claramente quando uma conexão WebSocket é perdida e tenta reconectar.
-    3. A lista de sessões ativas é atualizada em tempo real se uma sessão for encerrada por outro meio.
 
-- **História 4.10: Documentação - Guia de Uso dos Agentes Dinâmicos**
-  - **Como um(a)** Usuário(a), **eu quero** uma documentação clara sobre como configurar e usar os agentes dinâmicos, **para que** eu possa customizar meus workspaces.
-  - **Critérios de Aceitação:**
-    1. Uma seção na documentação do projeto (`docs/claude-code.md`) é criada.
-    2. A documentação explica a responsabilidade do usuário de instalar o `claude code` CLI.
-    3. Inclui um guia detalhado sobre como criar o arquivo `.claude-agents.yaml`, com exemplos da sua estrutura.
-    4. Mostra, com screenshots, como iniciar uma nova sessão usando um agente personalizado através da UI.
+## Epic 5: Design System & UI/UX Modernization
+
+**Meta Expandida:** Este épico é dedicado à transformação completa da experiência visual e de usuário do Cortex. O objetivo é criar uma interface moderna, limpa e mobile-first que proporcione uma experiência profissional e agradável. Toda a aplicação será repensada do ponto de vista do design, garantindo consistência visual, acessibilidade e uma experiência fluida em todos os dispositivos.
+
+- **Story 5.1: Design System Foundation**
+  - **As a** Developer/Designer, **I want** to establish a comprehensive design system, **so that** we have consistent visual elements throughout the application.
+  - **Acceptance Criteria:**
+    1. Criar um sistema de design tokens incluindo:
+       - Paleta de cores (primária, secundária, estados, fundos, bordas)
+       - Sistema de tipografia responsivo (font-family, tamanhos, pesos, line-heights)
+       - Sistema de espaçamento baseado em grid de 8px
+       - Sombras e elevações consistentes
+    2. Implementar variáveis CSS globais para todos os tokens
+    3. Criar componentes base reutilizáveis (botões, inputs, cards, modais)
+    4. Documentar o design system em um arquivo de referência
+
+- **Story 5.2: Mobile-First Responsive Layout**
+  - **As a** User, **I want** the application to work perfectly on mobile devices, **so that** I can access my workspace from anywhere.
+  - **Acceptance Criteria:**
+    1. Redesenhar todos os layouts começando pela versão mobile (375px)
+    2. Implementar breakpoints responsivos (mobile: 375px, tablet: 768px, desktop: 1024px+)
+    3. Criar um menu mobile colapsável para navegação
+    4. Garantir que todos os elementos interativos tenham áreas de toque adequadas (mínimo 44x44px)
+    5. Implementar layout adaptativo para o editor de código em mobile
+
+- **Story 5.3: Modern IDE Interface Redesign**
+  - **As a** User, **I want** a modern and clean IDE interface, **so that** I can focus on my work without distractions.
+  - **Acceptance Criteria:**
+    1. Redesenhar o layout principal da IDE com:
+       - Sidebar colapsável e minimalista
+       - Tabs modernos com indicadores visuais de estado
+       - Painéis redimensionáveis com handles sutis
+       - Modo escuro/claro com transições suaves
+    2. Implementar animações e transições fluidas
+    3. Criar indicadores visuais claros para estados (loading, saving, errors)
+    4. Adicionar ícones modernos e consistentes (usando uma biblioteca como Lucide ou Heroicons)
+
+- **Story 5.4: Enhanced User Feedback & Micro-interactions**
+  - **As a** User, **I want** clear visual feedback for my actions, **so that** I always know what's happening in the system.
+  - **Acceptance Criteria:**
+    1. Implementar sistema de notificações toast elegante e não intrusivo
+    2. Adicionar estados de hover, focus e active em todos os elementos interativos
+    3. Criar animações de loading skeleton para conteúdo sendo carregado
+    4. Implementar feedback visual para ações (salvar, deletar, copiar)
+    5. Adicionar tooltips informativos nos elementos da interface
+
+- **Story 5.5: Accessibility & Usability Improvements**
+  - **As a** User with accessibility needs, **I want** the application to be fully accessible, **so that** I can use all features effectively.
+  - **Acceptance Criteria:**
+    1. Garantir contraste WCAG AA em todos os elementos de texto
+    2. Implementar navegação completa por teclado
+    3. Adicionar ARIA labels apropriados
+    4. Criar indicadores de foco visíveis
+    5. Testar com leitores de tela
+
+- **Story 5.6: Performance Optimization for UI**
+  - **As a** User, **I want** the interface to be fast and responsive, **so that** my workflow is never interrupted.
+  - **Acceptance Criteria:**
+    1. Implementar lazy loading para componentes pesados
+    2. Otimizar renderização com virtualização para listas longas
+    3. Minimizar re-renders desnecessários
+    4. Implementar code splitting para reduzir bundle inicial
+    5. Adicionar métricas de performance (FCP, LCP, CLS)
 
 
-## Epic 5: Git Integration
+## Epic 6: Git Integration
 
 **Meta Expandida:** Este épico integra o Git na interface do Cortex, com uma UI para as operações mais comuns e aproveitando a IA para gerar mensagens de commit inteligentes.
 
-- **Story 5.1: Implement Git Status and Staging UI**
+- **Story 6.1: Implement Git Status and Staging UI**
   - **As a** Developer, **I want** to see and stage my changed files visually, **so that** I can prepare my commit.
   - **Acceptance Criteria:**
     1.  Uma área "Source Control" na UI lista os arquivos modificados.
     2.  O usuário pode adicionar/remover arquivos da área de "stage".
-- **Story 5.2: Implement Commit Functionality**
+- **Story 6.2: Implement Commit Functionality**
   - **As a** Developer, **I want** to commit my staged changes with a message, **so that** I can save my work.
   - **Acceptance Criteria:**
     1.  A UI tem uma caixa de texto para a mensagem e um botão "Commit".
     2.  "Commit" executa `git commit` com os arquivos em "stage".
     3.  A UI é atualizada após o commit.
-- **Story 5.3: Generate AI-Powered Commit Messages**
+- **Story 6.3: Generate AI-Powered Commit Messages**
   - **As a** Developer, **I want** to generate a commit message with AI, **so that** I can write better commits faster.
   - **Acceptance Criteria:**
     1.  Um botão "Gerar com IA" está disponível.
     2.  A ação envia o `diff` dos arquivos em "stage" para a IA.
     3.  A IA retorna uma sugestão de mensagem de commit.
     4.  O usuário pode editar a sugestão antes de cometer.
-- **Story 5.4: Implement Push and Pull Functionality**
+- **Story 6.4: Implement Push and Pull Functionality**
   - **As a** Developer, **I want** to push and pull changes, **so that** I can sync with the remote repository.
   - **Acceptance Criteria:**
     1.  Botões "Push" e "Pull" estão disponíveis.
     2.  As ações executam os comandos `git` correspondentes.
     3.  A UI exibe feedback e o status do branch.
 
-## Epic 6: Productivity & Environment Management
+## Epic 7: Productivity & Environment Management
 
 **Meta Expandida:** Este épico finaliza o MVP com funcionalidades avançadas de automação e gerenciamento, como a execução de tarefas com um clique e o início de projetos a partir de templates.
 
-- **Story 6.1: Implement the Productivity Panel UI**
+- **Story 7.1: Implement the Productivity Panel UI**
   - **As a** Developer, **I want** a panel to save and manage frequently used commands, **so that** I can organize them.
   - **Acceptance Criteria:**
     1.  Uma área "Produtividade" na UI lista os comandos salvos.
     2.  A UI permite adicionar, editar e apagar comandos (nome e o comando em si).
-- **Story 6.2: Execute Saved Commands in the Terminal**
+- **Story 7.2: Execute Saved Commands in the Terminal**
   - **As a** Developer, **I want** to run a saved command with one click, **so that** I can speed up tasks.
   - **Acceptance Criteria:**
     1.  Cada comando salvo tem um botão "Executar".
     2.  A ação executa o comando no terminal do workspace ativo.
-- **Story 6.3: Implement Dynamic Environment Management (V1)**
+- **Story 7.3: Implement Dynamic Environment Management (V1)**
   - **As a** Developer, **I want** an interface to manage test routes, **so that** I can test web projects.
   - **Acceptance Criteria:**
     1.  Uma área "Ambiente" na UI permite mapear uma porta local para um caminho/subdomínio público.
     2.  O backend interage com um proxy (Nginx/Apache) para criar as rotas.
     3.  A UI lista as rotas ativas.
-- **Story 6.4: Implement the "Template Store" (V1)**
+- **Story 7.4: Implement the "Template Store" (V1)**
   - **As a** Developer, **I want** to start a new workspace from a template, **so that** I can accelerate project setup.
   - **Acceptance Criteria:**
     1.  O fluxo de "Adicionar Workspace" tem a opção "Criar a partir de um template".
