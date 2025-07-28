@@ -188,9 +188,21 @@
        - Sistema de tipografia responsivo (font-family, tamanhos, pesos, line-heights)
        - Sistema de espaçamento baseado em grid de 8px
        - Sombras e elevações consistentes
+       - Sistema de cores com modo escuro/claro nativo
+       - Definir animações e transições padrão (duração, easing)
+       - Sistema de ícones consistente
+       - Princípios de densidade visual (compact, comfortable, spacious)
     2. Implementar variáveis CSS globais para todos os tokens
     3. Criar componentes base reutilizáveis (botões, inputs, cards, modais)
     4. Documentar o design system em um arquivo de referência
+
+- **Story 5.1.5: Visual Identity & Branding**
+  - **As a** User, **I want** a distinctive and professional visual identity, **so that** the application feels modern and trustworthy.
+  - **Acceptance Criteria:**
+    1. Definir personalidade visual do Cortex
+    2. Criar elementos de marca distintivos
+    3. Estabelecer tom de voz para microcopy
+    4. Design de estados vazios e ilustrações
 
 - **Story 5.2: Mobile-First Responsive Layout**
   - **As a** User, **I want** the application to work perfectly on mobile devices, **so that** I can access my workspace from anywhere.
@@ -200,6 +212,10 @@
     3. Criar um menu mobile colapsável para navegação
     4. Garantir que todos os elementos interativos tenham áreas de toque adequadas (mínimo 44x44px)
     5. Implementar layout adaptativo para o editor de código em mobile
+    6. Gestos touch nativos (swipe para abrir/fechar painéis)
+    7. Modo de visualização portrait/landscape otimizado
+    8. Teclado virtual não deve cobrir elementos importantes
+    9. PWA capabilities para experiência app-like
 
 - **Story 5.3: Modern IDE Interface Redesign**
   - **As a** User, **I want** a modern and clean IDE interface, **so that** I can focus on my work without distractions.
@@ -209,9 +225,14 @@
        - Tabs modernos com indicadores visuais de estado
        - Painéis redimensionáveis com handles sutis
        - Modo escuro/claro com transições suaves
+       - Design minimalista com foco no conteúdo
+       - Uso estratégico de espaço em branco
+       - Bordas arredondadas sutis (4-8px)
+       - Hierarquia visual clara sem elementos desnecessários
     2. Implementar animações e transições fluidas
     3. Criar indicadores visuais claros para estados (loading, saving, errors)
     4. Adicionar ícones modernos e consistentes (usando uma biblioteca como Lucide ou Heroicons)
+    5. Command palette (Cmd+K) para ações rápidas
 
 - **Story 5.4: Enhanced User Feedback & Micro-interactions**
   - **As a** User, **I want** clear visual feedback for my actions, **so that** I always know what's happening in the system.
@@ -221,6 +242,10 @@
     3. Criar animações de loading skeleton para conteúdo sendo carregado
     4. Implementar feedback visual para ações (salvar, deletar, copiar)
     5. Adicionar tooltips informativos nos elementos da interface
+    6. Animações de entrada/saída de elementos
+    7. Feedback háptico em mobile
+    8. Estados de drag & drop visuais
+    9. Indicadores de progresso inline
 
 - **Story 5.5: Accessibility & Usability Improvements**
   - **As a** User with accessibility needs, **I want** the application to be fully accessible, **so that** I can use all features effectively.
@@ -239,6 +264,17 @@
     3. Minimizar re-renders desnecessários
     4. Implementar code splitting para reduzir bundle inicial
     5. Adicionar métricas de performance (FCP, LCP, CLS)
+    6. Tempo de primeira interação < 3s
+    7. Score de acessibilidade > 95
+
+- **Story 5.7: Onboarding & Empty States**
+  - **As a** New User, **I want** a guided experience when first using the application, **so that** I can quickly understand how to use all features.
+  - **Acceptance Criteria:**
+    1. Design de primeira experiência do usuário
+    2. Estados vazios informativos e acionáveis
+    3. Tour guiado opcional para novos usuários
+    4. Dicas contextuais durante o uso
+    5. Progressão visual do onboarding
 
 
 ## Epic 6: Git Integration
