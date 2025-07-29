@@ -1,0 +1,133 @@
+/* Virtual Keyboard Global Styles */
+
+/* CSS Custom Properties for keyboard state */
+:root {
+  --keyboard-height: 0px;
+  --keyboard-overlay-height: 0px;
+}
+
+/* Body classes for global adjustments when keyboard is visible */
+body.virtual-keyboard-visible {
+  /* Prevent zooming on mobile when inputs are focused */
+  touch-action: pan-x pan-y;
+  
+  /* Smooth transitions for layout changes */
+  transition: all 0.3s ease;
+}
+
+/* Keyboard-aware input styles */
+.keyboard-aware-input {
+  /* Ensure inputs are properly styled for keyboard interaction */
+  position: relative;
+}
+
+.keyboard-aware-input.maintain-viewport {
+  /* Add specific styles for inputs that should maintain viewport */
+  scroll-margin-top: 20px;
+  scroll-margin-bottom: calc(var(--keyboard-height) + 20px);
+}
+
+/* Layout adjustments when keyboard is visible */
+.keyboard-visible {
+  /* Container is aware that keyboard is active */
+  --effective-vh: calc(100vh - var(--keyboard-height));
+}
+
+.keyboard-hidden {
+  /* Container when keyboard is not active */
+  --effective-vh: 100vh;
+}
+
+/* Mobile-specific keyboard adjustments */
+@media (max-width: 768px) {
+  body.virtual-keyboard-visible {
+    /* Prevent rubber band scrolling on iOS */
+    overscroll-behavior: none;
+  }
+  
+  /* Adjust fixed elements when keyboard appears */
+  body.virtual-keyboard-visible .fixed-bottom {
+    bottom: var(--keyboard-overlay-height);
+    transition: bottom 0.3s ease;
+  }
+  
+  /* Adjust sticky elements */
+  body.virtual-keyboard-visible .sticky-bottom {
+    margin-bottom: var(--keyboard-overlay-height);
+    transition: margin-bottom 0.3s ease;
+  }
+  
+  /* Make modals keyboard-aware */
+  body.virtual-keyboard-visible .modal-content {
+    max-height: calc(100vh - var(--keyboard-height) - 40px);
+    overflow-y: auto;
+  }
+}
+
+/* Prevent layout jumps during keyboard transitions */
+.keyboard-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus ring adjustments for keyboard navigation */
+.keyboard-aware-input:focus-within {
+  /* Enhanced focus visibility for keyboard users */
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  body.virtual-keyboard-visible {
+    /* Fix viewport height issues on iOS */
+    height: calc(100vh - var(--keyboard-height));
+    overflow: hidden;
+  }
+  
+  .keyboard-aware-input input,
+  .keyboard-aware-input textarea {
+    /* Prevent zoom on focus in iOS Safari */
+    font-size: 16px;
+  }
+}
+
+/* Android specific fixes */
+@media screen and (max-width: 768px) {
+  .keyboard-aware-input input:focus,
+  .keyboard-aware-input textarea:focus {
+    /* Ensure focused inputs are scrolled into view */
+    scroll-margin-bottom: calc(var(--keyboard-height) + 20px);
+  }
+}
+
+/* Landscape orientation specific adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+  body.virtual-keyboard-visible {
+    /* Optimize space usage in mobile landscape */
+    --keyboard-adjustment-factor: 0.8;
+  }
+  
+  .keyboard-aware-input {
+    /* Reduce margins in landscape for more space */
+    scroll-margin-top: 10px;
+    scroll-margin-bottom: calc(var(--keyboard-height) * var(--keyboard-adjustment-factor, 1) + 10px);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .keyboard-aware-input:focus-within {
+    outline-width: 3px;
+    outline-color: highlight;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  body.virtual-keyboard-visible,
+  .keyboard-transition,
+  .fixed-bottom,
+  .sticky-bottom {
+    transition: none;
+  }
+}

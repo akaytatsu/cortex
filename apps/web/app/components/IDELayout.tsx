@@ -6,6 +6,7 @@ import { CodeViewer } from "./CodeViewer";
 import { Terminal } from "./Terminal";
 import { CopilotPanel } from "./CopilotPanel";
 import { MobileMenu } from "./layout/MobileMenu";
+import { VirtualKeyboardHandler } from "./layout/VirtualKeyboardHandler";
 import { FileWebSocketProvider } from "../contexts/FileWebSocketContext";
 import { useViewportSize } from "../lib/responsive";
 import { useSwipeGestures } from "../hooks/useSwipeGestures";
@@ -220,6 +221,11 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
 
   return (
     <AdaptiveDensityProvider className="h-screen flex flex-col bg-background-primary">
+      <VirtualKeyboardHandler 
+        className="h-screen flex flex-col" 
+        adjustViewport={isMobile}
+        addPaddingBottom={isMobile}
+      >
       {/* Mobile-First Header with orientation-specific height */}
       <header className={`
         flex items-center justify-between px-4 bg-surface-primary border-b border-border-primary
@@ -531,6 +537,7 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
           </div>
         </footer>
       )}
+      </VirtualKeyboardHandler>
     </AdaptiveDensityProvider>
   );
 }
