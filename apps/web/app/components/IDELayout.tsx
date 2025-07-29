@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "@remix-run/react";
 import type { Workspace } from "shared-types";
 import { FileBrowser } from "./FileBrowser";
 import { CodeViewer } from "./CodeViewer";
@@ -242,13 +241,15 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
             />
           )}
           
-          {/* Back Link - Hidden on mobile */}
-          <Link
-            to="/workspaces"
-            className="hidden sm:inline-flex items-center px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-md touch-target"
-          >
-            ← Voltar
-          </Link>
+          {/* Back Link - Temporariamente removido para resolver hydration issues */}
+          {!isMobile && (
+            <button
+              onClick={() => window.location.href = '/workspaces'}
+              className="inline-flex items-center px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-md touch-target"
+            >
+              ← Voltar
+            </button>
+          )}
           
           {/* Workspace Info */}
           <div className="flex items-center space-x-2 flex-1 min-w-0">

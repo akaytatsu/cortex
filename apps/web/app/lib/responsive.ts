@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+
 export const breakpoints = {
   xs: 375,
   sm: 375,
@@ -10,26 +12,49 @@ export const breakpoints = {
 export type Breakpoint = keyof typeof breakpoints;
 
 export const useViewportSize = () => {
-  if (typeof window === "undefined") {
+  const [mounted, setMounted] = useState(false);
+  const [dimensions, setDimensions] = useState({
+    width: 1024,
+    height: 768,
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true,
+  });
+
+  useEffect(() => {
+    setMounted(true);
+    
+    const updateDimensions = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      
+      setDimensions({
+        width,
+        height,
+        isMobile: width < breakpoints.md,
+        isTablet: width >= breakpoints.md && width < breakpoints.lg,
+        isDesktop: width >= breakpoints.lg,
+      });
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
+
+  // Durante SSR e antes da hidratação, sempre retornar desktop
+  if (!mounted) {
     return {
-      width: 0,
-      height: 0,
+      width: 1024,
+      height: 768,
       isMobile: false,
       isTablet: false,
-      isDesktop: false,
+      isDesktop: true,
     };
   }
 
-  const width = window.innerWidth;
-  const height = window.innerHeight;
-
-  return {
-    width,
-    height,
-    isMobile: width < breakpoints.md,
-    isTablet: width >= breakpoints.md && width < breakpoints.lg,
-    isDesktop: width >= breakpoints.lg,
-  };
+  return dimensions;
 };
 
 export const getResponsiveClass = (

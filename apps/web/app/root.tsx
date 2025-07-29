@@ -24,12 +24,12 @@ export const links: LinksFunction = () => [
   },
   // PWA Manifest
   { rel: "manifest", href: "/manifest.json" },
-  // PWA Icons
-  { rel: "icon", href: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
-  { rel: "icon", href: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
-  { rel: "apple-touch-icon", href: "/icons/icon-192x192.png" },
+  // PWA Icons - Temporariamente comentadas até ícones serem criados
+  // { rel: "icon", href: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+  // { rel: "icon", href: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+  // { rel: "apple-touch-icon", href: "/icons/icon-192x192.png" },
   // PWA Meta tags
-  { rel: "mask-icon", href: "/icons/icon-192x192.png", color: "#000000" },
+  // { rel: "mask-icon", href: "/icons/icon-192x192.png", color: "#000000" },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {

@@ -1,11 +1,11 @@
-const CACHE_NAME = 'cortex-ide-v1';
+const CACHE_NAME = 'cortex-ide-v2';
 const CACHE_URLS = [
   '/',
   '/workspaces',
   '/login',
   '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  // '/icons/icon-192x192.png', // Temporariamente removido
+  // '/icons/icon-512x512.png', // Temporariamente removido
   '/favicon.ico'
 ];
 
@@ -105,7 +105,7 @@ self.addEventListener('fetch', (event) => {
           
           return fetch(request)
             .then((response) => {
-              if (response.status === 200) {
+              if (response.status === 200 && !request.url.startsWith('chrome-extension://')) {
                 const responseClone = response.clone();
                 caches.open(CACHE_NAME)
                   .then((cache) => cache.put(request, responseClone))
