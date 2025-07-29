@@ -4,6 +4,14 @@ export default {
   content: ["./app/**/{**,.client,.server}/**/*.{js,jsx,ts,tsx}"],
   darkMode: ["class", '[data-theme="dark"]'],
   theme: {
+    screens: {
+      xs: "375px",
+      sm: "375px", 
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+      "2xl": "1440px",
+    },
     extend: {
       fontFamily: {
         sans: ["var(--font-family-sans)"],
@@ -220,6 +228,24 @@ export default {
         pulse: "var(--animation-pulse)",
         spin: "var(--animation-spin)",
       },
+      container: {
+        center: true,
+        padding: {
+          DEFAULT: "1rem",
+          sm: "1rem",
+          md: "1.5rem",
+          lg: "2rem",
+          xl: "2.5rem",
+          "2xl": "3rem",
+        },
+        screens: {
+          sm: "375px",
+          md: "768px",
+          lg: "1024px",
+          xl: "1280px",
+          "2xl": "1440px",
+        },
+      },
     },
   },
   plugins: [
@@ -350,6 +376,100 @@ export default {
         '.gap-page-md': { gap: 'var(--spacing-page-md)' },
         '.gap-page-lg': { gap: 'var(--spacing-page-lg)' },
         '.gap-page-xl': { gap: 'var(--spacing-page-xl)' },
+      });
+
+      // Mobile-First Responsive Utilities
+      addUtilities({
+        '.touch-target': {
+          minHeight: '44px',
+          minWidth: '44px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        '.mobile-container': {
+          width: '100%',
+          maxWidth: '375px',
+          margin: '0 auto',
+          padding: '0 1rem',
+        },
+        '.tablet-container': {
+          '@media (min-width: 768px)': {
+            maxWidth: '768px',
+            padding: '0 1.5rem',
+          },
+        },
+        '.desktop-container': {
+          '@media (min-width: 1024px)': {
+            maxWidth: '1024px',
+            padding: '0 2rem',
+          },
+        },
+        '.grid-mobile': {
+          display: 'grid',
+          gridTemplateColumns: '1fr',
+          gap: '1rem',
+        },
+        '.grid-tablet': {
+          '@media (min-width: 768px)': {
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '1.5rem',
+          },
+        },
+        '.grid-desktop': {
+          '@media (min-width: 1024px)': {
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '2rem',
+          },
+        },
+        '.sidebar-mobile': {
+          position: 'fixed',
+          top: '0',
+          left: '-100%',
+          width: '280px',
+          height: '100vh',
+          transition: 'left 0.3s ease-in-out',
+          zIndex: '50',
+        },
+        '.sidebar-mobile.open': {
+          left: '0',
+        },
+        '.main-mobile': {
+          width: '100%',
+          transition: 'margin-left 0.3s ease-in-out',
+        },
+        '.main-desktop': {
+          '@media (min-width: 1024px)': {
+            marginLeft: '280px',
+            width: 'calc(100% - 280px)',
+          },
+        },
+      });
+
+      // Touch-friendly Components
+      addComponents({
+        '.btn-touch': {
+          '@apply touch-target btn-base': {},
+          padding: '0.75rem 1.5rem',
+          fontSize: '1rem',
+        },
+        '.input-touch': {
+          '@apply touch-target input-base': {},
+          padding: '0.875rem 1rem',
+          fontSize: '1rem',
+        },
+        '.mobile-menu-item': {
+          '@apply touch-target': {},
+          padding: '1rem',
+          borderBottom: '1px solid var(--color-border-primary)',
+          cursor: 'pointer',
+          '&:hover': {
+            backgroundColor: 'var(--color-surface-hover)',
+          },
+          '&:active': {
+            backgroundColor: 'var(--color-surface-pressed)',
+          },
+        },
       });
     },
   ],

@@ -11,6 +11,7 @@ export interface InputProps
   rightIcon?: React.ReactNode;
   helperText?: string;
   label?: string;
+  touchFriendly?: boolean;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -27,6 +28,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     helperText,
     label,
     id,
+    touchFriendly = false,
     ...props 
   }, ref) => {
     const variants = {
@@ -75,6 +77,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       spacious: "h-12",
     };
 
+    // Touch-friendly minimum sizes (44x44px)
+    const touchSizes = {
+      sm: touchFriendly ? "min-h-[44px] px-4 py-2.5" : "px-3 py-1.5",
+      md: touchFriendly ? "min-h-[44px] px-5 py-3" : "px-4 py-2",
+      lg: touchFriendly ? "min-h-[48px] px-6 py-3.5" : "px-6 py-3",
+    };
+
     const helperTextColors = {
       default: "text-text-secondary",
       error: "text-error-600",
@@ -119,13 +128,17 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               variants[variant],
               // State styles (override variant for errors, etc.)
               state !== "default" && stateStyles[state],
-              // Size styles
-              sizes[size],
-              // Density styles
-              densityClasses[density],
+              // Size styles - either touch-friendly or standard
+              touchFriendly ? touchSizes[size] : sizes[size],
+              // Text size (always apply)
+              size === "sm" ? "text-body-small" : size === "md" ? "text-body-medium" : "text-body-large",
+              // Density styles (only if not touch-friendly)
+              !touchFriendly && densityClasses[density],
+              // Touch-friendly class for additional styling
+              touchFriendly && "touch-target",
               // Icon padding adjustments
-              leftIcon && "pl-10",
-              rightIcon && "pr-10",
+              leftIcon && (touchFriendly ? "pl-12" : "pl-10"),
+              rightIcon && (touchFriendly ? "pr-12" : "pr-10"),
               // Disabled state
               disabled && "opacity-50 cursor-not-allowed",
               className

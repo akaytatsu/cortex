@@ -7,6 +7,7 @@ export interface ButtonProps
   size?: "sm" | "md" | "lg";
   density?: "compact" | "comfortable" | "spacious";
   loading?: boolean;
+  touchFriendly?: boolean;
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -17,6 +18,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     density = "comfortable",
     loading = false, 
     disabled,
+    touchFriendly = false,
     children,
     ...props 
   }, ref) => {
@@ -84,6 +86,13 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       spacious: "h-12",
     };
 
+    // Touch-friendly minimum sizes (44x44px)
+    const touchSizes = {
+      sm: touchFriendly ? "min-h-[44px] min-w-[44px] px-4 py-2" : "px-3 py-1.5",
+      md: touchFriendly ? "min-h-[44px] min-w-[44px] px-5 py-2.5" : "px-4 py-2",
+      lg: touchFriendly ? "min-h-[48px] min-w-[48px] px-6 py-3" : "px-6 py-3",
+    };
+
     const isDisabled = disabled || loading;
 
     return (
@@ -99,10 +108,14 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           "focus:ring-0",
           // Variant styles
           variants[variant],
-          // Size styles
-          sizes[size],
-          // Density styles
-          densityClasses[density],
+          // Size styles - either touch-friendly or standard
+          touchFriendly ? touchSizes[size] : sizes[size],
+          // Text size (always apply)
+          size === "sm" ? "text-body-small" : size === "md" ? "text-body-medium" : "text-body-large",
+          // Density styles (only if not touch-friendly)
+          !touchFriendly && densityClasses[density],
+          // Touch-friendly class for additional styling
+          touchFriendly && "touch-target",
           // Loading state
           loading && "cursor-wait",
           className

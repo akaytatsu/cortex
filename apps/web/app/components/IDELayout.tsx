@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "@remix-run/react";
 import type { Workspace } from "shared-types";
 import { FileBrowser } from "./FileBrowser";
 import { CodeViewer } from "./CodeViewer";
 import { Terminal } from "./Terminal";
 import { CopilotPanel } from "./CopilotPanel";
+import { MobileMenu } from "./layout/MobileMenu";
 import { FileWebSocketProvider } from "../contexts/FileWebSocketContext";
+import { useViewportSize } from "../lib/responsive";
 
 interface IDELayoutProps {
   workspace: Workspace;
@@ -13,12 +15,51 @@ interface IDELayoutProps {
 }
 
 export function IDELayout({ workspace, userId }: IDELayoutProps) {
-  const [sidebarWidth, setSidebarWidth] = useState(300);
+  const { isMobile, isTablet, isDesktop } = useViewportSize();
+  
+  // Mobile-first responsive state
+  const [sidebarWidth, setSidebarWidth] = useState(280);
   const [bottomPanelHeight, setBottomPanelHeight] = useState(200);
   const [isBottomPanelVisible, setIsBottomPanelVisible] = useState(false);
-  const [rightPanelWidth, setRightPanelWidth] = useState(600);
-  const [isRightPanelVisible, setIsRightPanelVisible] = useState(true);
+  const [rightPanelWidth, setRightPanelWidth] = useState(400);
+  const [isRightPanelVisible, setIsRightPanelVisible] = useState(!isMobile);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  
+  // Mobile navigation state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeMobileSection, setActiveMobileSection] = useState<string>("explorer");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Responsive effects
+  useEffect(() => {
+    if (isDesktop) {
+      setIsSidebarOpen(true);
+      setIsRightPanelVisible(true);
+      setIsMobileMenuOpen(false);
+    } else if (isTablet) {
+      setIsSidebarOpen(false);
+      setIsRightPanelVisible(false);
+    } else {
+      setIsSidebarOpen(false);
+      setIsRightPanelVisible(false);
+    }
+  }, [isMobile, isTablet, isDesktop]);
+
+  // Handle mobile navigation
+  const handleMobileNavigation = (section: string) => {
+    setActiveMobileSection(section);
+    if (section === "explorer") {
+      setIsSidebarOpen(true);
+      setIsRightPanelVisible(false);
+    } else if (section === "copilot") {
+      setIsSidebarOpen(false);
+      setIsRightPanelVisible(true);
+    } else if (section === "terminal") {
+      setIsBottomPanelVisible(true);
+      setIsSidebarOpen(false);
+      setIsRightPanelVisible(false);
+    }
+  };
 
   const handleSidebarResize = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -101,37 +142,103 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-      {/* Header/Breadcrumb */}
-      <header className="flex items-center justify-between px-4 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center space-x-4">
+    <div className="h-screen flex flex-col bg-background-primary">
+      {/* Mobile-First Header */}
+      <header className="flex items-center justify-between px-4 py-3 bg-surface-primary border-b border-border-primary min-h-[60px]">
+        <div className="flex items-center space-x-3 flex-1 min-w-0">
+          {/* Mobile Menu Button */}
+          {isMobile && (
+            <MobileMenu
+              isOpen={isMobileMenuOpen}
+              onToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onNavigate={handleMobileNavigation}
+              workspaceName={workspace.name}
+            />
+          )}
+          
+          {/* Back Link - Hidden on mobile */}
           <Link
             to="/workspaces"
-            className="inline-flex items-center px-3 py-1 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+            className="hidden sm:inline-flex items-center px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-md touch-target"
           >
-            ← Voltar para Workspaces
+            ← Voltar
           </Link>
-          <div className="h-4 border-l border-gray-300 dark:border-gray-600"></div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            {workspace.name}
-          </h1>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {workspace.path}
-          </span>
+          
+          {/* Workspace Info */}
+          <div className="flex items-center space-x-2 flex-1 min-w-0">
+            {!isMobile && <div className="h-4 border-l border-border-secondary"></div>}
+            <h1 className="text-lg font-semibold text-text-primary truncate">
+              {workspace.name}
+            </h1>
+            {!isMobile && (
+              <span className="text-sm text-text-tertiary truncate max-w-xs">
+                {workspace.path}
+              </span>
+            )}
+          </div>
+        </div>
+        
+        {/* Desktop Panel Toggles */}
+        <div className="hidden lg:flex items-center space-x-2">
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="touch-target px-2 py-1 text-xs text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded"
+          >
+            Explorer
+          </button>
+          <button
+            onClick={() => setIsBottomPanelVisible(!isBottomPanelVisible)}
+            className="touch-target px-2 py-1 text-xs text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded"
+          >
+            Terminal
+          </button>
+          <button
+            onClick={() => setIsRightPanelVisible(!isRightPanelVisible)}
+            className="touch-target px-2 py-1 text-xs text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded"
+          >
+            Copilot
+          </button>
         </div>
       </header>
 
-      {/* Main Layout */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Main Layout - Mobile First */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Mobile Sidebar Overlay */}
+        {(isSidebarOpen && isMobile) && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-30"
+            onClick={() => setIsSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+        
         {/* Sidebar - File Explorer */}
         <div
-          className="bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col"
-          style={{ width: sidebarWidth }}
+          className={`
+            flex flex-col bg-surface-primary border-r border-border-primary
+            transition-transform duration-300 ease-in-out
+            ${isMobile 
+              ? `fixed inset-y-0 left-0 z-40 w-80 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}` 
+              : isDesktop && isSidebarOpen 
+                ? 'relative' 
+                : 'hidden'
+            }
+          `}
+          style={isDesktop && isSidebarOpen ? { width: sidebarWidth } : {}}
         >
-          <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+          <div className="p-3 border-b border-border-primary flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wide">
               Explorer
             </h2>
+            {isMobile && (
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="touch-target p-1 text-text-secondary hover:text-text-primary"
+                aria-label="Fechar explorer"
+              >
+                ×
+              </button>
+            )}
           </div>
           <FileBrowser
             workspaceName={workspace.name}
@@ -141,37 +248,45 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
                 currentSelectedFile: selectedFile,
               });
               setSelectedFile(filePath);
+              if (isMobile) {
+                setIsSidebarOpen(false);
+              }
             }}
           />
         </div>
 
-        {/* Sidebar Resize Handle */}
-        <button
-          className="w-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-col-resize focus:outline-none focus:ring-2 focus:ring-blue-500"
-          onMouseDown={handleSidebarResize}
-          aria-label="Redimensionar sidebar"
-        ></button>
+        {/* Desktop Sidebar Resize Handle */}
+        {isDesktop && isSidebarOpen && (
+          <button
+            className="w-1 bg-border-secondary hover:bg-border-primary cursor-col-resize focus:outline-none focus:ring-2 focus:ring-primary-500"
+            onMouseDown={handleSidebarResize}
+            aria-label="Redimensionar sidebar"
+          />
+        )}
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col">
           {/* Main Content with Right Panel */}
-          <div className="flex-1 flex">
+          <div className="flex-1 flex relative">
             {/* Code Editor */}
             <div
-              className="flex-1 flex flex-col bg-white dark:bg-gray-800"
-              style={{
-                width: isRightPanelVisible
-                  ? `calc(100% - ${rightPanelWidth}px)`
-                  : "100%",
-              }}
+              className={`
+                flex-1 flex flex-col bg-surface-primary
+                ${isMobile && isRightPanelVisible ? 'hidden' : ''}
+              `}
+              style={
+                isDesktop && isRightPanelVisible
+                  ? { width: `calc(100% - ${rightPanelWidth}px)` }
+                  : {}
+              }
             >
               <div
                 className="flex-1"
-                style={{
-                  height: isBottomPanelVisible
-                    ? `calc(100% - ${bottomPanelHeight}px)`
-                    : "100%",
-                }}
+                style={
+                  isBottomPanelVisible
+                    ? { height: `calc(100% - ${bottomPanelHeight}px)` }
+                    : {}
+                }
               >
                 <FileWebSocketProvider workspaceName={workspace.name}>
                   <CodeViewer
@@ -182,21 +297,51 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
               </div>
             </div>
 
-            {/* Right Panel Resize Handle */}
-            {isRightPanelVisible && (
+            {/* Mobile Right Panel Overlay */}
+            {isRightPanelVisible && isMobile && (
+              <div
+                className="fixed inset-0 bg-black bg-opacity-50 z-30"
+                onClick={() => setIsRightPanelVisible(false)}
+                aria-hidden="true"
+              />
+            )}
+
+            {/* Desktop Right Panel Resize Handle */}
+            {isRightPanelVisible && isDesktop && (
               <button
-                className="w-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-col-resize focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-1 bg-border-secondary hover:bg-border-primary cursor-col-resize focus:outline-none focus:ring-2 focus:ring-primary-500"
                 onMouseDown={handleRightPanelResize}
                 aria-label="Redimensionar painel do copiloto"
-              ></button>
+              />
             )}
 
             {/* Right Panel - Copilot */}
             {isRightPanelVisible && (
               <div
-                className="bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col"
-                style={{ width: rightPanelWidth }}
+                className={`
+                  bg-surface-primary border-l border-border-primary flex flex-col
+                  transition-transform duration-300 ease-in-out
+                  ${isMobile 
+                    ? 'fixed inset-y-0 right-0 z-40 w-80' 
+                    : 'relative'
+                  }
+                `}
+                style={isDesktop ? { width: rightPanelWidth } : {}}
               >
+                <div className="p-3 border-b border-border-primary flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wide">
+                    Copilot
+                  </h2>
+                  {isMobile && (
+                    <button
+                      onClick={() => setIsRightPanelVisible(false)}
+                      className="touch-target p-1 text-text-secondary hover:text-text-primary"
+                      aria-label="Fechar copilot"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
                 <CopilotPanel
                   workspaceName={workspace.name}
                   workspacePath={workspace.path}
@@ -208,25 +353,44 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
           </div>
 
           {/* Bottom Panel Resize Handle */}
-          {isBottomPanelVisible && (
+          {isBottomPanelVisible && isDesktop && (
             <button
-              className="h-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-row-resize focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="h-1 bg-border-secondary hover:bg-border-primary cursor-row-resize focus:outline-none focus:ring-2 focus:ring-primary-500"
               onMouseDown={handleBottomPanelResize}
               aria-label="Redimensionar painel inferior"
-            ></button>
+            />
           )}
 
           {/* Bottom Panel (Terminal) */}
           {isBottomPanelVisible && (
             <div
-              className="bg-gray-900 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700"
-              style={{
-                height: bottomPanelHeight,
-                width: isRightPanelVisible
-                  ? `calc(100% - ${rightPanelWidth}px)`
-                  : "100%",
-              }}
+              className={`
+                bg-surface-secondary border-t border-border-primary
+                ${isMobile ? 'fixed inset-x-0 bottom-0 z-40 h-80' : ''}
+              `}
+              style={
+                !isMobile
+                  ? {
+                      height: bottomPanelHeight,
+                      width: isRightPanelVisible && isDesktop
+                        ? `calc(100% - ${rightPanelWidth}px)`
+                        : "100%",
+                    }
+                  : {}
+              }
             >
+              <div className="p-3 border-b border-border-primary flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wide">
+                  Terminal
+                </h2>
+                <button
+                  onClick={() => setIsBottomPanelVisible(false)}
+                  className="touch-target p-1 text-text-secondary hover:text-text-primary"
+                  aria-label="Fechar terminal"
+                >
+                  ×
+                </button>
+              </div>
               <Terminal
                 workspaceName={workspace.name}
                 workspacePath={workspace.path}
@@ -237,27 +401,53 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
         </div>
       </div>
 
-      {/* Status Bar */}
-      <footer className="h-6 bg-blue-600 dark:bg-blue-700 flex items-center justify-between px-4">
-        <div className="flex items-center space-x-4 text-xs text-white">
-          <span>Ready</span>
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <div className="flex items-center justify-around bg-surface-primary border-t border-border-primary py-2 safe-area-inset-bottom">
           <button
-            onClick={() => setIsBottomPanelVisible(!isBottomPanelVisible)}
-            className="hover:bg-blue-500 dark:hover:bg-blue-600 px-2 py-0.5 rounded"
+            onClick={() => handleMobileNavigation("explorer")}
+            className={`touch-target flex flex-col items-center px-3 py-2 rounded-md ${
+              activeMobileSection === "explorer" 
+                ? "bg-primary-100 text-primary-600" 
+                : "text-text-secondary"
+            }`}
           >
-            Terminal
+            <span className="text-xs font-medium">Explorer</span>
           </button>
           <button
-            onClick={() => setIsRightPanelVisible(!isRightPanelVisible)}
-            className="hover:bg-blue-500 dark:hover:bg-blue-600 px-2 py-0.5 rounded"
+            onClick={() => handleMobileNavigation("terminal")}
+            className={`touch-target flex flex-col items-center px-3 py-2 rounded-md ${
+              activeMobileSection === "terminal" 
+                ? "bg-primary-100 text-primary-600" 
+                : "text-text-secondary"
+            }`}
           >
-            Copilot
+            <span className="text-xs font-medium">Terminal</span>
+          </button>
+          <button
+            onClick={() => handleMobileNavigation("copilot")}
+            className={`touch-target flex flex-col items-center px-3 py-2 rounded-md ${
+              activeMobileSection === "copilot" 
+                ? "bg-primary-100 text-primary-600" 
+                : "text-text-secondary"
+            }`}
+          >
+            <span className="text-xs font-medium">Copilot</span>
           </button>
         </div>
-        <div className="text-xs text-white">
-          {workspace.name} - {workspace.path}
-        </div>
-      </footer>
+      )}
+
+      {/* Desktop Status Bar */}
+      {!isMobile && (
+        <footer className="h-6 bg-primary-600 flex items-center justify-between px-4">
+          <div className="flex items-center space-x-4 text-xs text-white">
+            <span>Ready</span>
+            <span className="text-xs">
+              {workspace.name} - {workspace.path}
+            </span>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }

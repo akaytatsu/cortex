@@ -39,43 +39,46 @@ export default function Workspaces() {
     useLoaderData<typeof loader>();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-6 px-4 sm:px-0">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Your Workspaces
+    <div className="min-h-screen bg-background-primary">
+      {/* Mobile-first Container */}
+      <div className="mobile-container tablet-container desktop-container py-4 md:py-6">
+        {/* Header - Mobile Optimized */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+          <h1 className="text-xl md:text-2xl font-bold text-text-primary">
+            Seus Workspaces
           </h1>
           <LogoutButton />
         </div>
 
+        {/* Error Message */}
         {errorMessage && (
-          <div className="px-4 sm:px-0 mb-4">
-            <div className="rounded-md bg-red-50 p-4 dark:bg-red-900/20">
-              <div className="text-sm text-red-700 dark:text-red-400">
+          <div className="mb-4">
+            <div className="rounded-md bg-error-50 p-4 border border-error-200">
+              <div className="text-sm text-error-700">
                 {errorMessage}
               </div>
             </div>
           </div>
         )}
 
+        {/* Success Message */}
         {successMessage && (
-          <div className="px-4 sm:px-0 mb-4">
-            <div className="rounded-md bg-green-50 p-4 dark:bg-green-900/20">
-              <div className="text-sm text-green-700 dark:text-green-400">
+          <div className="mb-4">
+            <div className="rounded-md bg-success-50 p-4 border border-success-200">
+              <div className="text-sm text-success-700">
                 {successMessage}
               </div>
             </div>
           </div>
         )}
 
-        <div className="px-4 py-6 sm:px-0">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            {workspaces.length === 0 ? (
-              <EmptyWorkspaces />
-            ) : (
-              <WorkspaceList workspaces={workspaces} />
-            )}
-          </div>
+        {/* Main Content - Mobile Optimized */}
+        <div className="card-base p-4 md:p-6">
+          {workspaces.length === 0 ? (
+            <EmptyWorkspaces />
+          ) : (
+            <WorkspaceList workspaces={workspaces} />
+          )}
         </div>
       </div>
     </div>
