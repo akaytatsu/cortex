@@ -80,13 +80,13 @@ export function ScrollableTabs({
 
   // Swipe gestures for tab navigation
   const { attachSwipeListeners } = useSwipeGestures({
-    onSwipeLeft: (distance, velocity) => {
+    onSwipeLeft: (distance) => {
       if (isMobile && distance > 30) {
         // Swipe left to go to next tab
         navigateToNextTab();
       }
     },
-    onSwipeRight: (distance, velocity) => {
+    onSwipeRight: (distance) => {
       if (isMobile && distance > 30) {
         // Swipe right to go to previous tab
         navigateToPreviousTab();

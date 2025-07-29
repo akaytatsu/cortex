@@ -30,8 +30,8 @@ describe('useAdaptiveDensity', () => {
       isTabletLandscape: false,
       isTabletPortrait: false,
       width: 375,
-      height: 667,
-      aspectRatio: 0.562,
+      height: 750, // Altura suficiente para não triggerar compact
+      aspectRatio: 0.5,
       orientation: 'portrait',
       angle: 0,
       isSupported: true,
@@ -176,8 +176,8 @@ describe('useAdaptiveDensity', () => {
       isTabletLandscape: false,
       isTabletPortrait: false,
       width: 375,
-      height: 667,
-      aspectRatio: 0.562,
+      height: 750, // Altura suficiente para não triggerar compact
+      aspectRatio: 0.5,
       orientation: 'portrait',
       angle: 0,
       isSupported: true,
@@ -217,8 +217,8 @@ describe('useComponentDensity', () => {
       isTabletLandscape: false,
       isTabletPortrait: false,
       width: 375,
-      height: 667,
-      aspectRatio: 0.562,
+      height: 750, // Altura suficiente para não triggerar compact
+      aspectRatio: 0.5,
       orientation: 'portrait',
       angle: 0,
       isSupported: true,

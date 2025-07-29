@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { useResponsiveOrientation } from './useOrientation';
 
 export type DensityLevel = 'compact' | 'normal' | 'comfortable' | 'spacious';
@@ -287,27 +288,10 @@ export function useComponentDensity(component: 'button' | 'input' | 'card' | 'li
 }
 
 /**
- * Componente wrapper para aplicar densidade adaptativa
+ * Props para componente wrapper de densidade adaptativa
  */
-interface AdaptiveDensityProviderProps {
-  children: React.ReactNode;
+export interface AdaptiveDensityProviderProps {
+  children: ReactNode;
   userPreference?: DensityLevel;
   className?: string;
-}
-
-export function AdaptiveDensityProvider({
-  children,
-  userPreference,
-  className = '',
-}: AdaptiveDensityProviderProps) {
-  const { classes, cssVariables } = useAdaptiveDensity(userPreference);
-
-  return (
-    <div
-      className={`${classes} ${className}`}
-      style={cssVariables as React.CSSProperties}
-    >
-      {children}
-    </div>
-  );
 }

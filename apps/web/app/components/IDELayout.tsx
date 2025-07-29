@@ -10,7 +10,7 @@ import { FileWebSocketProvider } from "../contexts/FileWebSocketContext";
 import { useViewportSize } from "../lib/responsive";
 import { useSwipeGestures } from "../hooks/useSwipeGestures";
 import { useResponsiveOrientation } from "../hooks/useOrientation";
-import { AdaptiveDensityProvider } from "../hooks/useAdaptiveDensity";
+import { AdaptiveDensityProvider } from "./layout/AdaptiveDensityProvider";
 
 interface IDELayoutProps {
   workspace: Workspace;
@@ -19,7 +19,7 @@ interface IDELayoutProps {
 
 export function IDELayout({ workspace, userId }: IDELayoutProps) {
   const { isMobile, isTablet, isDesktop } = useViewportSize();
-  const { orientation, isMobileLandscape, isMobilePortrait, aspectRatio } = useResponsiveOrientation();
+  const { orientation, isMobileLandscape, isMobilePortrait } = useResponsiveOrientation();
   const mainContentRef = useRef<HTMLDivElement>(null);
   
   // Mobile-first responsive state with orientation-aware defaults
@@ -94,14 +94,14 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
 
   // Swipe gestures for sidebar control
   const { attachSwipeListeners } = useSwipeGestures({
-    onSwipeRight: (distance, velocity) => {
+    onSwipeRight: (distance) => {
       // Swipe right to open sidebar (only from edge)
       if (isMobile && !isSidebarOpen && distance > 50) {
         setIsSidebarOpen(true);
         setActiveMobileSection("explorer");
       }
     },
-    onSwipeLeft: (distance, velocity) => {
+    onSwipeLeft: (distance) => {
       // Swipe left to close sidebar or navigate to next panel
       if (isMobile && distance > 50) {
         if (isSidebarOpen) {
@@ -112,14 +112,14 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
         }
       }
     },
-    onSwipeUp: (distance, velocity) => {
+    onSwipeUp: (distance) => {
       // Swipe up to show terminal
       if (isMobile && !isBottomPanelVisible && distance > 80) {
         setIsBottomPanelVisible(true);
         setActiveMobileSection("terminal");
       }
     },
-    onSwipeDown: (distance, velocity) => {
+    onSwipeDown: (distance) => {
       // Swipe down to hide terminal
       if (isMobile && isBottomPanelVisible && distance > 50) {
         setIsBottomPanelVisible(false);
