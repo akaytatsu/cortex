@@ -6,6 +6,8 @@ import { serviceContainer } from "../lib/service-container";
 import { LogoutButton } from "../components/LogoutButton";
 import { WorkspaceList } from "../components/WorkspaceList";
 import { EmptyWorkspaces } from "../components/EmptyWorkspaces";
+import PWAInstallButton from "../components/PWAInstallButton";
+import PWAUpdateNotification from "../components/PWAUpdateNotification";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   // Require authentication
@@ -47,7 +49,10 @@ export default function Workspaces() {
           <h1 className="text-xl md:text-2xl font-bold text-text-primary">
             Seus Workspaces
           </h1>
-          <LogoutButton />
+          <div className="flex items-center gap-3">
+            <PWAInstallButton />
+            <LogoutButton />
+          </div>
         </div>
 
         {/* Error Message */}
@@ -81,6 +86,9 @@ export default function Workspaces() {
           )}
         </div>
       </div>
+
+      {/* PWA Update Notification */}
+      <PWAUpdateNotification />
     </div>
   );
 }
