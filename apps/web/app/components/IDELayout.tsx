@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "@remix-run/react";
 import type { Workspace } from "shared-types";
 import { FileBrowser } from "./FileBrowser";
@@ -8,6 +8,9 @@ import { CopilotPanel } from "./CopilotPanel";
 import { MobileMenu } from "./layout/MobileMenu";
 import { FileWebSocketProvider } from "../contexts/FileWebSocketContext";
 import { useViewportSize } from "../lib/responsive";
+import { useSwipeGestures } from "../hooks/useSwipeGestures";
+import { useResponsiveOrientation } from "../hooks/useOrientation";
+import { AdaptiveDensityProvider } from "../hooks/useAdaptiveDensity";
 
 interface IDELayoutProps {
   workspace: Workspace;
@@ -16,12 +19,18 @@ interface IDELayoutProps {
 
 export function IDELayout({ workspace, userId }: IDELayoutProps) {
   const { isMobile, isTablet, isDesktop } = useViewportSize();
+  const { orientation, isMobileLandscape, isMobilePortrait, aspectRatio } = useResponsiveOrientation();
+  const mainContentRef = useRef<HTMLDivElement>(null);
   
-  // Mobile-first responsive state
+  // Mobile-first responsive state with orientation-aware defaults
   const [sidebarWidth, setSidebarWidth] = useState(280);
-  const [bottomPanelHeight, setBottomPanelHeight] = useState(200);
+  const [bottomPanelHeight, setBottomPanelHeight] = useState(() => 
+    isMobileLandscape ? 160 : 200 // Smaller in landscape for vertical space
+  );
   const [isBottomPanelVisible, setIsBottomPanelVisible] = useState(false);
-  const [rightPanelWidth, setRightPanelWidth] = useState(400);
+  const [rightPanelWidth, setRightPanelWidth] = useState(() => 
+    isMobileLandscape ? 320 : 400 // Slightly smaller in landscape
+  );
   const [isRightPanelVisible, setIsRightPanelVisible] = useState(!isMobile);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   
@@ -30,7 +39,7 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
   const [activeMobileSection, setActiveMobileSection] = useState<string>("explorer");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Responsive effects
+  // Responsive effects with orientation awareness
   useEffect(() => {
     if (isDesktop) {
       setIsSidebarOpen(true);
@@ -44,6 +53,28 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
       setIsRightPanelVisible(false);
     }
   }, [isMobile, isTablet, isDesktop]);
+
+  // Orientation-specific adjustments
+  useEffect(() => {
+    if (isMobileLandscape) {
+      // In landscape, prioritize horizontal space
+      setBottomPanelHeight(Math.min(bottomPanelHeight, 160));
+      setRightPanelWidth(Math.min(rightPanelWidth, 320));
+      
+      // Auto-close bottom panel in landscape if it's too tall
+      if (isBottomPanelVisible && bottomPanelHeight > 160) {
+        setIsBottomPanelVisible(false);
+      }
+    } else if (isMobilePortrait) {
+      // In portrait, allow more vertical space for panels
+      if (bottomPanelHeight < 180) {
+        setBottomPanelHeight(200);
+      }
+      if (rightPanelWidth < 350) {
+        setRightPanelWidth(400);
+      }
+    }
+  }, [orientation, isMobileLandscape, isMobilePortrait, bottomPanelHeight, rightPanelWidth, isBottomPanelVisible]);
 
   // Handle mobile navigation
   const handleMobileNavigation = (section: string) => {
@@ -60,6 +91,52 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
       setIsRightPanelVisible(false);
     }
   };
+
+  // Swipe gestures for sidebar control
+  const { attachSwipeListeners } = useSwipeGestures({
+    onSwipeRight: (distance, velocity) => {
+      // Swipe right to open sidebar (only from edge)
+      if (isMobile && !isSidebarOpen && distance > 50) {
+        setIsSidebarOpen(true);
+        setActiveMobileSection("explorer");
+      }
+    },
+    onSwipeLeft: (distance, velocity) => {
+      // Swipe left to close sidebar or navigate to next panel
+      if (isMobile && distance > 50) {
+        if (isSidebarOpen) {
+          setIsSidebarOpen(false);
+        } else if (!isRightPanelVisible) {
+          setIsRightPanelVisible(true);
+          setActiveMobileSection("copilot");
+        }
+      }
+    },
+    onSwipeUp: (distance, velocity) => {
+      // Swipe up to show terminal
+      if (isMobile && !isBottomPanelVisible && distance > 80) {
+        setIsBottomPanelVisible(true);
+        setActiveMobileSection("terminal");
+      }
+    },
+    onSwipeDown: (distance, velocity) => {
+      // Swipe down to hide terminal
+      if (isMobile && isBottomPanelVisible && distance > 50) {
+        setIsBottomPanelVisible(false);
+      }
+    },
+    minSwipeDistance: 40,
+    swipeThreshold: 20,
+    enabled: isMobile,
+  });
+
+  // Attach swipe listeners to main content
+  useEffect(() => {
+    if (mainContentRef.current && isMobile) {
+      const cleanup = attachSwipeListeners(mainContentRef.current);
+      return cleanup;
+    }
+  }, [attachSwipeListeners, isMobile]);
 
   const handleSidebarResize = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -142,9 +219,12 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background-primary">
-      {/* Mobile-First Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-surface-primary border-b border-border-primary min-h-[60px]">
+    <AdaptiveDensityProvider className="h-screen flex flex-col bg-background-primary">
+      {/* Mobile-First Header with orientation-specific height */}
+      <header className={`
+        flex items-center justify-between px-4 bg-surface-primary border-b border-border-primary
+        ${isMobileLandscape ? 'py-2 min-h-[50px]' : 'py-3 min-h-[60px]'}
+      `}>
         <div className="flex items-center space-x-3 flex-1 min-w-0">
           {/* Mobile Menu Button */}
           {isMobile && (
@@ -202,7 +282,7 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
       </header>
 
       {/* Main Layout - Mobile First */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div ref={mainContentRef} className="flex-1 flex overflow-hidden relative">
         {/* Mobile Sidebar Overlay */}
         {(isSidebarOpen && isMobile) && (
           <div
@@ -212,13 +292,13 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
           />
         )}
         
-        {/* Sidebar - File Explorer */}
+        {/* Sidebar - File Explorer with orientation-specific width */}
         <div
           className={`
             flex flex-col bg-surface-primary border-r border-border-primary
             transition-transform duration-300 ease-in-out
             ${isMobile 
-              ? `fixed inset-y-0 left-0 z-40 w-80 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}` 
+              ? `fixed inset-y-0 left-0 z-40 ${isMobileLandscape ? 'w-72' : 'w-80'} ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}` 
               : isDesktop && isSidebarOpen 
                 ? 'relative' 
                 : 'hidden'
@@ -315,14 +395,14 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
               />
             )}
 
-            {/* Right Panel - Copilot */}
+            {/* Right Panel - Copilot with orientation-specific width */}
             {isRightPanelVisible && (
               <div
                 className={`
                   bg-surface-primary border-l border-border-primary flex flex-col
                   transition-transform duration-300 ease-in-out
                   ${isMobile 
-                    ? 'fixed inset-y-0 right-0 z-40 w-80' 
+                    ? `fixed inset-y-0 right-0 z-40 ${isMobileLandscape ? 'w-72' : 'w-80'}` 
                     : 'relative'
                   }
                 `}
@@ -361,12 +441,12 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
             />
           )}
 
-          {/* Bottom Panel (Terminal) */}
+          {/* Bottom Panel (Terminal) with orientation-specific height */}
           {isBottomPanelVisible && (
             <div
               className={`
                 bg-surface-secondary border-t border-border-primary
-                ${isMobile ? 'fixed inset-x-0 bottom-0 z-40 h-80' : ''}
+                ${isMobile ? `fixed inset-x-0 bottom-0 z-40 ${isMobileLandscape ? 'h-64' : 'h-80'}` : ''}
               `}
               style={
                 !isMobile
@@ -401,9 +481,12 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation with orientation-specific layout */}
       {isMobile && (
-        <div className="flex items-center justify-around bg-surface-primary border-t border-border-primary py-2 safe-area-inset-bottom">
+        <div className={`
+          flex items-center justify-around bg-surface-primary border-t border-border-primary safe-area-inset-bottom
+          ${isMobileLandscape ? 'py-1' : 'py-2'}
+        `}>
           <button
             onClick={() => handleMobileNavigation("explorer")}
             className={`touch-target flex flex-col items-center px-3 py-2 rounded-md ${
@@ -448,6 +531,6 @@ export function IDELayout({ workspace, userId }: IDELayoutProps) {
           </div>
         </footer>
       )}
-    </div>
+    </AdaptiveDensityProvider>
   );
 }

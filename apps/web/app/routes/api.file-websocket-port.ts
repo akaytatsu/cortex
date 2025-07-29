@@ -1,6 +1,5 @@
 import { json } from "@remix-run/node";
-import { fileWebSocketServer } from "../lib/websocket-file-server";
-import { FileWebSocketServer } from "../lib/websocket-file-server";
+import { fileWebSocketServer , FileWebSocketServer } from "../lib/websocket-file-server";
 
 export async function loader() {
   try {

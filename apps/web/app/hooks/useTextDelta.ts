@@ -34,7 +34,7 @@ export function useTextDelta(): UseTextDeltaReturn {
 
       // Simple character-by-character diff
       let i = 0;
-      let j = 0;
+      const j = 0;
       const oldLength = oldText.length;
       const newLength = newText.length;
 

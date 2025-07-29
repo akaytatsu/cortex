@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import { Button } from "../ui/Button";
+import { useSwipeGestures } from "../../hooks/useSwipeGestures";
+import { useViewportSize } from "../../lib/responsive";
 
 interface Tab {
   id: string;
@@ -22,6 +24,7 @@ export function ScrollableTabs({
   onTabClose, 
   className = "" 
 }: ScrollableTabsProps) {
+  const { isMobile } = useViewportSize();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -57,6 +60,51 @@ export function ScrollableTabs({
       container.scrollBy({ left: 150, behavior: "smooth" });
     }
   };
+
+  // Navigate to next/previous tab
+  const navigateToNextTab = () => {
+    const activeTabIndex = tabs.findIndex(tab => tab.isActive);
+    const nextIndex = Math.min(activeTabIndex + 1, tabs.length - 1);
+    if (nextIndex !== activeTabIndex && tabs[nextIndex]) {
+      onTabSelect(tabs[nextIndex].id);
+    }
+  };
+
+  const navigateToPreviousTab = () => {
+    const activeTabIndex = tabs.findIndex(tab => tab.isActive);
+    const prevIndex = Math.max(activeTabIndex - 1, 0);
+    if (prevIndex !== activeTabIndex && tabs[prevIndex]) {
+      onTabSelect(tabs[prevIndex].id);
+    }
+  };
+
+  // Swipe gestures for tab navigation
+  const { attachSwipeListeners } = useSwipeGestures({
+    onSwipeLeft: (distance, velocity) => {
+      if (isMobile && distance > 30) {
+        // Swipe left to go to next tab
+        navigateToNextTab();
+      }
+    },
+    onSwipeRight: (distance, velocity) => {
+      if (isMobile && distance > 30) {
+        // Swipe right to go to previous tab
+        navigateToPreviousTab();
+      }
+    },
+    minSwipeDistance: 25,
+    swipeThreshold: 15,
+    enabled: isMobile && tabs.length > 1,
+    preventDefault: false, // Allow scrolling to work normally
+  });
+
+  // Attach swipe listeners to tabs container
+  useEffect(() => {
+    if (scrollContainerRef.current && isMobile && tabs.length > 1) {
+      const cleanup = attachSwipeListeners(scrollContainerRef.current);
+      return cleanup;
+    }
+  }, [attachSwipeListeners, isMobile, tabs.length]);
 
   if (tabs.length === 0) return null;
 

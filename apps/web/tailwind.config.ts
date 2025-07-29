@@ -296,28 +296,112 @@ export default {
         },
       });
 
-      // Density Utilities
+      // Adaptive Density Utilities
       addUtilities({
         '.density-compact': {
-          '--button-height': 'var(--button-height-compact)',
-          '--input-height': 'var(--input-height-compact)',
-          '--card-padding': 'var(--card-padding-compact)',
-          '--component-gap': 'var(--component-gap-compact)',
-          '--icon-size': 'var(--icon-size-compact)',
+          '--density-spacing-xs': '0.25rem',
+          '--density-spacing-sm': '0.5rem',
+          '--density-spacing-md': '0.75rem',
+          '--density-spacing-lg': '1rem',
+          '--density-spacing-xl': '1.25rem',
+          '--density-font-size': '0.75rem',
+          '--density-line-height': '1rem',
+          '--density-button-height': '32px',
+          '--density-input-height': '32px',
+          '--density-icon-size': '16px',
+          '--density-padding': '0.5rem',
+          '--density-gap': '0.5rem',
+          '--density-header-height': '44px',
+          '--density-navigation-height': '48px',
+          '--density-sidebar-width': '240px',
+          '--density-panel-width': '260px',
+        },
+        '.density-normal': {
+          '--density-spacing-xs': '0.375rem',
+          '--density-spacing-sm': '0.75rem',
+          '--density-spacing-md': '1rem',
+          '--density-spacing-lg': '1.25rem',
+          '--density-spacing-xl': '1.5rem',
+          '--density-font-size': '0.875rem',
+          '--density-line-height': '1.25rem',
+          '--density-button-height': '36px',
+          '--density-input-height': '36px',
+          '--density-icon-size': '18px',
+          '--density-padding': '0.75rem',
+          '--density-gap': '0.75rem',
+          '--density-header-height': '52px',
+          '--density-navigation-height': '56px',
+          '--density-sidebar-width': '260px',
+          '--density-panel-width': '280px',
         },
         '.density-comfortable': {
-          '--button-height': 'var(--button-height-comfortable)',
-          '--input-height': 'var(--input-height-comfortable)',
-          '--card-padding': 'var(--card-padding-comfortable)',
-          '--component-gap': 'var(--component-gap-comfortable)',
-          '--icon-size': 'var(--icon-size-comfortable)',
+          '--density-spacing-xs': '0.5rem',
+          '--density-spacing-sm': '1rem',
+          '--density-spacing-md': '1.25rem',
+          '--density-spacing-lg': '1.5rem',
+          '--density-spacing-xl': '2rem',
+          '--density-font-size': '1rem',
+          '--density-line-height': '1.5rem',
+          '--density-button-height': '44px',
+          '--density-input-height': '44px',
+          '--density-icon-size': '20px',
+          '--density-padding': '1rem',
+          '--density-gap': '1rem',
+          '--density-header-height': '60px',
+          '--density-navigation-height': '64px',
+          '--density-sidebar-width': '280px',
+          '--density-panel-width': '320px',
         },
         '.density-spacious': {
-          '--button-height': 'var(--button-height-spacious)',
-          '--input-height': 'var(--input-height-spacious)',
-          '--card-padding': 'var(--card-padding-spacious)',
-          '--component-gap': 'var(--component-gap-spacious)',
-          '--icon-size': 'var(--icon-size-spacious)',
+          '--density-spacing-xs': '0.75rem',
+          '--density-spacing-sm': '1.25rem',
+          '--density-spacing-md': '1.5rem',
+          '--density-spacing-lg': '2rem',
+          '--density-spacing-xl': '2.5rem',
+          '--density-font-size': '1.125rem',
+          '--density-line-height': '1.75rem',
+          '--density-button-height': '48px',
+          '--density-input-height': '48px',
+          '--density-icon-size': '24px',
+          '--density-padding': '1.25rem',
+          '--density-gap': '1.25rem',
+          '--density-header-height': '68px',
+          '--density-navigation-height': '72px',
+          '--density-sidebar-width': '320px',
+          '--density-panel-width': '360px',
+        },
+        // Orientation-specific density classes
+        '.density-landscape-mobile': {
+          '@media (orientation: landscape) and (max-width: 768px)': {
+            '--density-header-height': 'calc(var(--density-header-height) * 0.85)',
+            '--density-navigation-height': 'calc(var(--density-navigation-height) * 0.85)',
+            '--density-padding': 'calc(var(--density-padding) * 0.75)',
+            '--density-gap': 'calc(var(--density-gap) * 0.75)',
+          },
+        },
+        '.density-portrait-mobile': {
+          '@media (orientation: portrait) and (max-width: 768px) and (max-height: 700px)': {
+            '--density-spacing-md': 'calc(var(--density-spacing-md) * 0.85)',
+            '--density-padding': 'calc(var(--density-padding) * 0.9)',
+          },
+        },
+        '.density-landscape-tablet': {
+          '@media (orientation: landscape) and (min-width: 768px) and (max-width: 1024px)': {
+            '--density-sidebar-width': 'calc(var(--density-sidebar-width) * 1.1)',
+            '--density-panel-width': 'calc(var(--density-panel-width) * 1.1)',
+          },
+        },
+        '.density-portrait-tablet': {
+          '@media (orientation: portrait) and (min-width: 768px) and (max-width: 1024px)': {
+            '--density-header-height': 'calc(var(--density-header-height) * 1.1)',
+            '--density-navigation-height': 'calc(var(--density-navigation-height) * 1.1)',
+          },
+        },
+        '.density-desktop': {
+          '@media (min-width: 1024px)': {
+            '--density-sidebar-width': 'calc(var(--density-sidebar-width) * 1.2)',
+            '--density-panel-width': 'calc(var(--density-panel-width) * 1.2)',
+          },
         },
       });
 
@@ -468,6 +552,128 @@ export default {
           },
           '&:active': {
             backgroundColor: 'var(--color-surface-pressed)',
+          },
+        },
+      });
+
+      // Landscape-specific utilities
+      addUtilities({
+        '.landscape-optimized': {
+          '@media (orientation: landscape) and (max-width: 768px)': {
+            '--landscape-padding': '0.5rem',
+            '--landscape-gap': '0.5rem',
+          },
+        },
+        '.landscape-header': {
+          '@media (orientation: landscape) and (max-width: 768px)': {
+            height: '48px',
+            paddingTop: '0.5rem',
+            paddingBottom: '0.5rem',
+          },
+        },
+        '.landscape-sidebar': {
+          '@media (orientation: landscape) and (max-width: 768px)': {
+            width: '260px',
+          },
+        },
+        '.landscape-panel': {
+          '@media (orientation: landscape) and (max-width: 768px)': {
+            width: '280px',
+          },
+        },
+        '.landscape-navigation': {
+          '@media (orientation: landscape) and (max-width: 768px)': {
+            height: '40px',
+            paddingTop: '0.25rem',
+            paddingBottom: '0.25rem',
+          },
+        },
+        '.landscape-compact': {
+          '@media (orientation: landscape) and (max-width: 768px)': {
+            fontSize: '0.875rem',
+            lineHeight: '1.25rem',
+            padding: '0.5rem',
+          },
+        },
+        '.ultra-wide-landscape': {
+          '@media (orientation: landscape) and (min-aspect-ratio: 2/1) and (max-width: 768px)': {
+            '--landscape-sidebar-width': '280px',
+            '--landscape-panel-width': '320px',
+          },
+        },
+        '.standard-landscape': {
+          '@media (orientation: landscape) and (min-aspect-ratio: 3/2) and (max-aspect-ratio: 2/1) and (max-width: 768px)': {
+            '--landscape-sidebar-width': '260px',
+            '--landscape-panel-width': '280px',
+          },
+        },
+        // Portrait-specific utilities
+        '.portrait-optimized': {
+          '@media (orientation: portrait) and (max-width: 768px)': {
+            '--portrait-padding': '1rem',
+            '--portrait-gap': '0.75rem',
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingBottom: 'env(safe-area-inset-bottom)',
+          },
+        },
+        '.portrait-header': {
+          '@media (orientation: portrait) and (max-width: 768px)': {
+            height: 'var(--portrait-header-height, 60px)',
+            paddingTop: '0.75rem',
+            paddingBottom: '0.75rem',
+          },
+        },
+        '.portrait-navigation': {
+          '@media (orientation: portrait) and (max-width: 768px)': {
+            height: 'var(--portrait-navigation-height, 64px)',
+            paddingTop: '0.5rem',
+            paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))',
+          },
+        },
+        '.portrait-content': {
+          '@media (orientation: portrait) and (max-width: 768px)': {
+            padding: 'var(--portrait-content-padding, 16px)',
+            gap: 'var(--portrait-section-gap, 12px)',
+          },
+        },
+        '.portrait-panel': {
+          '@media (orientation: portrait) and (max-width: 768px)': {
+            minHeight: 'var(--portrait-panel-min-height, 240px)',
+            maxHeight: 'var(--portrait-panel-max-height, 320px)',
+          },
+        },
+        '.portrait-small-screen': {
+          '@media (orientation: portrait) and (max-width: 768px) and (max-height: 700px)': {
+            '--portrait-header-height': '52px',
+            '--portrait-navigation-height': '56px',
+            '--portrait-section-gap': '8px',
+            '--portrait-content-padding': '12px',
+            '--portrait-panel-min-height': '200px',
+          },
+        },
+        '.portrait-tall-screen': {
+          '@media (orientation: portrait) and (max-width: 768px) and (min-height: 800px)': {
+            '--portrait-panel-max-height': '400px',
+            '--portrait-content-padding': '20px',
+            '--portrait-section-gap': '16px',
+          },
+        },
+        '.resize-handle': {
+          position: 'absolute',
+          top: '0',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '60px',
+          height: '4px',
+          backgroundColor: 'var(--color-border-primary)',
+          borderRadius: '2px',
+          cursor: 'row-resize',
+          touchAction: 'none',
+          '&:hover': {
+            backgroundColor: 'var(--color-border-focus)',
+          },
+          '&:active': {
+            backgroundColor: 'var(--color-primary-500)',
           },
         },
       });

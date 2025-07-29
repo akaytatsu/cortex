@@ -11,6 +11,7 @@ import {
   WifiOff,
   Clock,
   Settings,
+  Monitor,
 } from "lucide-react";
 import type {
   FileContent,
@@ -26,6 +27,11 @@ import { useDebounceCallback } from "../hooks/useDebounce";
 import { useTextDelta } from "../hooks/useTextDelta";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useEditorSettings } from "../hooks/useEditorSettings";
+import { useViewportSize } from "../lib/responsive";
+import { useTouchDevice, useTouchClasses } from "../hooks/useTouchDevice";
+import { CompactCodeViewer } from "./CompactCodeViewer";
+import { MobileEditorToolbar } from "./MobileEditorToolbar";
+import { GestureEnabledEditor } from "./GestureEnabledEditor";
 
 // Temporarily removing Prism.js to avoid import issues
 
@@ -88,7 +94,6 @@ function getLanguageFromMimeType(mimeType: string, fileName: string): string {
 export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
   const fetcher = useFetcher<{ fileContent: FileContent; error?: string }>();
   const saveFetcher = useFetcher<FileSaveResponse>();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editedContentRef = useRef<string>("");
   const [fileContent, setFileContent] = useState<FileContent | null>(null);
   const [editedContent, setEditedContent] = useState<string>("");
@@ -104,6 +109,12 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
   const [lastTextChangeStatus, setLastTextChangeStatus] = useState<
     "sending" | "sent" | "error" | null
   >(null);
+  const [fontSize, setFontSize] = useState<number>(13);
+  const [isCompactMode, setIsCompactMode] = useState<boolean>(false);
+  const [showMobileToolbar, setShowMobileToolbar] = useState<boolean>(false);
+  const [showLineNumbers, setShowLineNumbers] = useState<boolean>(true);
+  const [showMinimap, setShowMinimap] = useState<boolean>(false);
+  const [wordWrap, setWordWrap] = useState<boolean>(false);
 
   // WebSocket connection
   const {
@@ -126,9 +137,14 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
 
   // Editor settings
   const { settings, toggleAutoSave } = useEditorSettings();
+  
+  // Responsive hooks
+  const { isMobile, width } = useViewportSize();
+  const { isTouchDevice } = useTouchDevice();
+  const touchClasses = useTouchClasses();
 
   // Auto-save functionality
-  const { isAutoSaving, lastAutoSave, cancelAutoSave } = useAutoSave({
+  const { isAutoSaving, lastAutoSave } = useAutoSave({
     enabled: settings.autoSave.enabled,
     interval: settings.autoSave.interval,
     isDirty,
@@ -204,11 +220,12 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
   }, []);
 
   // Handle text change acknowledgment
-  const handleTextChangeAck = useCallback((message: any) => {
+  const handleTextChangeAck = useCallback((message: unknown) => {
     setIsTextChangePending(false);
 
-    if (message.payload.success) {
-      setVersion(message.payload.version);
+    const payload = (message as { payload: { success: boolean; version: number } }).payload;
+    if (payload.success) {
+      setVersion(payload.version);
       setLastTextChangeStatus("sent");
     } else {
       setLastTextChangeStatus("error");
@@ -222,24 +239,32 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
 
   // Handle external file changes
   const handleExternalChange = useCallback(
-    (message: any) => {
+    (message: unknown) => {
+      const payload = (message as { 
+        payload: { 
+          path: string; 
+          newContent: string; 
+          lastModified: string; 
+        } 
+      }).payload;
+      
       // Only update if the external change is for the currently viewed file
-      if (message.payload.path === filePath) {
+      if (payload.path === filePath) {
         // Update file content with the new content from external change
         setFileContent(prevContent => {
           if (prevContent) {
             return {
               ...prevContent,
-              content: message.payload.newContent,
-              lastModified: new Date(message.payload.lastModified),
+              content: payload.newContent,
+              lastModified: new Date(payload.lastModified),
             };
           }
           return prevContent;
         });
 
         // Update the editor content reference AND the state
-        editedContentRef.current = message.payload.newContent;
-        setEditedContent(message.payload.newContent);
+        editedContentRef.current = payload.newContent;
+        setEditedContent(payload.newContent);
 
         // Reset dirty state since the file is now synced with disk
         setIsDirty(false);
@@ -549,6 +574,36 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
           </span>
         </div>
         <div className="flex items-center space-x-3">
+          {/* Compact Code Viewer Controls */}
+          <CompactCodeViewer
+            isCompactMode={isCompactMode}
+            onToggleCompact={setIsCompactMode}
+            fontSize={fontSize}
+            onFontSizeChange={setFontSize}
+            wordWrap={wordWrap}
+            onWordWrapChange={setWordWrap}
+            showLineNumbers={showLineNumbers}
+            onLineNumbersChange={setShowLineNumbers}
+            showMinimap={showMinimap}
+            onMinimapChange={setShowMinimap}
+            isMobile={isMobile}
+          />
+          
+          {/* Mobile Toolbar Toggle */}
+          {isMobile && (
+            <button
+              onClick={() => setShowMobileToolbar(!showMobileToolbar)}
+              className={`${touchClasses.button("sm")} px-2 py-1 rounded text-xs ${
+                showMobileToolbar
+                  ? "bg-blue-200 dark:bg-blue-800 text-blue-700 dark:text-blue-300"
+                  : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+              }`}
+              title="Toolbar mobile"
+            >
+              <Monitor className="w-3 h-3" />
+            </button>
+          )}
+          
           {/* Auto-save status indicator */}
           {settings.autoSave.enabled && settings.autoSave.showIndicator && (
             <div className="flex items-center space-x-1 text-xs">
@@ -663,18 +718,40 @@ export function CodeViewer({ workspaceName, filePath }: CodeViewerProps) {
         </div>
       </div>
 
+      {/* Mobile Editor Toolbar */}
+      <MobileEditorToolbar
+        fontSize={fontSize}
+        onFontSizeChange={setFontSize}
+        isCompactMode={isCompactMode}
+        onToggleCompact={setIsCompactMode}
+        theme="dark"
+        language={language}
+        isVisible={isMobile && showMobileToolbar}
+        onClose={() => setShowMobileToolbar(false)}
+        hasSelection={false}
+        currentLine={1}
+        totalLines={editedContent.split("\n").length}
+        errorCount={0}
+      />
+
       {/* Editor Content */}
       <div className="flex-1 relative">
-        <textarea
-          ref={textareaRef}
+        <GestureEnabledEditor
           value={editedContent}
-          onChange={e => handleContentChange(e.target.value)}
-          className="w-full h-full p-4 text-sm font-mono leading-relaxed bg-transparent border-none outline-none resize-none text-gray-800 dark:text-gray-200"
-          style={{
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-          }}
-          spellCheck={false}
+          onChange={handleContentChange}
+          language={language}
+          theme={"vs-dark"}
+          fontSize={fontSize}
+          isCompactMode={isCompactMode}
+          isMobile={isMobile}
+          isTouch={isTouchDevice}
+          width={width}
+          readonly={false}
+          showLineNumbers={showLineNumbers}
+          showMinimap={showMinimap}
+          wordWrap={wordWrap}
+          enableGestures={isTouchDevice}
+          showGestureControls={isMobile && isTouchDevice}
         />
       </div>
 
